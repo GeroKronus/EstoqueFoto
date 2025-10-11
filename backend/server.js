@@ -78,6 +78,61 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Rota de debug - verificar conexão e dados
+app.get('/api/debug', async (req, res) => {
+    const { query } = require('./database/connection');
+
+    try {
+        // 1. Testar conexão
+        const connectionTest = await query('SELECT NOW() as current_time, version() as pg_version');
+
+        // 2. Contar usuários
+        const userCount = await query('SELECT COUNT(*) as total FROM users');
+
+        // 3. Listar usuários (sem senha)
+        const users = await query('SELECT id, username, name, role, active, created_at FROM users ORDER BY created_at DESC LIMIT 10');
+
+        // 4. Verificar variáveis de ambiente
+        const envCheck = {
+            DATABASE_URL_EXISTS: !!process.env.DATABASE_URL,
+            DATABASE_URL_PREFIX: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 20) + '...' : 'NOT SET',
+            NODE_ENV: process.env.NODE_ENV,
+            PORT: process.env.PORT
+        };
+
+        res.json({
+            status: 'OK',
+            timestamp: new Date().toISOString(),
+            database: {
+                connected: true,
+                current_time: connectionTest.rows[0].current_time,
+                postgresql_version: connectionTest.rows[0].pg_version
+            },
+            users: {
+                total_count: parseInt(userCount.rows[0].total),
+                list: users.rows
+            },
+            environment: envCheck
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            status: 'ERROR',
+            timestamp: new Date().toISOString(),
+            error: error.message,
+            database: {
+                connected: false,
+                error_code: error.code,
+                error_detail: error.detail
+            },
+            environment: {
+                DATABASE_URL_EXISTS: !!process.env.DATABASE_URL,
+                NODE_ENV: process.env.NODE_ENV
+            }
+        });
+    }
+});
+
 // Servir arquivos estáticos do frontend
 app.use(express.static(path.join(__dirname, 'public')));
 
