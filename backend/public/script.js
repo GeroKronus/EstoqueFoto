@@ -24,7 +24,10 @@ class PhotoInventoryManager {
         this.items = await this.loadItems();
         console.log('Equipamentos carregados:', this.items.length);
 
-        this.transactions = this.loadTransactions();
+        console.log('Carregando transações do PostgreSQL...');
+        this.transactions = await this.loadTransactions();
+        console.log('Transações carregadas:', this.transactions.length);
+
         this.settings = this.loadSettings();
         this.initializeEventListeners();
         this.setupUserInterface();
@@ -67,9 +70,32 @@ class PhotoInventoryManager {
         }
     }
 
-    loadTransactions() {
-        const stored = localStorage.getItem('photoTransactions');
-        return stored ? JSON.parse(stored) : [];
+    async loadTransactions() {
+        try {
+            const response = await window.api.getTransactions({ limit: 1000 });
+            if (response && response.transactions) {
+                // Mapear formato do backend para formato esperado pelo frontend
+                return response.transactions.map(t => ({
+                    id: t.id,
+                    type: t.type,
+                    itemName: t.equipment?.name || '',
+                    category: t.equipment?.category?.slug || '',
+                    quantity: t.quantity,
+                    unit: t.equipment?.unit || '',
+                    cost: t.cost || 0,
+                    totalCost: (t.quantity || 0) * (t.cost || 0),
+                    supplier: t.supplier || '',
+                    reason: t.reason || '',
+                    destination: t.destination || '',
+                    notes: t.notes || '',
+                    timestamp: t.createdAt
+                }));
+            }
+            return [];
+        } catch (error) {
+            console.error('Erro ao carregar transações:', error);
+            return [];
+        }
     }
 
     loadSettings() {
@@ -269,13 +295,13 @@ class PhotoInventoryManager {
         const notes = document.getElementById('entryNotes').value;
 
         if (!itemId || !quantity || quantity <= 0) {
-            alert('Por favor, selecione um equipamento e informe a quantidade.');
+            window.notify.warning('Por favor, selecione um equipamento e informe a quantidade.');
             return;
         }
 
         const item = this.items.find(i => i.id === itemId);
         if (!item) {
-            alert('Equipamento não encontrado!');
+            window.notify.error('Equipamento não encontrado!');
             return;
         }
 
@@ -301,11 +327,11 @@ class PhotoInventoryManager {
             closeModal('entryModal');
 
             document.getElementById('entryForm').reset();
-            alert(`Entrada registrada: ${quantity} ${item.unit} de ${item.name}`);
+            window.notify.success(`Entrada registrada: ${quantity} ${item.unit} de ${item.name}`);
 
         } catch (error) {
             console.error('Erro ao registrar entrada:', error);
-            alert(`Erro ao registrar entrada: ${error.message}`);
+            window.notify.error(`Erro ao registrar entrada: ${error.message}`);
         }
     }
 
@@ -317,18 +343,18 @@ class PhotoInventoryManager {
         const notes = document.getElementById('exitNotes').value;
 
         if (!itemId || !quantity || quantity <= 0 || !reason) {
-            alert('Por favor, preencha todos os campos obrigatórios.');
+            window.notify.warning('Por favor, preencha todos os campos obrigatórios.');
             return;
         }
 
         const item = this.items.find(i => i.id === itemId);
         if (!item) {
-            alert('Equipamento não encontrado!');
+            window.notify.error('Equipamento não encontrado!');
             return;
         }
 
         if (quantity > item.quantity) {
-            alert(`Quantidade insuficiente! Disponível: ${item.quantity} ${item.unit}`);
+            window.notify.error(`Quantidade insuficiente! Disponível: ${item.quantity} ${item.unit}`);
             return;
         }
 
@@ -353,11 +379,11 @@ class PhotoInventoryManager {
             closeModal('exitModal');
 
             document.getElementById('exitForm').reset();
-            alert(`Saída registrada: ${quantity} ${item.unit} de ${item.name}`);
+            window.notify.success(`Saída registrada: ${quantity} ${item.unit} de ${item.name}`);
 
         } catch (error) {
             console.error('Erro ao registrar saída:', error);
-            alert(`Erro ao registrar saída: ${error.message}`);
+            window.notify.error(`Erro ao registrar saída: ${error.message}`);
         }
     }
 
@@ -371,7 +397,7 @@ class PhotoInventoryManager {
         const notes = document.getElementById('newProductNotes').value.trim();
 
         if (!category || !name || !unit || isNaN(minStock) || minStock < 1) {
-            alert('Por favor, preencha todos os campos obrigatórios corretamente.');
+            window.notify.warning('Por favor, preencha todos os campos obrigatórios corretamente.');
             return;
         }
 
@@ -379,7 +405,7 @@ class PhotoInventoryManager {
             // Buscar ID da categoria
             const categoryObj = this.categories.find(cat => cat.slug === category);
             if (!categoryObj) {
-                alert('Categoria não encontrada!');
+                window.notify.error('Categoria não encontrada!');
                 return;
             }
 
@@ -407,37 +433,45 @@ class PhotoInventoryManager {
             document.getElementById('addProductForm').reset();
 
             const categoryName = categoryObj ? categoryObj.name : category;
-            alert(`Equipamento "${name}" cadastrado com sucesso na categoria ${categoryName}!`);
+            window.notify.success(`Equipamento "${name}" cadastrado com sucesso na categoria ${categoryName}!`);
 
         } catch (error) {
             console.error('Erro ao cadastrar equipamento:', error);
-            alert(`Erro ao cadastrar equipamento: ${error.message}`);
+            window.notify.error(`Erro ao cadastrar equipamento: ${error.message}`);
         }
     }
 
     async deleteProduct(productId) {
         if (!photoAuthManager.isAdmin()) {
-            alert('Apenas administradores podem excluir equipamentos!');
+            window.notify.warning('Apenas administradores podem excluir equipamentos!');
             return;
         }
 
         const product = this.items.find(item => item.id === productId);
         if (!product) {
-            alert('Equipamento não encontrado!');
+            window.notify.error('Equipamento não encontrado!');
             return;
         }
 
         const hasStock = product.quantity > 0;
 
-        let confirmMessage = `Tem certeza que deseja excluir o equipamento "${product.name}"?\n\n`;
+        let confirmMessage = `Tem certeza que deseja excluir o equipamento "${product.name}"?`;
 
         if (hasStock) {
-            confirmMessage += `• O equipamento possui ${product.quantity} ${product.unit} em estoque\n`;
+            confirmMessage += `\n\nO equipamento possui ${product.quantity} ${product.unit} em estoque.\n\nEsta ação NÃO PODE ser desfeita!`;
+        } else {
+            confirmMessage += `\n\nEsta ação NÃO PODE ser desfeita!`;
         }
 
-        confirmMessage += `\nEsta ação NÃO PODE ser desfeita!`;
+        const confirmed = await window.notify.confirm({
+            title: 'Excluir Equipamento',
+            message: confirmMessage,
+            type: 'danger',
+            confirmText: 'Excluir',
+            cancelText: 'Cancelar'
+        });
 
-        if (!confirm(confirmMessage)) {
+        if (!confirmed) {
             return;
         }
 
@@ -454,17 +488,17 @@ class PhotoInventoryManager {
             this.updateSummary();
             this.populateModalSelects();
 
-            alert(`Equipamento "${product.name}" foi excluído com sucesso!`);
+            window.notify.success(`Equipamento "${product.name}" foi excluído com sucesso!`);
 
         } catch (error) {
             console.error('Erro ao excluir equipamento:', error);
-            alert(`Erro ao excluir equipamento: ${error.message}`);
+            window.notify.error(`Erro ao excluir equipamento: ${error.message}`);
         }
     }
 
-    addNewUser() {
+    async addNewUser() {
         if (!photoAuthManager.isAdmin()) {
-            alert('Apenas administradores podem cadastrar usuários!');
+            window.notify.warning('Apenas administradores podem cadastrar usuários!');
             return;
         }
 
@@ -473,151 +507,192 @@ class PhotoInventoryManager {
         const password = document.getElementById('newUserPassword').value;
         const confirmPassword = document.getElementById('newUserPasswordConfirm').value;
         const role = document.getElementById('newUserRole').value;
-        const notes = document.getElementById('newUserNotes').value.trim();
 
         if (!name || !username || !password || !role) {
-            alert('Por favor, preencha todos os campos obrigatórios.');
+            window.notify.warning('Por favor, preencha todos os campos obrigatórios.');
             return;
         }
 
         if (password !== confirmPassword) {
-            alert('As senhas não coincidem!');
+            window.notify.error('As senhas não coincidem!');
             return;
         }
 
         if (password.length < 6) {
-            alert('A senha deve ter pelo menos 6 caracteres!');
+            window.notify.warning('A senha deve ter pelo menos 6 caracteres!');
             return;
         }
 
         try {
-            const newUser = photoAuthManager.createUser(username, password, name, role);
+            console.log('Criando usuário no PostgreSQL...', { username, name, role });
 
-            const userCreationTransaction = {
-                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-                type: 'usuario_criado',
-                notes: `Usuário "${name}" (${username}) criado com perfil ${role}. ${notes ? 'Obs: ' + notes : ''}`,
-                timestamp: new Date().toISOString(),
-                user: photoAuthManager.getCurrentUser().name
-            };
+            const response = await window.api.createUser({
+                username,
+                password,
+                name,
+                role
+            });
 
-            this.transactions.push(userCreationTransaction);
-            this.saveData();
-            this.renderUsers();
+            console.log('Usuário criado com sucesso:', response);
+
+            // Recarregar lista de usuários
+            await this.renderUsers();
             closeModal('addUserModal');
 
             document.getElementById('addUserForm').reset();
-            alert(`Usuário "${name}" cadastrado com sucesso!`);
+            window.notify.success(`Usuário "${name}" cadastrado com sucesso!`);
 
         } catch (error) {
-            alert('Erro: ' + error.message);
+            console.error('Erro ao cadastrar usuário:', error);
+            window.notify.error('Erro: ' + error.message);
         }
     }
 
-    renderUsers() {
+    async renderUsers() {
         if (!photoAuthManager.isAdmin()) return;
 
         const container = document.getElementById('usersList');
-        const users = photoAuthManager.users;
-
-        container.innerHTML = users.map(user => {
-            const isCurrentUser = user.id === photoAuthManager.getCurrentUser().id;
-            const badgeClass = user.role === 'admin' ? 'admin-badge' : 'user-badge';
-            const badgeText = user.role === 'admin' ? '👑 Admin' : '👤 Usuário';
-
-            return `
-                <div class="user-item ${!user.active ? 'inactive' : ''}">
-                    <div class="user-info">
-                        <div class="user-name">
-                            ${user.name}
-                            <span class="${badgeClass}">${badgeText}</span>
-                            ${isCurrentUser ? ' (Você)' : ''}
-                        </div>
-                        <div class="user-details">
-                            <div>👤 ${user.username} | Criado: ${this.formatDate(user.createdAt)}</div>
-                            <div>${user.lastLogin ? `Último acesso: ${this.formatDateTime(user.lastLogin)}` : 'Nunca acessou'}</div>
-                            <div>Status: ${user.active ? '✅ Ativo' : '❌ Inativo'}</div>
-                        </div>
-                    </div>
-                    <div class="user-actions">
-                        ${!isCurrentUser ? `
-                            ${user.active ? `
-                                <button class="btn-user-action btn-deactivate" onclick="photoInventory.deactivateUser('${user.id}')">
-                                    ⏸️ Desativar
-                                </button>
-                            ` : `
-                                <button class="btn-user-action btn-reactivate" onclick="photoInventory.reactivateUser('${user.id}')">
-                                    ▶️ Reativar
-                                </button>
-                            `}
-                        ` : '<span style="color: #666; font-size: 0.9rem;">Usuário atual</span>'}
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-
-    deactivateUser(userId) {
-        if (!photoAuthManager.isAdmin()) {
-            alert('Apenas administradores podem desativar usuários!');
+        if (!container) {
+            console.log('Container usersList não encontrado');
             return;
         }
 
-        const user = photoAuthManager.users.find(u => u.id === userId);
-        if (!user) return;
+        try {
+            console.log('Carregando usuários do PostgreSQL...');
+            const response = await window.api.getUsers();
+            const users = response.users || [];
 
-        if (confirm(`Tem certeza que deseja desativar o usuário "${user.name}"?`)) {
-            try {
-                photoAuthManager.deactivateUser(userId);
+            console.log('Usuários carregados:', users.length);
 
-                const deactivationTransaction = {
-                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-                    type: 'usuario_desativado',
-                    notes: `Usuário "${user.name}" (${user.username}) foi desativado`,
-                    timestamp: new Date().toISOString(),
-                    user: photoAuthManager.getCurrentUser().name
-                };
-
-                this.transactions.push(deactivationTransaction);
-                this.saveData();
-                this.renderUsers();
-
-                alert(`Usuário "${user.name}" foi desativado com sucesso!`);
-            } catch (error) {
-                alert('Erro: ' + error.message);
+            if (users.length === 0) {
+                container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">Nenhum usuário encontrado.</div>';
+                return;
             }
+
+            const currentUser = photoAuthManager.getCurrentUser();
+
+            container.innerHTML = users.map(user => {
+                const isCurrentUser = user.id === currentUser.id;
+                const badgeClass = user.role === 'admin' ? 'admin-badge' : 'user-badge';
+                const badgeText = user.role === 'admin' ? '👑 Admin' : '👤 Usuário';
+
+                return `
+                    <div class="user-item ${!user.active ? 'inactive' : ''}">
+                        <div class="user-info">
+                            <div class="user-name">
+                                ${user.name}
+                                <span class="${badgeClass}">${badgeText}</span>
+                                ${isCurrentUser ? ' (Você)' : ''}
+                            </div>
+                            <div class="user-details">
+                                <div>👤 ${user.username} | Criado: ${this.formatDate(user.createdAt)}</div>
+                                <div>${user.lastLogin ? `Último acesso: ${this.formatDateTime(user.lastLogin)}` : 'Nunca acessou'}</div>
+                                <div>Status: ${user.active ? '✅ Ativo' : '❌ Inativo'}</div>
+                            </div>
+                        </div>
+                        <div class="user-actions">
+                            ${!isCurrentUser ? `
+                                ${user.active ? `
+                                    <button class="btn-user-action btn-deactivate" onclick="photoInventory.deactivateUser('${user.id}')">
+                                        ⏸️ Desativar
+                                    </button>
+                                ` : `
+                                    <button class="btn-user-action btn-reactivate" onclick="photoInventory.reactivateUser('${user.id}')">
+                                        ▶️ Reativar
+                                    </button>
+                                `}
+                            ` : '<span style="color: #666; font-size: 0.9rem;">Usuário atual</span>'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Erro ao carregar usuários:', error);
+            container.innerHTML = '<div style="padding: 20px; text-align: center; color: #f44336;">Erro ao carregar usuários: ' + error.message + '</div>';
         }
     }
 
-    reactivateUser(userId) {
+    async deactivateUser(userId) {
         if (!photoAuthManager.isAdmin()) {
-            alert('Apenas administradores podem reativar usuários!');
+            window.notify.warning('Apenas administradores podem desativar usuários!');
             return;
         }
 
-        const user = photoAuthManager.users.find(u => u.id === userId);
-        if (!user) return;
+        try {
+            // Buscar informações do usuário
+            const response = await window.api.getUser(userId);
+            const user = response.user;
 
-        if (confirm(`Tem certeza que deseja reativar o usuário "${user.name}"?`)) {
-            try {
-                photoAuthManager.reactivateUser(userId);
-
-                const reactivationTransaction = {
-                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-                    type: 'usuario_reativado',
-                    notes: `Usuário "${user.name}" (${user.username}) foi reativado`,
-                    timestamp: new Date().toISOString(),
-                    user: photoAuthManager.getCurrentUser().name
-                };
-
-                this.transactions.push(reactivationTransaction);
-                this.saveData();
-                this.renderUsers();
-
-                alert(`Usuário "${user.name}" foi reativado com sucesso!`);
-            } catch (error) {
-                alert('Erro: ' + error.message);
+            if (!user) {
+                window.notify.error('Usuário não encontrado!');
+                return;
             }
+
+            const confirmed = await window.notify.confirm({
+                title: 'Desativar Usuário',
+                message: `Tem certeza que deseja desativar o usuário "${user.name}"?`,
+                type: 'warning',
+                confirmText: 'Desativar',
+                cancelText: 'Cancelar'
+            });
+
+            if (!confirmed) return;
+
+            console.log('Desativando usuário no PostgreSQL...', userId);
+
+            await window.api.deactivateUser(userId);
+
+            console.log('Usuário desativado com sucesso');
+
+            // Recarregar lista de usuários
+            await this.renderUsers();
+
+            window.notify.success(`Usuário "${user.name}" foi desativado com sucesso!`);
+        } catch (error) {
+            console.error('Erro ao desativar usuário:', error);
+            window.notify.error('Erro: ' + error.message);
+        }
+    }
+
+    async reactivateUser(userId) {
+        if (!photoAuthManager.isAdmin()) {
+            window.notify.warning('Apenas administradores podem reativar usuários!');
+            return;
+        }
+
+        try {
+            // Buscar informações do usuário
+            const response = await window.api.getUser(userId);
+            const user = response.user;
+
+            if (!user) {
+                window.notify.error('Usuário não encontrado!');
+                return;
+            }
+
+            const confirmed = await window.notify.confirm({
+                title: 'Reativar Usuário',
+                message: `Tem certeza que deseja reativar o usuário "${user.name}"?`,
+                type: 'question',
+                confirmText: 'Reativar',
+                cancelText: 'Cancelar'
+            });
+
+            if (!confirmed) return;
+
+            console.log('Reativando usuário no PostgreSQL...', userId);
+
+            await window.api.activateUser(userId);
+
+            console.log('Usuário reativado com sucesso');
+
+            // Recarregar lista de usuários
+            await this.renderUsers();
+
+            window.notify.success(`Usuário "${user.name}" foi reativado com sucesso!`);
+        } catch (error) {
+            console.error('Erro ao reativar usuário:', error);
+            window.notify.error('Erro: ' + error.message);
         }
     }
 
@@ -876,11 +951,19 @@ class PhotoInventoryManager {
 
     async resetInventory() {
         if (!photoAuthManager.isAdmin()) {
-            alert('Apenas administradores podem zerar o estoque!');
+            window.notify.warning('Apenas administradores podem zerar o estoque!');
             return;
         }
 
-        if (!confirm('ATENÇÃO: Tem certeza que deseja zerar todo o estoque?\n\nEsta ação não pode ser desfeita e irá:\n• Zerar quantidade de todos os equipamentos\n• Manter histórico de transações\n• Ser registrada no log do sistema')) {
+        const confirmed = await window.notify.confirm({
+            title: 'Zerar Estoque',
+            message: 'ATENÇÃO: Tem certeza que deseja zerar todo o estoque?\n\nEsta ação não pode ser desfeita e irá:\n• Zerar quantidade de todos os equipamentos\n• Manter histórico de transações\n• Ser registrada no log do sistema',
+            type: 'danger',
+            confirmText: 'Zerar Estoque',
+            cancelText: 'Cancelar'
+        });
+
+        if (!confirmed) {
             return;
         }
 
@@ -925,11 +1008,11 @@ class PhotoInventoryManager {
             this.updateSummary();
             this.populateModalSelects();
 
-            alert('Estoque zerado com sucesso! Pronto para o balanço.');
+            window.notify.success('Estoque zerado com sucesso! Pronto para o balanço.');
 
         } catch (error) {
             console.error('Erro ao zerar estoque:', error);
-            alert(`Erro ao zerar estoque: ${error.message}`);
+            window.notify.error(`Erro ao zerar estoque: ${error.message}`);
         }
     }
 
@@ -956,9 +1039,8 @@ class PhotoInventoryManager {
     }
 
     saveData() {
-        // Salvar apenas transações locais e configurações no localStorage
-        // Equipamentos são salvos no PostgreSQL via API
-        localStorage.setItem('photoTransactions', JSON.stringify(this.transactions));
+        // Salvar apenas configurações locais no localStorage
+        // Equipamentos e transações são salvos no PostgreSQL via API
         localStorage.setItem('photoSettings', JSON.stringify(this.settings));
     }
 }
@@ -1040,12 +1122,12 @@ function importAllData(event) {
                 photoInventory.renderAllItems();
                 photoInventory.updateSummary();
                 photoInventory.populateModalSelects();
-                alert('Backup restaurado com sucesso!');
+                window.notify.success('Backup restaurado com sucesso!');
             } else {
-                alert('Formato de arquivo inválido!');
+                window.notify.error('Formato de arquivo inválido!');
             }
         } catch (error) {
-            alert('Erro ao importar dados: ' + error.message);
+            window.notify.error('Erro ao importar dados: ' + error.message);
         }
     };
     reader.readAsText(file);
@@ -1055,7 +1137,7 @@ function saveSettings() {
     photoInventory.settings.lowStockLimit = parseInt(document.getElementById('lowStockLimit').value);
     photoInventory.settings.expiryAlert = parseInt(document.getElementById('expiryAlert').value);
     photoInventory.saveData();
-    alert('Configurações salvas com sucesso!');
+    window.notify.success('Configurações salvas com sucesso!');
 }
 
 window.onclick = function(event) {
