@@ -20,7 +20,10 @@ class PhotoInventoryManager {
         await this.loadCategories();
         console.log('Categorias carregadas:', this.categories);
 
-        this.items = this.loadItems();
+        console.log('Carregando equipamentos do PostgreSQL...');
+        this.items = await this.loadItems();
+        console.log('Equipamentos carregados:', this.items.length);
+
         this.transactions = this.loadTransactions();
         this.settings = this.loadSettings();
         this.initializeEventListeners();
@@ -32,9 +35,36 @@ class PhotoInventoryManager {
         this.populateModalSelects();
     }
 
-    loadItems() {
-        const stored = localStorage.getItem('photoInventoryItems');
-        return stored ? JSON.parse(stored) : [];
+    async loadItems() {
+        try {
+            const response = await window.api.getEquipment({ limit: 1000 });
+            if (response && response.equipment) {
+                // Mapear formato do backend para formato esperado pelo frontend
+                return response.equipment.map(eq => ({
+                    id: eq.id,
+                    category: eq.category.slug,
+                    name: eq.name,
+                    quantity: eq.quantity,
+                    unit: eq.unit,
+                    minStock: eq.minStock,
+                    avgCost: eq.avgCost,
+                    currentCost: eq.currentCost,
+                    totalValue: eq.totalValue,
+                    expiryDate: eq.expiryDate,
+                    supplier: eq.supplier,
+                    location: eq.location,
+                    notes: eq.notes,
+                    isCustomProduct: eq.isCustom,
+                    createdAt: eq.createdAt,
+                    lastUpdated: eq.updatedAt
+                }));
+            }
+            console.error('Formato de resposta inválido ao carregar equipamentos');
+            return [];
+        } catch (error) {
+            console.error('Erro ao carregar equipamentos:', error);
+            return [];
+        }
     }
 
     loadTransactions() {
@@ -113,22 +143,6 @@ class PhotoInventoryManager {
         });
 
         console.log('✅ Seções de categoria criadas:', this.categories.length);
-    }
-
-    initializeDatabase() {
-        const items = photoDatabase.items.map(item => ({
-            ...item,
-            currentCost: item.avgCost,
-            totalValue: 0,
-            expiryDate: null,
-            supplier: '',
-            location: '',
-            lastUpdated: new Date().toISOString(),
-            createdAt: new Date().toISOString()
-        }));
-
-        this.saveItems(items);
-        return items;
     }
 
     getDefaultSettings() {
@@ -246,7 +260,7 @@ class PhotoInventoryManager {
         }
     }
 
-    processEntry() {
+    async processEntry() {
         const itemId = document.getElementById('entryItem').value;
         const quantity = parseFloat(document.getElementById('entryQuantity').value);
         const cost = parseFloat(document.getElementById('entryCost').value) || 0;
@@ -254,105 +268,100 @@ class PhotoInventoryManager {
         const expiryDate = document.getElementById('entryExpiry').value;
         const notes = document.getElementById('entryNotes').value;
 
+        if (!itemId || !quantity || quantity <= 0) {
+            alert('Por favor, selecione um equipamento e informe a quantidade.');
+            return;
+        }
+
         const item = this.items.find(i => i.id === itemId);
-        if (!item) return;
-
-        const oldQuantity = item.quantity;
-        const newQuantity = oldQuantity + quantity;
-
-        if (cost > 0) {
-            const totalOldValue = oldQuantity * item.currentCost;
-            const totalNewValue = quantity * cost;
-            item.currentCost = (totalOldValue + totalNewValue) / newQuantity;
+        if (!item) {
+            alert('Equipamento não encontrado!');
+            return;
         }
 
-        item.quantity = newQuantity;
-        item.totalValue = item.quantity * item.currentCost;
-        item.lastUpdated = new Date().toISOString();
+        try {
+            console.log('Registrando entrada no PostgreSQL...', { itemId, quantity, cost });
 
-        if (expiryDate && (!item.expiryDate || new Date(expiryDate) < new Date(item.expiryDate))) {
-            item.expiryDate = expiryDate;
+            const response = await window.api.createEntry({
+                equipmentId: itemId,
+                quantity,
+                cost,
+                supplier,
+                expiryDate: expiryDate || null,
+                notes
+            });
+
+            console.log('Entrada registrada com sucesso:', response);
+
+            // Recarregar lista de equipamentos
+            this.items = await this.loadItems();
+            this.renderAllItems();
+            this.updateSummary();
+            this.populateModalSelects();
+            closeModal('entryModal');
+
+            document.getElementById('entryForm').reset();
+            alert(`Entrada registrada: ${quantity} ${item.unit} de ${item.name}`);
+
+        } catch (error) {
+            console.error('Erro ao registrar entrada:', error);
+            alert(`Erro ao registrar entrada: ${error.message}`);
         }
-
-        if (supplier) item.supplier = supplier;
-
-        const transaction = {
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-            type: 'entrada',
-            itemId: item.id,
-            itemName: item.name,
-            category: item.category,
-            quantity: quantity,
-            unit: item.unit,
-            cost: cost,
-            totalCost: quantity * cost,
-            supplier: supplier,
-            expiryDate: expiryDate,
-            notes: notes,
-            timestamp: new Date().toISOString(),
-            user: photoAuthManager.getCurrentUser().name
-        };
-
-        this.transactions.push(transaction);
-        this.saveData();
-        this.renderAllItems();
-        this.updateSummary();
-        this.populateModalSelects();
-        closeModal('entryModal');
-
-        document.getElementById('entryForm').reset();
-        alert(`Entrada registrada: ${quantity} ${item.unit} de ${item.name}`);
     }
 
-    processExit() {
+    async processExit() {
         const itemId = document.getElementById('exitItem').value;
         const quantity = parseFloat(document.getElementById('exitQuantity').value);
         const reason = document.getElementById('exitReason').value;
         const destination = document.getElementById('exitDestination').value;
         const notes = document.getElementById('exitNotes').value;
 
+        if (!itemId || !quantity || quantity <= 0 || !reason) {
+            alert('Por favor, preencha todos os campos obrigatórios.');
+            return;
+        }
+
         const item = this.items.find(i => i.id === itemId);
-        if (!item) return;
+        if (!item) {
+            alert('Equipamento não encontrado!');
+            return;
+        }
 
         if (quantity > item.quantity) {
             alert(`Quantidade insuficiente! Disponível: ${item.quantity} ${item.unit}`);
             return;
         }
 
-        const oldQuantity = item.quantity;
-        item.quantity = oldQuantity - quantity;
-        item.totalValue = item.quantity * item.currentCost;
-        item.lastUpdated = new Date().toISOString();
+        try {
+            console.log('Registrando saída no PostgreSQL...', { itemId, quantity, reason });
 
-        const transaction = {
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-            type: 'saida',
-            itemId: item.id,
-            itemName: item.name,
-            category: item.category,
-            quantity: quantity,
-            unit: item.unit,
-            cost: item.currentCost,
-            totalCost: quantity * item.currentCost,
-            reason: reason,
-            destination: destination,
-            notes: notes,
-            timestamp: new Date().toISOString(),
-            user: photoAuthManager.getCurrentUser().name
-        };
+            const response = await window.api.createExit({
+                equipmentId: itemId,
+                quantity,
+                reason,
+                destination,
+                notes
+            });
 
-        this.transactions.push(transaction);
-        this.saveData();
-        this.renderAllItems();
-        this.updateSummary();
-        this.populateModalSelects();
-        closeModal('exitModal');
+            console.log('Saída registrada com sucesso:', response);
 
-        document.getElementById('exitForm').reset();
-        alert(`Saída registrada: ${quantity} ${item.unit} de ${item.name}`);
+            // Recarregar lista de equipamentos
+            this.items = await this.loadItems();
+            this.renderAllItems();
+            this.updateSummary();
+            this.populateModalSelects();
+            closeModal('exitModal');
+
+            document.getElementById('exitForm').reset();
+            alert(`Saída registrada: ${quantity} ${item.unit} de ${item.name}`);
+
+        } catch (error) {
+            console.error('Erro ao registrar saída:', error);
+            alert(`Erro ao registrar saída: ${error.message}`);
+        }
     }
 
-    addNewProduct() {
+    async addNewProduct() {
         const category = document.getElementById('newProductCategory').value;
         const name = document.getElementById('newProductName').value.trim();
         const unit = document.getElementById('newProductUnit').value.trim();
@@ -366,69 +375,49 @@ class PhotoInventoryManager {
             return;
         }
 
-        const existingProduct = this.items.find(item =>
-            item.name.toLowerCase() === name.toLowerCase() && item.category === category
-        );
+        try {
+            // Buscar ID da categoria
+            const categoryObj = this.categories.find(cat => cat.slug === category);
+            if (!categoryObj) {
+                alert('Categoria não encontrada!');
+                return;
+            }
 
-        if (existingProduct) {
-            alert(`Equipamento "${name}" já existe na categoria ${category}. Use um nome diferente.`);
-            return;
+            console.log('Criando equipamento no PostgreSQL...', { name, categoryId: categoryObj.id });
+
+            const response = await window.api.createEquipment({
+                name,
+                categoryId: categoryObj.id,
+                unit,
+                minStock,
+                avgCost: cost,
+                location,
+                notes
+            });
+
+            console.log('Equipamento criado com sucesso:', response);
+
+            // Recarregar lista de equipamentos
+            this.items = await this.loadItems();
+            this.renderAllItems();
+            this.updateSummary();
+            this.populateModalSelects();
+            closeModal('addProductModal');
+
+            document.getElementById('addProductForm').reset();
+
+            const categoryName = categoryObj ? categoryObj.name : category;
+            alert(`Equipamento "${name}" cadastrado com sucesso na categoria ${categoryName}!`);
+
+        } catch (error) {
+            console.error('Erro ao cadastrar equipamento:', error);
+            alert(`Erro ao cadastrar equipamento: ${error.message}`);
         }
-
-        const newProduct = {
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-            category,
-            name,
-            quantity: 0,
-            unit,
-            minStock,
-            avgCost: cost,
-            currentCost: cost,
-            totalValue: 0,
-            expiryDate: null,
-            supplier: '',
-            location: location,
-            createdAt: new Date().toISOString(),
-            lastUpdated: new Date().toISOString(),
-            isCustomProduct: true,
-            notes: notes
-        };
-
-        this.items.push(newProduct);
-
-        const creationTransaction = {
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-            type: 'criacao',
-            itemId: newProduct.id,
-            itemName: newProduct.name,
-            category: newProduct.category,
-            quantity: 0,
-            unit: newProduct.unit,
-            cost: cost,
-            totalCost: 0,
-            notes: `Equipamento cadastrado no sistema. ${notes ? 'Observações: ' + notes : ''}`,
-            timestamp: new Date().toISOString(),
-            user: photoAuthManager.getCurrentUser().name
-        };
-
-        this.transactions.push(creationTransaction);
-        this.saveData();
-        this.renderAllItems();
-        this.updateSummary();
-        this.populateModalSelects();
-        closeModal('addProductModal');
-
-        document.getElementById('addProductForm').reset();
-
-        // Buscar nome da categoria
-        const categoryObj = this.categories.find(cat => cat.slug === category);
-        const categoryName = categoryObj ? categoryObj.name : category;
-        alert(`Equipamento "${name}" cadastrado com sucesso na categoria ${categoryName}!`);
     }
 
-    deleteProduct(productId) {
+    async deleteProduct(productId) {
         if (!photoAuthManager.isAdmin()) {
-            alert('❌ Apenas administradores podem excluir equipamentos!');
+            alert('Apenas administradores podem excluir equipamentos!');
             return;
         }
 
@@ -439,43 +428,37 @@ class PhotoInventoryManager {
         }
 
         const hasStock = product.quantity > 0;
-        const hasTransactions = this.transactions.some(t => t.itemId === productId);
 
-        let confirmMessage = `⚠️ Tem certeza que deseja excluir o equipamento "${product.name}"?\n\n`;
+        let confirmMessage = `Tem certeza que deseja excluir o equipamento "${product.name}"?\n\n`;
 
         if (hasStock) {
             confirmMessage += `• O equipamento possui ${product.quantity} ${product.unit} em estoque\n`;
         }
 
-        if (hasTransactions) {
-            confirmMessage += `• O equipamento possui histórico de movimentações\n`;
-        }
-
         confirmMessage += `\nEsta ação NÃO PODE ser desfeita!`;
 
-        if (confirm(confirmMessage)) {
-            this.items = this.items.filter(item => item.id !== productId);
+        if (!confirm(confirmMessage)) {
+            return;
+        }
 
-            const deletionTransaction = {
-                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-                type: 'produto_excluido',
-                itemId: productId,
-                itemName: product.name,
-                category: product.category,
-                quantity: product.quantity,
-                unit: product.unit,
-                notes: `Equipamento "${product.name}" foi excluído do sistema. ${hasStock ? `Tinha ${product.quantity} ${product.unit} em estoque.` : ''} ${hasTransactions ? 'Possuía histórico de movimentações.' : ''}`,
-                timestamp: new Date().toISOString(),
-                user: photoAuthManager.getCurrentUser().name
-            };
+        try {
+            console.log('Excluindo equipamento do PostgreSQL...', productId);
 
-            this.transactions.push(deletionTransaction);
-            this.saveData();
+            await window.api.deleteEquipment(productId);
+
+            console.log('Equipamento excluído com sucesso');
+
+            // Recarregar lista de equipamentos
+            this.items = await this.loadItems();
             this.renderAllItems();
             this.updateSummary();
             this.populateModalSelects();
 
-            alert(`✅ Equipamento "${product.name}" foi excluído com sucesso!`);
+            alert(`Equipamento "${product.name}" foi excluído com sucesso!`);
+
+        } catch (error) {
+            console.error('Erro ao excluir equipamento:', error);
+            alert(`Erro ao excluir equipamento: ${error.message}`);
         }
     }
 
@@ -891,34 +874,62 @@ class PhotoInventoryManager {
         `;
     }
 
-    resetInventory() {
+    async resetInventory() {
         if (!photoAuthManager.isAdmin()) {
             alert('Apenas administradores podem zerar o estoque!');
             return;
         }
 
-        if (confirm('⚠️ ATENÇÃO: Tem certeza que deseja zerar todo o estoque?\n\nEsta ação não pode ser desfeita e irá:\n• Zerar quantidade de todos os equipamentos\n• Manter histórico de transações\n• Ser registrada no log do sistema')) {
-            this.items.forEach(item => {
-                item.quantity = 0;
-                item.totalValue = 0;
-                item.lastUpdated = new Date().toISOString();
+        if (!confirm('ATENÇÃO: Tem certeza que deseja zerar todo o estoque?\n\nEsta ação não pode ser desfeita e irá:\n• Zerar quantidade de todos os equipamentos\n• Manter histórico de transações\n• Ser registrada no log do sistema')) {
+            return;
+        }
+
+        try {
+            console.log('Zerando estoque no PostgreSQL...');
+
+            // Atualizar cada equipamento para quantidade 0
+            const updatePromises = this.items.map(async (item) => {
+                try {
+                    await window.api.updateEquipment(item.id, {
+                        name: item.name,
+                        categoryId: this.categories.find(c => c.slug === item.category)?.id,
+                        unit: item.unit,
+                        minStock: item.minStock,
+                        avgCost: item.avgCost,
+                        location: item.location,
+                        notes: item.notes
+                    });
+
+                    // Criar uma saída para zerar o estoque (se tiver quantidade)
+                    if (item.quantity > 0) {
+                        await window.api.createExit({
+                            equipmentId: item.id,
+                            quantity: item.quantity,
+                            reason: 'reset_estoque',
+                            destination: 'Balanço de estoque',
+                            notes: `Reset completo do estoque para balanço realizado por ${photoAuthManager.getCurrentUser().name}`
+                        });
+                    }
+                } catch (error) {
+                    console.error(`Erro ao zerar equipamento ${item.name}:`, error);
+                }
             });
 
-            const resetTransaction = {
-                id: Date.now().toString(),
-                type: 'reset',
-                notes: `Reset completo do estoque para balanço realizado por ${photoAuthManager.getCurrentUser().name}`,
-                timestamp: new Date().toISOString(),
-                user: photoAuthManager.getCurrentUser().name
-            };
+            await Promise.all(updatePromises);
 
-            this.transactions.push(resetTransaction);
-            this.saveData();
+            console.log('Estoque zerado com sucesso!');
+
+            // Recarregar lista de equipamentos
+            this.items = await this.loadItems();
             this.renderAllItems();
             this.updateSummary();
             this.populateModalSelects();
 
-            alert('✅ Estoque zerado com sucesso! Pronto para o balanço.');
+            alert('Estoque zerado com sucesso! Pronto para o balanço.');
+
+        } catch (error) {
+            console.error('Erro ao zerar estoque:', error);
+            alert(`Erro ao zerar estoque: ${error.message}`);
         }
     }
 
@@ -945,13 +956,10 @@ class PhotoInventoryManager {
     }
 
     saveData() {
-        this.saveItems(this.items);
+        // Salvar apenas transações locais e configurações no localStorage
+        // Equipamentos são salvos no PostgreSQL via API
         localStorage.setItem('photoTransactions', JSON.stringify(this.transactions));
         localStorage.setItem('photoSettings', JSON.stringify(this.settings));
-    }
-
-    saveItems(items) {
-        localStorage.setItem('photoInventoryItems', JSON.stringify(items));
     }
 }
 
