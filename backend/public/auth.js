@@ -30,10 +30,21 @@ class PhotoAuthManager {
         // Verificar se é primeiro acesso (sem usuários no banco)
         try {
             console.log('🔍 Verificando se há usuários no sistema...');
+            console.log('🔗 API URL:', window.CONFIG.API_BASE_URL);
 
             // Usar endpoint público /auth/check-first-access
-            const response = await fetch(`${window.CONFIG.API_BASE_URL}/auth/check-first-access`);
+            const url = `${window.CONFIG.API_BASE_URL}/auth/check-first-access`;
+            console.log('🌐 Chamando:', url);
+
+            const response = await fetch(url);
+            console.log('📡 Response status:', response.status);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
             const data = await response.json();
+            console.log('📦 Data recebida:', data);
 
             if (data.isFirstAccess) {
                 console.log('🆕 Nenhum usuário encontrado - Primeiro acesso!');
@@ -44,7 +55,7 @@ class PhotoAuthManager {
 
             console.log(`✅ ${data.totalUsers} usuário(s) encontrado(s)`);
         } catch (error) {
-            console.warn('⚠️ Erro ao verificar usuários:', error);
+            console.error('❌ Erro ao verificar usuários:', error);
             // Em caso de erro, mostrar login normal
         }
 
