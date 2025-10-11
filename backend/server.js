@@ -78,7 +78,7 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Rota de debug - verificar conexão e dados
+// Rota de debug - verificar conexão e dados de TODAS as tabelas
 app.get('/api/debug', async (req, res) => {
     const { query } = require('./database/connection');
 
@@ -86,11 +86,17 @@ app.get('/api/debug', async (req, res) => {
         // 1. Testar conexão
         const connectionTest = await query('SELECT NOW() as current_time, version() as pg_version');
 
-        // 2. Contar usuários
+        // 2. Contar registros em todas as tabelas
         const userCount = await query('SELECT COUNT(*) as total FROM users');
+        const equipmentCount = await query('SELECT COUNT(*) as total FROM equipment');
+        const categoryCount = await query('SELECT COUNT(*) as total FROM categories');
+        const transactionCount = await query('SELECT COUNT(*) as total FROM transactions');
 
-        // 3. Listar usuários (sem senha)
+        // 3. Listar registros de cada tabela
         const users = await query('SELECT id, username, name, role, active, created_at FROM users ORDER BY created_at DESC LIMIT 10');
+        const equipment = await query('SELECT id, name, code, category_id, quantity, min_quantity, created_at FROM equipment ORDER BY created_at DESC LIMIT 10');
+        const categories = await query('SELECT id, name, description, created_at FROM categories ORDER BY created_at DESC LIMIT 10');
+        const transactions = await query('SELECT id, equipment_id, type, quantity, responsible, created_at FROM transactions ORDER BY created_at DESC LIMIT 10');
 
         // 4. Verificar variáveis de ambiente
         const envCheck = {
@@ -108,9 +114,23 @@ app.get('/api/debug', async (req, res) => {
                 current_time: connectionTest.rows[0].current_time,
                 postgresql_version: connectionTest.rows[0].pg_version
             },
-            users: {
-                total_count: parseInt(userCount.rows[0].total),
-                list: users.rows
+            tables: {
+                users: {
+                    total_count: parseInt(userCount.rows[0].total),
+                    records: users.rows
+                },
+                equipment: {
+                    total_count: parseInt(equipmentCount.rows[0].total),
+                    records: equipment.rows
+                },
+                categories: {
+                    total_count: parseInt(categoryCount.rows[0].total),
+                    records: categories.rows
+                },
+                transactions: {
+                    total_count: parseInt(transactionCount.rows[0].total),
+                    records: transactions.rows
+                }
             },
             environment: envCheck
         });
