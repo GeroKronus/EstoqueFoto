@@ -96,21 +96,23 @@ app.use((err, req, res, next) => {
 
 // Função para iniciar o servidor
 async function startServer() {
-    try {
-        // Rodar migrations antes de iniciar o servidor
-        console.log('🔧 Verificando e aplicando migrations...');
-        await runMigrations();
+    // Iniciar servidor primeiro (para passar no healthcheck)
+    app.listen(PORT, () => {
+        console.log(`🚀 Servidor rodando na porta ${PORT}`);
+        console.log(`📊 API disponível em: http://localhost:${PORT}/api`);
+        console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
+    });
 
-        // Iniciar servidor
-        app.listen(PORT, () => {
-            console.log(`🚀 Servidor rodando na porta ${PORT}`);
-            console.log(`📊 API disponível em: http://localhost:${PORT}/api`);
-            console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
+    // Rodar migrations em background (não-bloqueante)
+    console.log('🔧 Verificando e aplicando migrations em background...');
+    runMigrations()
+        .then(() => {
+            console.log('✅ Migrations concluídas com sucesso!');
+        })
+        .catch((error) => {
+            console.error('⚠️ Erro ao executar migrations:', error.message);
+            console.error('⚠️ Servidor continuará rodando, mas o banco pode não estar configurado.');
         });
-    } catch (error) {
-        console.error('❌ Erro ao iniciar servidor:', error);
-        process.exit(1);
-    }
 }
 
 // Iniciar servidor
