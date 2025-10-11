@@ -36,17 +36,19 @@ async function runMigrations() {
             console.log(`  - ${row.table_name}`);
         });
 
-        process.exit(0);
+        return true;
 
     } catch (error) {
         console.error('❌ Erro ao executar migrações:', error);
-        process.exit(1);
+        throw error;
     }
 }
 
 // Executar se chamado diretamente
 if (require.main === module) {
-    runMigrations();
+    runMigrations()
+        .then(() => process.exit(0))
+        .catch(() => process.exit(1));
 }
 
 module.exports = { runMigrations };

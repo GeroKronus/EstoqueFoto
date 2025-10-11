@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const { runMigrations } = require('./database/migrate');
 
 // Importar rotas
 const authRoutes = require('./routes/auth');
@@ -93,11 +94,26 @@ app.use((err, req, res, next) => {
     });
 });
 
+// Função para iniciar o servidor
+async function startServer() {
+    try {
+        // Rodar migrations antes de iniciar o servidor
+        console.log('🔧 Verificando e aplicando migrations...');
+        await runMigrations();
+
+        // Iniciar servidor
+        app.listen(PORT, () => {
+            console.log(`🚀 Servidor rodando na porta ${PORT}`);
+            console.log(`📊 API disponível em: http://localhost:${PORT}/api`);
+            console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
+        });
+    } catch (error) {
+        console.error('❌ Erro ao iniciar servidor:', error);
+        process.exit(1);
+    }
+}
+
 // Iniciar servidor
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor rodando na porta ${PORT}`);
-    console.log(`📊 API disponível em: http://localhost:${PORT}/api`);
-    console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
-});
+startServer();
 
 module.exports = app;
