@@ -25,7 +25,8 @@ app.use(helmet({
             scriptSrcAttr: ["'unsafe-inline'"],
             styleSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'"],
+            // IMPORTANTE: Permitir conexões para a própria URL do Railway
+            connectSrc: ["'self'", "https://estoquefoto-production.up.railway.app"],
             fontSrc: ["'self'"],
             objectSrc: ["'none'"],
             mediaSrc: ["'self'"],
@@ -34,9 +35,25 @@ app.use(helmet({
     },
 }));
 
-// Configuração de CORS
+// Configuração de CORS - permitir múltiplas origens
+const allowedOrigins = [
+    'http://localhost:3000',
+    'https://estoquefoto-production.up.railway.app',
+    'https://estoque.stonecoin.com.br'
+];
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: function (origin, callback) {
+        // Permitir requests sem origin (mobile apps, Postman, etc)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            console.log('❌ CORS bloqueado para origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
 

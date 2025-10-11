@@ -1,189 +1,34 @@
 class PhotoAuthManager {
     constructor() {
         this.currentUser = null;
-        this.users = this.loadUsers();
-        this.isFirstAccess = this.users.length === 0;
+        this.isFirstAccess = false;
 
-        console.log('PhotoAuthManager iniciando...', {
-            totalUsers: this.users.length,
-            isFirstAccess: this.isFirstAccess,
-            adminSetupComplete: localStorage.getItem('photoAdminSetupComplete')
-        });
+        console.log('🔐 PhotoAuthManager iniciando (modo PostgreSQL)...');
 
-        if (localStorage.getItem('photoAdminSetupComplete') === 'true') {
-            localStorage.removeItem('photoAdminSetupComplete');
-            if (this.restoreSession()) {
-                console.log('Sessão restaurada após setup do admin');
-                return;
-            }
-        }
-
-        const hasSystemElements = document.getElementById('currentUserInfo') !== null;
-
-        if (!hasSystemElements && this.restoreSession()) {
-            console.log('Sessão ativa detectada, carregando interface do sistema');
-            this.loadSystemInterface();
-            return;
-        }
-
-        if (this.isFirstAccess) {
-            this.showAdminSetup();
-        } else {
-            this.showLogin();
-        }
+        // Verificar se já existe sessão ativa (JWT token)
+        this.checkExistingSession();
     }
 
-    loadUsers() {
-        const stored = localStorage.getItem('photoSystemUsers');
-        return stored ? JSON.parse(stored) : [];
-    }
+    async checkExistingSession() {
+        const token = getAuthToken();
 
-    saveUsers() {
-        localStorage.setItem('photoSystemUsers', JSON.stringify(this.users));
-    }
-
-    hashPassword(password) {
-        let hash = 0;
-        for (let i = 0; i < password.length; i++) {
-            const char = password.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
-        return hash.toString();
-    }
-
-    createUser(username, password, name, role = 'user') {
-        const existingUser = this.users.find(u => u.username === username);
-        if (existingUser) {
-            throw new Error('Nome de usuário já existe!');
-        }
-
-        const newUser = {
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-            username,
-            password: this.hashPassword(password),
-            name,
-            role,
-            active: true,
-            createdAt: new Date().toISOString(),
-            lastLogin: null
-        };
-
-        this.users.push(newUser);
-        this.saveUsers();
-        return newUser;
-    }
-
-    login(username, password) {
-        const user = this.users.find(u =>
-            u.username === username &&
-            u.password === this.hashPassword(password) &&
-            u.active
-        );
-
-        if (!user) {
-            throw new Error('Usuário ou senha inválidos, ou usuário inativo!');
-        }
-
-        user.lastLogin = new Date().toISOString();
-        this.currentUser = user;
-        this.saveUsers();
-        this.saveCurrentSession();
-        return user;
-    }
-
-    logout() {
-        this.currentUser = null;
-        localStorage.removeItem('photoCurrentSession');
-        this.showLogin();
-    }
-
-    saveCurrentSession() {
-        if (this.currentUser) {
-            localStorage.setItem('photoCurrentSession', JSON.stringify(this.currentUser));
-        }
-    }
-
-    restoreSession() {
-        const stored = localStorage.getItem('photoCurrentSession');
-        if (stored) {
+        if (token) {
+            console.log('✅ Token JWT encontrado, verificando no backend...');
             try {
-                const userData = JSON.parse(stored);
-                const user = this.users.find(u => u.id === userData.id && u.active);
-                if (user) {
-                    this.currentUser = user;
-                    console.log('Sessão restaurada para:', user.name);
-                    return true;
-                }
+                // Verificar token no backend
+                const userData = await window.api.getMe();
+                this.currentUser = userData.user;
+                console.log('✅ Sessão restaurada para:', this.currentUser.name);
+                this.loadSystemInterface();
+                return;
             } catch (error) {
-                console.error('Erro ao restaurar sessão:', error);
-                localStorage.removeItem('photoCurrentSession');
+                console.warn('⚠️ Token inválido ou expirado, redirecionando para login');
+                clearAuth();
             }
         }
-        return false;
-    }
 
-    getCurrentUser() {
-        return this.currentUser;
-    }
-
-    isAdmin() {
-        return this.currentUser && this.currentUser.role === 'admin';
-    }
-
-    checkAndInitialize() {
-        const userInfoElement = document.getElementById('currentUserInfo');
-        const inventorySection = document.getElementById('inventory-section');
-
-        if (userInfoElement && inventorySection && this.currentUser) {
-            if (!window.photoInventory || !window.photoInventory.initialized) {
-                console.log('Inicializando PhotoInventoryManager...');
-                window.photoInventory = new PhotoInventoryManager();
-                window.photoInventory.initialize();
-            }
-            return true;
-        }
-        return false;
-    }
-
-    showAdminSetup() {
-        document.body.innerHTML = `
-            <div class="auth-container">
-                <div class="auth-card">
-                    <h2>🔐 Configuração Inicial do Sistema</h2>
-                    <p>Bem-vindo ao Sistema de Estoque de Equipamentos de Fotografia! Este é o primeiro acesso. Crie sua conta de administrador:</p>
-
-                    <form id="adminSetupForm" class="auth-form">
-                        <div class="form-group">
-                            <label>Nome completo:</label>
-                            <input type="text" id="adminName" required placeholder="Seu nome completo">
-                        </div>
-                        <div class="form-group">
-                            <label>Nome de usuário:</label>
-                            <input type="text" id="adminUsername" required placeholder="admin" pattern="[a-zA-Z0-9_]+" title="Apenas letras, números e underscore">
-                        </div>
-                        <div class="form-group">
-                            <label>Senha:</label>
-                            <input type="password" id="adminPassword" required placeholder="Mínimo 6 caracteres" minlength="6">
-                        </div>
-                        <div class="form-group">
-                            <label>Confirmar senha:</label>
-                            <input type="password" id="adminPasswordConfirm" required placeholder="Digite a senha novamente">
-                        </div>
-                        <button type="submit" class="auth-btn-primary">🔑 Criar Conta de Administrador</button>
-                    </form>
-
-                    <div class="auth-footer">
-                        <small>📸 Sistema de Controle de Estoque Fotográfico v1.0</small>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.getElementById('adminSetupForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleAdminSetup();
-        });
+        // Sem token válido, mostrar login
+        this.showLogin();
     }
 
     showLogin() {
@@ -196,17 +41,17 @@ class PhotoAuthManager {
                     <form id="loginForm" class="auth-form">
                         <div class="form-group">
                             <label>Usuário:</label>
-                            <input type="text" id="loginUsername" required placeholder="Digite seu usuário">
+                            <input type="text" id="loginUsername" required placeholder="Digite seu usuário" autocomplete="username">
                         </div>
                         <div class="form-group">
                             <label>Senha:</label>
-                            <input type="password" id="loginPassword" required placeholder="Digite sua senha">
+                            <input type="password" id="loginPassword" required placeholder="Digite sua senha" autocomplete="current-password">
                         </div>
                         <button type="submit" class="auth-btn-primary">Entrar no Sistema</button>
                     </form>
 
                     <div class="auth-footer">
-                        <small>Sistema de Controle de Estoque Fotográfico v1.0</small>
+                        <small>Sistema de Controle de Estoque Fotográfico v2.0 (PostgreSQL)</small>
                     </div>
                 </div>
             </div>
@@ -218,58 +63,11 @@ class PhotoAuthManager {
         });
     }
 
-    handleAdminSetup() {
-        const name = document.getElementById('adminName').value;
-        const username = document.getElementById('adminUsername').value;
-        const password = document.getElementById('adminPassword').value;
-        const confirmPassword = document.getElementById('adminPasswordConfirm').value;
-
-        if (password !== confirmPassword) {
-            alert('As senhas não coincidem!');
-            return;
-        }
-
-        if (password.length < 6) {
-            alert('A senha deve ter pelo menos 6 caracteres!');
-            return;
-        }
-
-        try {
-            const admin = this.createUser(username, password, name, 'admin');
-            this.currentUser = admin;
-            admin.lastLogin = new Date().toISOString();
-            this.saveUsers();
-            this.saveCurrentSession();
-            localStorage.setItem('photoAdminSetupComplete', 'true');
-
-            alert(`✅ Conta de administrador criada com sucesso!
-
-👑 Bem-vindo, ${name}!
-
-Você agora pode:
-• Cadastrar outros usuários
-• Gerenciar todo o sistema
-• Zerar estoque para balanço
-
-Carregando sistema...`);
-
-            setTimeout(() => {
-                this.initializeSystem();
-            }, 2000);
-
-        } catch (error) {
-            alert('❌ Erro: ' + error.message);
-        }
-    }
-
-    handleLogin() {
+    async handleLogin() {
         const username = document.getElementById('loginUsername').value.trim();
         const password = document.getElementById('loginPassword').value;
 
-        console.log('Tentativa de login:', {
-            username: username,
-            totalUsers: this.users.length
-        });
+        console.log('🔑 Tentativa de login via API:', username);
 
         if (!username || !password) {
             alert('Por favor, preencha usuário e senha!');
@@ -277,17 +75,70 @@ Carregando sistema...`);
         }
 
         try {
-            this.login(username, password);
-            console.log('Login bem-sucedido para:', username);
-            this.loadSystemInterface();
+            // Login via API backend
+            const response = await window.api.login(username, password);
+
+            if (response.token && response.user) {
+                // Salvar JWT token
+                setAuthToken(response.token);
+
+                // Salvar dados do usuário
+                this.currentUser = response.user;
+                setCurrentUser(response.user);
+
+                console.log('✅ Login bem-sucedido via API:', response.user.name);
+                this.loadSystemInterface();
+            } else {
+                throw new Error('Resposta inválida do servidor');
+            }
         } catch (error) {
-            console.error('Erro no login:', error);
-            alert('❌ ' + error.message);
+            console.error('❌ Erro no login:', error);
+            alert('❌ ' + (error.message || 'Erro ao fazer login. Verifique suas credenciais.'));
         }
     }
 
+    async logout() {
+        try {
+            await window.api.logout();
+        } catch (error) {
+            console.warn('Erro no logout:', error);
+        }
+
+        this.currentUser = null;
+        clearAuth();
+        this.showLogin();
+    }
+
+    getCurrentUser() {
+        return this.currentUser;
+    }
+
+    isAdmin() {
+        return this.currentUser && this.currentUser.role === 'admin';
+    }
+
+    getUserPermissions() {
+        if (!this.currentUser) return {
+            canResetStock: false,
+            canManageUsers: false,
+            canViewReports: false,
+            canManageInventory: false
+        };
+
+        return {
+            canResetStock: this.currentUser.role === 'admin',
+            canManageUsers: this.currentUser.role === 'admin',
+            canViewReports: true,
+            canManageInventory: true
+        };
+    }
+
     loadSystemInterface() {
-        console.log('Carregando interface do sistema para:', this.currentUser.name);
+        const isAdmin = this.isAdmin();
+        const adminClass = isAdmin ? 'admin-only show-admin' : 'admin-only';
+        const adminStyle = isAdmin ? '' : 'display: none;';
+
+        console.log('🎨 Carregando interface do sistema para:', this.currentUser.name, '(Admin:', isAdmin, ')');
 
         document.body.innerHTML = `
             <div class="container">
@@ -298,7 +149,7 @@ Carregando sistema...`);
                             <p>Controle Profissional de Equipamentos e Materiais</p>
                         </div>
                         <div class="header-user">
-                            <span id="currentUserInfo"></span>
+                            <span id="currentUserInfo">👤 ${this.currentUser.name} ${isAdmin ? '👑' : ''}</span>
                             <button id="logoutBtn" class="logout-btn">🚪 Sair</button>
                         </div>
                     </div>
@@ -309,7 +160,7 @@ Carregando sistema...`);
                     <button class="nav-btn" data-section="transactions">Movimentações</button>
                     <button class="nav-btn" data-section="reports">Relatórios</button>
                     <button class="nav-btn" data-section="settings">Configurações</button>
-                    <button class="nav-btn admin-only" data-section="users" style="display: none;">👥 Usuários</button>
+                    <button class="nav-btn ${adminClass}" data-section="users" style="${adminStyle}">👥 Usuários</button>
                 </nav>
 
                 <div id="inventory-section" class="section active">
@@ -320,7 +171,7 @@ Carregando sistema...`);
                                 <button class="btn-primary" onclick="showModal('entryModal')">📥 Entrada</button>
                                 <button class="btn-secondary" onclick="showModal('exitModal')">📤 Saída</button>
                                 <button class="btn-warning" onclick="showModal('addProductModal')">➕ Novo Item</button>
-                                <button class="btn-info admin-only" onclick="photoInventory.resetInventory()" style="display: none;">🔄 Reset Balanço</button>
+                                <button class="btn-info ${adminClass}" onclick="photoInventory.resetInventory()" style="${adminStyle}">🔄 Reset Balanço</button>
                                 <button class="btn-success" onclick="exportInventory()">📊 Exportar</button>
                             </div>
                         </div>
@@ -329,10 +180,6 @@ Carregando sistema...`);
                             <h2>Filtros</h2>
                             <select id="filterCategory">
                                 <option value="">Todas as categorias</option>
-                                <option value="cameras">Câmeras</option>
-                                <option value="lentes">Lentes</option>
-                                <option value="iluminacao">Iluminação</option>
-                                <option value="acessorios">Acessórios</option>
                             </select>
                             <input type="text" id="searchItem" placeholder="Buscar por nome">
                             <select id="stockFilter">
@@ -344,26 +191,8 @@ Carregando sistema...`);
                         </div>
                     </div>
 
-                    <div class="inventory-grid">
-                        <div class="category-section" id="cameras-section">
-                            <h3>📷 Câmeras</h3>
-                            <div class="items-grid" id="cameras-items"></div>
-                        </div>
-
-                        <div class="category-section" id="lentes-section">
-                            <h3>🔍 Lentes</h3>
-                            <div class="items-grid" id="lentes-items"></div>
-                        </div>
-
-                        <div class="category-section" id="iluminacao-section">
-                            <h3>💡 Iluminação</h3>
-                            <div class="items-grid" id="iluminacao-items"></div>
-                        </div>
-
-                        <div class="category-section" id="acessorios-section">
-                            <h3>🎯 Acessórios</h3>
-                            <div class="items-grid" id="acessorios-items"></div>
-                        </div>
+                    <div class="inventory-grid" id="inventoryGrid">
+                        <!-- Categorias serão carregadas dinamicamente via API -->
                     </div>
                 </div>
 
@@ -444,6 +273,7 @@ Carregando sistema...`);
                     <div id="stockSummary"></div>
                 </div>
 
+                <!-- Modais -->
                 <div id="entryModal" class="modal">
                     <div class="modal-content">
                         <h2>📥 Entrada de Equipamentos</h2>
@@ -497,10 +327,6 @@ Carregando sistema...`);
                         <form id="addProductForm">
                             <select id="newProductCategory" required>
                                 <option value="">Selecione a categoria</option>
-                                <option value="cameras">📷 Câmeras</option>
-                                <option value="lentes">🔍 Lentes</option>
-                                <option value="iluminacao">💡 Iluminação</option>
-                                <option value="acessorios">🎯 Acessórios</option>
                             </select>
                             <input type="text" id="newProductName" placeholder="Nome do equipamento" required>
                             <input type="text" id="newProductUnit" placeholder="Unidade (un, par, kit, etc.)" required>
@@ -529,7 +355,6 @@ Carregando sistema...`);
                                 <option value="user">👤 Usuário Padrão</option>
                                 <option value="admin">👑 Administrador</option>
                             </select>
-                            <textarea id="newUserNotes" placeholder="Observações sobre o usuário (opcional)"></textarea>
                             <div class="modal-actions">
                                 <button type="button" onclick="closeModal('addUserModal')">Cancelar</button>
                                 <button type="submit">Cadastrar Usuário</button>
@@ -540,77 +365,24 @@ Carregando sistema...`);
             </div>
         `;
 
+        // Configurar evento de logout
+        document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
+
+        // Inicializar sistema de inventário
         setTimeout(() => {
-            // Verificar se os elementos existem antes de inicializar
-            const checkElements = () => {
-                const camerasItems = document.getElementById('cameras-items');
-                const stockSummary = document.getElementById('stockSummary');
-                const entryItem = document.getElementById('entryItem');
-
-                if (camerasItems && stockSummary && entryItem) {
-                    // Verificar se já foi inicializado
-                    if (!window.photoInventory || !window.photoInventory.initialized) {
-                        console.log('Elementos encontrados, inicializando PhotoInventoryManager...');
-                        window.photoInventory = new PhotoInventoryManager();
-                        window.photoInventory.initialize();
-                    } else {
-                        console.log('PhotoInventoryManager já inicializado');
-                    }
-                } else {
-                    console.log('Elementos ainda não carregados, tentando novamente...');
-                    setTimeout(checkElements, 100);
-                }
-            };
-
-            checkElements();
-        }, 500);
-    }
-
-    initializeSystem() {
-        console.log('Inicializando sistema para usuário:', this.currentUser.name);
-        location.reload();
-    }
-
-    getUserPermissions() {
-        if (!this.currentUser) return { canResetStock: false, canManageUsers: false };
-
-        return {
-            canResetStock: this.currentUser.role === 'admin',
-            canManageUsers: this.currentUser.role === 'admin',
-            canViewReports: true,
-            canManageInventory: true
-        };
-    }
-
-    deactivateUser(userId) {
-        if (!this.isAdmin()) {
-            throw new Error('Apenas administradores podem desativar usuários');
-        }
-
-        const user = this.users.find(u => u.id === userId);
-        if (user) {
-            user.active = false;
-            this.saveUsers();
-        }
-    }
-
-    reactivateUser(userId) {
-        if (!this.isAdmin()) {
-            throw new Error('Apenas administradores podem reativar usuários');
-        }
-
-        const user = this.users.find(u => u.id === userId);
-        if (user) {
-            user.active = true;
-            this.saveUsers();
-        }
+            console.log('🔧 Inicializando PhotoInventoryManager...');
+            if (!window.photoInventory) {
+                window.photoInventory = new PhotoInventoryManager();
+            }
+            window.photoInventory.initialize();
+        }, 100);
     }
 }
 
 let photoAuthManager;
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM carregado, inicializando autenticação de fotografia...');
+    console.log('🚀 DOM carregado, inicializando autenticação...');
     if (!photoAuthManager) {
         photoAuthManager = new PhotoAuthManager();
     }
