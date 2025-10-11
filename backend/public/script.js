@@ -26,6 +26,7 @@ class PhotoInventoryManager {
         this.initializeEventListeners();
         this.setupUserInterface();
         await this.populateCategoryDropdowns();
+        this.createCategorySections();
         this.renderAllItems();
         this.updateSummary();
         this.populateModalSelects();
@@ -33,7 +34,7 @@ class PhotoInventoryManager {
 
     loadItems() {
         const stored = localStorage.getItem('photoInventoryItems');
-        return stored ? JSON.parse(stored) : this.initializeDatabase();
+        return stored ? JSON.parse(stored) : [];
     }
 
     loadTransactions() {
@@ -82,6 +83,36 @@ class PhotoInventoryManager {
                 newProductCategory.add(option);
             });
         }
+    }
+
+    createCategorySections() {
+        const inventoryGrid = document.getElementById('inventoryGrid');
+        if (!inventoryGrid) {
+            console.log('❌ inventoryGrid não encontrado');
+            return;
+        }
+
+        console.log('🏗️ Criando seções de categoria no DOM...');
+        inventoryGrid.innerHTML = '';
+
+        this.categories.forEach(category => {
+            const section = document.createElement('div');
+            section.className = 'category-section';
+            section.id = `${category.slug}-section`;
+
+            section.innerHTML = `
+                <h2 class="category-title">
+                    ${category.icon} ${category.name}
+                </h2>
+                <div class="category-items" id="${category.slug}-items">
+                    <!-- Itens serão renderizados aqui -->
+                </div>
+            `;
+
+            inventoryGrid.appendChild(section);
+        });
+
+        console.log('✅ Seções de categoria criadas:', this.categories.length);
     }
 
     initializeDatabase() {
@@ -388,7 +419,11 @@ class PhotoInventoryManager {
         closeModal('addProductModal');
 
         document.getElementById('addProductForm').reset();
-        alert(`Equipamento "${name}" cadastrado com sucesso na categoria ${photoDatabase.categories[category].name}!`);
+
+        // Buscar nome da categoria
+        const categoryObj = this.categories.find(cat => cat.slug === category);
+        const categoryName = categoryObj ? categoryObj.name : category;
+        alert(`Equipamento "${name}" cadastrado com sucesso na categoria ${categoryName}!`);
     }
 
     deleteProduct(productId) {
@@ -782,7 +817,7 @@ class PhotoInventoryManager {
                         <span class="transaction-date">${this.formatDateTime(transaction.timestamp)}</span>
                     </div>
                     <div class="transaction-details">
-                        <div><strong>${transaction.itemName}</strong> (${photoDatabase.categories[transaction.category]?.name || transaction.category})</div>
+                        <div><strong>${transaction.itemName}</strong> (${this.getCategoryName(transaction.category)})</div>
                         <div>Quantidade: ${transaction.quantity} ${transaction.unit}</div>
                         <div>Valor unitário: R$ ${transaction.cost.toFixed(2)}</div>
                         <div>Valor total: R$ ${transaction.totalCost.toFixed(2)}</div>
@@ -902,6 +937,11 @@ class PhotoInventoryManager {
     formatDateTime(dateString) {
         const date = new Date(dateString);
         return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR');
+    }
+
+    getCategoryName(categorySlug) {
+        const category = this.categories.find(cat => cat.slug === categorySlug);
+        return category ? category.name : categorySlug;
     }
 
     saveData() {
