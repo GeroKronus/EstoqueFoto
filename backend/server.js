@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 
 // Importar rotas
 const authRoutes = require('./routes/auth');
@@ -61,7 +62,17 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Middleware para rotas não encontradas
+// Servir arquivos estáticos do frontend
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Rota para servir o index.html em qualquer rota que não seja da API
+app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+        res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    }
+});
+
+// Middleware para rotas não encontradas (apenas para API)
 app.use('/api/*', (req, res) => {
     res.status(404).json({
         error: 'Endpoint não encontrado',
