@@ -259,4 +259,24 @@ router.post('/logout', authenticateToken, (req, res) => {
     });
 });
 
+// GET /api/auth/check-first-access - Verificar se é primeiro acesso (PÚBLICO)
+router.get('/check-first-access', async (req, res) => {
+    try {
+        // Contar usuários no sistema
+        const result = await query('SELECT COUNT(*) as total FROM users');
+        const totalUsers = parseInt(result.rows[0].total);
+
+        res.json({
+            isFirstAccess: totalUsers === 0,
+            totalUsers
+        });
+
+    } catch (error) {
+        console.error('Erro ao verificar primeiro acesso:', error);
+        res.status(500).json({
+            error: 'Erro interno do servidor'
+        });
+    }
+});
+
 module.exports = router;
