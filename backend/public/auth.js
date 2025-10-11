@@ -27,7 +27,24 @@ class PhotoAuthManager {
             }
         }
 
-        // Sem token válido, mostrar login
+        // Verificar se é primeiro acesso (sem usuários no banco)
+        try {
+            console.log('🔍 Verificando se há usuários no sistema...');
+            const users = await window.api.getUsers();
+
+            if (!users || !users.users || users.users.length === 0) {
+                console.log('🆕 Nenhum usuário encontrado - Primeiro acesso!');
+                this.isFirstAccess = true;
+                this.showAdminSetup();
+                return;
+            }
+
+            console.log(`✅ ${users.users.length} usuário(s) encontrado(s)`);
+        } catch (error) {
+            console.warn('⚠️ Erro ao verificar usuários:', error);
+        }
+
+        // Mostrar login normal
         this.showLogin();
     }
 
@@ -94,6 +111,106 @@ class PhotoAuthManager {
         } catch (error) {
             console.error('❌ Erro no login:', error);
             alert('❌ ' + (error.message || 'Erro ao fazer login. Verifique suas credenciais.'));
+        }
+    }
+
+    showAdminSetup() {
+        document.body.innerHTML = `
+            <div class="auth-container">
+                <div class="auth-card">
+                    <h2>🔐 Configuração Inicial do Sistema</h2>
+                    <p>Bem-vindo ao Sistema de Estoque de Equipamentos de Fotografia! Este é o primeiro acesso. Crie sua conta de administrador:</p>
+
+                    <form id="adminSetupForm" class="auth-form">
+                        <div class="form-group">
+                            <label>Nome completo:</label>
+                            <input type="text" id="adminName" required placeholder="Seu nome completo">
+                        </div>
+                        <div class="form-group">
+                            <label>Nome de usuário:</label>
+                            <input type="text" id="adminUsername" required placeholder="admin" pattern="[a-zA-Z0-9_]+" title="Apenas letras, números e underscore">
+                        </div>
+                        <div class="form-group">
+                            <label>Senha:</label>
+                            <input type="password" id="adminPassword" required placeholder="Mínimo 6 caracteres" minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label>Confirmar senha:</label>
+                            <input type="password" id="adminPasswordConfirm" required placeholder="Digite a senha novamente">
+                        </div>
+                        <button type="submit" class="auth-btn-primary">🔑 Criar Conta de Administrador</button>
+                    </form>
+
+                    <div class="auth-footer">
+                        <small>📸 Sistema de Controle de Estoque Fotográfico v2.0 (PostgreSQL)</small>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('adminSetupForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleAdminSetup();
+        });
+    }
+
+    async handleAdminSetup() {
+        const name = document.getElementById('adminName').value.trim();
+        const username = document.getElementById('adminUsername').value.trim();
+        const password = document.getElementById('adminPassword').value;
+        const confirmPassword = document.getElementById('adminPasswordConfirm').value;
+
+        if (password !== confirmPassword) {
+            alert('As senhas não coincidem!');
+            return;
+        }
+
+        if (password.length < 6) {
+            alert('A senha deve ter pelo menos 6 caracteres!');
+            return;
+        }
+
+        try {
+            console.log('🔧 Criando primeiro administrador via API...');
+
+            // Criar administrador via API
+            const response = await window.api.register({
+                username,
+                password,
+                name,
+                role: 'admin'
+            });
+
+            if (response.token && response.user) {
+                console.log('✅ Administrador criado com sucesso!');
+
+                // Salvar JWT token
+                setAuthToken(response.token);
+
+                // Salvar dados do usuário
+                this.currentUser = response.user;
+                setCurrentUser(response.user);
+
+                alert(`✅ Conta de administrador criada com sucesso!
+
+👑 Bem-vindo, ${name}!
+
+Você agora pode:
+• Cadastrar outros usuários
+• Gerenciar todo o sistema
+• Zerar estoque para balanço
+
+Carregando sistema...`);
+
+                setTimeout(() => {
+                    this.loadSystemInterface();
+                }, 1000);
+            } else {
+                throw new Error('Resposta inválida do servidor');
+            }
+        } catch (error) {
+            console.error('❌ Erro ao criar administrador:', error);
+            alert('❌ Erro: ' + (error.message || 'Erro ao criar administrador. Tente novamente.'));
         }
     }
 
