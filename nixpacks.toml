@@ -1,12 +1,11 @@
 [phases.setup]
 nixPkgs = ['nodejs_18']
-nixOverlays = ['https://github.com/railwayapp/nix-npm-overlay/archive/main.tar.gz']
 
 [phases.install]
 dependsOn = ['setup']
 cmds = [
   'cd backend',
-  'npm ci'
+  'npm install --production=false'
 ]
 
 [phases.build]
