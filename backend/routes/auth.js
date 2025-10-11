@@ -10,60 +10,74 @@ const router = express.Router();
 router.post('/register', async (req, res) => {
     try {
         const { username, password, name, email, role = 'user' } = req.body;
+        console.log('📝 Tentativa de registro:', { username, name, role, hasPassword: !!password });
 
         // Validações básicas
         if (!username || !password || !name) {
+            console.log('❌ Dados incompletos:', { username: !!username, password: !!password, name: !!name });
             return res.status(400).json({
                 error: 'Username, password e name são obrigatórios'
             });
         }
 
         if (password.length < 6) {
+            console.log('❌ Senha muito curta:', password.length);
             return res.status(400).json({
                 error: 'Password deve ter pelo menos 6 caracteres'
             });
         }
 
         if (email && !validator.isEmail(email)) {
+            console.log('❌ Email inválido:', email);
             return res.status(400).json({
                 error: 'Email inválido'
             });
         }
 
         if (!['admin', 'user'].includes(role)) {
+            console.log('❌ Role inválida:', role);
             return res.status(400).json({
                 error: 'Role deve ser admin ou user'
             });
         }
 
         // Verificar se username já existe
+        console.log('🔍 Verificando se username existe...');
         const existingUser = await query(
             'SELECT id FROM users WHERE username = $1',
             [username]
         );
 
         if (existingUser.rows.length > 0) {
+            console.log('❌ Username já existe:', username);
             return res.status(409).json({
                 error: 'Username já existe'
             });
         }
 
         // Hash da senha
+        console.log('🔐 Gerando hash da senha...');
         const saltRounds = 12;
         const passwordHash = await bcrypt.hash(password, saltRounds);
+        console.log('✅ Hash gerado, tamanho:', passwordHash.length);
 
         // Criar usuário
+        console.log('💾 Inserindo usuário no banco...');
         const userResult = await query(`
             INSERT INTO users (username, password_hash, name, email, role)
             VALUES ($1, $2, $3, $4, $5)
             RETURNING id, username, name, email, role, active, created_at
-        `, [username, passwordHash, name, email, role]);
+        `, [username, passwordHash, name, email || null, role]);
 
         const newUser = userResult.rows[0];
+        console.log('✅ Usuário criado:', newUser.id);
 
         // Gerar token
+        console.log('🎫 Gerando token JWT...');
         const token = generateToken(newUser);
+        console.log('✅ Token gerado');
 
+        console.log('🎉 Registro concluído com sucesso para:', username);
         res.status(201).json({
             message: 'Usuário criado com sucesso',
             user: {
@@ -79,9 +93,12 @@ router.post('/register', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Erro ao registrar usuário:', error);
+        console.error('💥 ERRO AO REGISTRAR:', error);
+        console.error('💥 Stack:', error.stack);
+        console.error('💥 Message:', error.message);
         res.status(500).json({
-            error: 'Erro interno do servidor'
+            error: 'Erro interno do servidor',
+            details: error.message
         });
     }
 });
