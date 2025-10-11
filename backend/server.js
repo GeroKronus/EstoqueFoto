@@ -94,9 +94,9 @@ app.get('/api/debug', async (req, res) => {
 
         // 3. Listar registros de cada tabela
         const users = await query('SELECT id, username, name, role, active, created_at FROM users ORDER BY created_at DESC LIMIT 10');
-        const equipment = await query('SELECT id, name, code, category_id, quantity, min_quantity, created_at FROM equipment ORDER BY created_at DESC LIMIT 10');
+        const equipment = await query('SELECT id, name, category_id, quantity, min_stock, unit, created_at FROM equipment ORDER BY created_at DESC LIMIT 10');
         const categories = await query('SELECT id, name, description, created_at FROM categories ORDER BY created_at DESC LIMIT 10');
-        const transactions = await query('SELECT id, equipment_id, type, quantity, responsible, created_at FROM transactions ORDER BY created_at DESC LIMIT 10');
+        const transactions = await query('SELECT id, equipment_id, type, quantity, user_name, created_at FROM transactions ORDER BY created_at DESC LIMIT 10');
 
         // 4. Verificar variáveis de ambiente
         const envCheck = {
