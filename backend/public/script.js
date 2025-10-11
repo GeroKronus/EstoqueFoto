@@ -3,6 +3,7 @@ class PhotoInventoryManager {
         this.items = [];
         this.transactions = [];
         this.settings = {};
+        this.categories = [];
         this.initialized = false;
     }
 
@@ -14,12 +15,17 @@ class PhotoInventoryManager {
         this.initializeSystem();
     }
 
-    initializeSystem() {
+    async initializeSystem() {
+        console.log('Carregando categorias do PostgreSQL...');
+        await this.loadCategories();
+        console.log('Categorias carregadas:', this.categories);
+
         this.items = this.loadItems();
         this.transactions = this.loadTransactions();
         this.settings = this.loadSettings();
         this.initializeEventListeners();
         this.setupUserInterface();
+        await this.populateCategoryDropdowns();
         this.renderAllItems();
         this.updateSummary();
         this.populateModalSelects();
@@ -38,6 +44,44 @@ class PhotoInventoryManager {
     loadSettings() {
         const stored = localStorage.getItem('photoSettings');
         return stored ? JSON.parse(stored) : this.getDefaultSettings();
+    }
+
+    async loadCategories() {
+        try {
+            const response = await window.api.getCategories();
+            if (response && response.categories) {
+                this.categories = response.categories;
+                console.log('✅ Categorias carregadas do PostgreSQL:', this.categories.length);
+            } else {
+                console.error('❌ Formato de resposta inválido ao carregar categorias');
+                this.categories = [];
+            }
+        } catch (error) {
+            console.error('❌ Erro ao carregar categorias:', error);
+            this.categories = [];
+        }
+    }
+
+    async populateCategoryDropdowns() {
+        // Dropdown de filtro
+        const filterCategory = document.getElementById('filterCategory');
+        if (filterCategory) {
+            filterCategory.innerHTML = '<option value="">Todas as categorias</option>';
+            this.categories.forEach(category => {
+                const option = new Option(category.name, category.slug);
+                filterCategory.add(option);
+            });
+        }
+
+        // Dropdown de novo produto
+        const newProductCategory = document.getElementById('newProductCategory');
+        if (newProductCategory) {
+            newProductCategory.innerHTML = '<option value="">Selecione a categoria</option>';
+            this.categories.forEach(category => {
+                const option = new Option(category.name, category.slug);
+                newProductCategory.add(option);
+            });
+        }
     }
 
     initializeDatabase() {
@@ -585,19 +629,22 @@ class PhotoInventoryManager {
     }
 
     renderAllItems() {
-        const categories = ['cameras', 'lentes', 'iluminacao', 'acessorios'];
+        if (!this.categories || this.categories.length === 0) {
+            console.log('⏳ Aguardando categorias serem carregadas...');
+            return;
+        }
 
-        categories.forEach(category => {
-            const container = document.getElementById(`${category}-items`);
+        this.categories.forEach(category => {
+            const container = document.getElementById(`${category.slug}-items`);
 
             if (!container) {
-                console.log(`Aguardando container: ${category}-items`);
+                console.log(`Aguardando container: ${category.slug}-items`);
                 return;
             }
 
             container.innerHTML = '';
 
-            const categoryItems = this.items.filter(item => item.category === category);
+            const categoryItems = this.items.filter(item => item.category === category.slug);
 
             categoryItems.forEach(item => {
                 const itemElement = this.createItemElement(item);
@@ -663,15 +710,22 @@ class PhotoInventoryManager {
         const searchTerm = document.getElementById('searchItem').value.toLowerCase();
         const stockFilter = document.getElementById('stockFilter').value;
 
-        const categories = ['cameras', 'lentes', 'iluminacao', 'acessorios'];
+        if (!this.categories || this.categories.length === 0) {
+            console.log('⏳ Aguardando categorias para filtrar...');
+            return;
+        }
 
-        categories.forEach(category => {
-            const section = document.getElementById(`${category}-section`);
-            const container = document.getElementById(`${category}-items`);
+        this.categories.forEach(category => {
+            const section = document.getElementById(`${category.slug}-section`);
+            const container = document.getElementById(`${category.slug}-items`);
 
-            let categoryItems = this.items.filter(item => item.category === category);
+            if (!section || !container) {
+                return;
+            }
 
-            if (categoryFilter && categoryFilter !== category) {
+            let categoryItems = this.items.filter(item => item.category === category.slug);
+
+            if (categoryFilter && categoryFilter !== category.slug) {
                 section.classList.add('hidden');
                 return;
             }
