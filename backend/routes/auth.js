@@ -90,51 +90,66 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
+        console.log('🔐 Tentativa de login:', username);
 
         if (!username || !password) {
+            console.log('❌ Username ou password ausente');
             return res.status(400).json({
                 error: 'Username e password são obrigatórios'
             });
         }
 
         // Buscar usuário
+        console.log('🔍 Buscando usuário no banco...');
         const userResult = await query(
             'SELECT * FROM users WHERE username = $1',
             [username]
         );
 
         if (userResult.rows.length === 0) {
+            console.log('❌ Usuário não encontrado:', username);
             return res.status(401).json({
                 error: 'Credenciais inválidas'
             });
         }
 
         const user = userResult.rows[0];
+        console.log('✅ Usuário encontrado:', user.username, 'active:', user.active);
 
         if (!user.active) {
+            console.log('❌ Usuário inativo:', username);
             return res.status(401).json({
                 error: 'Usuário inativo'
             });
         }
 
         // Verificar senha
+        console.log('🔑 Verificando senha com bcrypt...');
+        console.log('🔑 Password hash exists:', !!user.password_hash);
+        console.log('🔑 Password hash length:', user.password_hash ? user.password_hash.length : 0);
+
         const isValidPassword = await bcrypt.compare(password, user.password_hash);
+        console.log('🔑 Senha válida:', isValidPassword);
 
         if (!isValidPassword) {
+            console.log('❌ Senha incorreta para:', username);
             return res.status(401).json({
                 error: 'Credenciais inválidas'
             });
         }
 
         // Atualizar último login
+        console.log('📝 Atualizando último login...');
         await query(
             'UPDATE users SET last_login = NOW() WHERE id = $1',
             [user.id]
         );
 
         // Gerar token
+        console.log('🎫 Gerando token JWT...');
         const token = generateToken(user);
 
+        console.log('✅ Login bem-sucedido para:', username);
         res.json({
             message: 'Login realizado com sucesso',
             user: {
@@ -150,9 +165,11 @@ router.post('/login', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Erro no login:', error);
+        console.error('💥 ERRO NO LOGIN:', error);
+        console.error('💥 Stack:', error.stack);
         res.status(500).json({
-            error: 'Erro interno do servidor'
+            error: 'Erro interno do servidor',
+            details: error.message
         });
     }
 });
