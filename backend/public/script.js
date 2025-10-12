@@ -283,6 +283,11 @@ class PhotoInventoryManager {
             this.renderTransactions();
         } else if (sectionName === 'users' && photoAuthManager.isAdmin()) {
             this.renderUsers();
+        } else if (sectionName === 'exit-orders') {
+            if (!window.exitOrdersManager) {
+                window.exitOrdersManager = new ExitOrdersManager(this);
+            }
+            window.exitOrdersManager.renderSection();
         }
     }
 

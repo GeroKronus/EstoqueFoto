@@ -289,6 +289,7 @@ Carregando sistema...`);
 
                 <nav class="main-nav">
                     <button class="nav-btn active" data-section="inventory">Estoque</button>
+                    <button class="nav-btn" data-section="exit-orders">📋 Ordens de Saída</button>
                     <button class="nav-btn" data-section="transactions">Movimentações</button>
                     <button class="nav-btn" data-section="reports">Relatórios</button>
                     <button class="nav-btn" data-section="settings">Configurações</button>
@@ -343,6 +344,10 @@ Carregando sistema...`);
                         </div>
                     </div>
                     <div id="transactionsList" class="transactions-list"></div>
+                </div>
+
+                <div id="exit-orders-section" class="section">
+                    <!-- Conteúdo será carregado por exitOrders.js -->
                 </div>
 
                 <div id="reports-section" class="section">
