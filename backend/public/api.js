@@ -211,6 +211,31 @@ class ApiService {
         return this.request(`${CONFIG.ENDPOINTS.USERS}/stats/summary`);
     }
 
+    // === ORDENS DE SAÍDA ===
+    async getExitOrders(params = {}) {
+        const queryString = new URLSearchParams(params).toString();
+        const endpoint = queryString ? `${CONFIG.ENDPOINTS.EXIT_ORDERS}?${queryString}` : CONFIG.ENDPOINTS.EXIT_ORDERS;
+        return this.request(endpoint);
+    }
+
+    async getExitOrder(id) {
+        return this.request(`${CONFIG.ENDPOINTS.EXIT_ORDERS}/${id}`);
+    }
+
+    async createExitOrder(orderData) {
+        return this.request(CONFIG.ENDPOINTS.EXIT_ORDERS, {
+            method: 'POST',
+            body: JSON.stringify(orderData)
+        });
+    }
+
+    async cancelExitOrder(id, cancellationReason) {
+        return this.request(`${CONFIG.ENDPOINTS.EXIT_ORDERS}/${id}/cancel`, {
+            method: 'POST',
+            body: JSON.stringify({ cancellationReason })
+        });
+    }
+
     // === DASHBOARD ===
     async getDashboardData() {
         try {

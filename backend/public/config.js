@@ -30,7 +30,8 @@ const CONFIG = {
         CATEGORIES: '/categories',
         EQUIPMENT: '/equipment',
         TRANSACTIONS: '/transactions',
-        USERS: '/users'
+        USERS: '/users',
+        EXIT_ORDERS: '/exit-orders'
     }
 };
 

@@ -12,6 +12,7 @@ const equipmentRoutes = require('./routes/equipment');
 const transactionRoutes = require('./routes/transactions');
 const userRoutes = require('./routes/users');
 const categoryRoutes = require('./routes/categories');
+const exitOrderRoutes = require('./routes/exitOrders');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -84,6 +85,7 @@ app.use('/api/equipment', equipmentRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/exit-orders', exitOrderRoutes);
 
 // Rota de health check
 app.get('/api/health', (req, res) => {
