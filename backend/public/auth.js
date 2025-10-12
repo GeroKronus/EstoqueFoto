@@ -501,11 +501,11 @@ Carregando sistema...`);
         document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
 
         // Inicializar sistema de inventário
+        // IMPORTANTE: Sempre recriar a instância após reconstruir a interface
         setTimeout(() => {
             console.log('🔧 Inicializando PhotoInventoryManager...');
-            if (!window.photoInventory) {
-                window.photoInventory = new PhotoInventoryManager();
-            }
+            // Sempre criar nova instância para garantir estado limpo
+            window.photoInventory = new PhotoInventoryManager();
             window.photoInventory.initialize();
         }, 100);
     }
