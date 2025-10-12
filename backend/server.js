@@ -14,6 +14,7 @@ const userRoutes = require('./routes/users');
 const categoryRoutes = require('./routes/categories');
 const exitOrderRoutes = require('./routes/exitOrders');
 const migrationRoutes = require('./routes/migrations');
+const setupMigrationRoutes = require('./routes/setupMigration');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -88,6 +89,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/exit-orders', exitOrderRoutes);
 app.use('/api/migrations', migrationRoutes);
+app.use('/api/setup', setupMigrationRoutes); // TEMPORÁRIO - REMOVER APÓS USO
 
 // Rota de health check
 app.get('/api/health', (req, res) => {
