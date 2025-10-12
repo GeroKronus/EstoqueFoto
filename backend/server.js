@@ -13,6 +13,7 @@ const transactionRoutes = require('./routes/transactions');
 const userRoutes = require('./routes/users');
 const categoryRoutes = require('./routes/categories');
 const exitOrderRoutes = require('./routes/exitOrders');
+const migrationRoutes = require('./routes/migrations');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -86,6 +87,7 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/exit-orders', exitOrderRoutes);
+app.use('/api/migrations', migrationRoutes);
 
 // Rota de health check
 app.get('/api/health', (req, res) => {
