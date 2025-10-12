@@ -722,28 +722,38 @@ class PhotoInventoryManager {
     }
 
     renderAllItems() {
+        console.log('🎨 renderAllItems chamado. Items:', this.items.length, 'Categorias:', this.categories.length);
+
         if (!this.categories || this.categories.length === 0) {
             console.log('⏳ Aguardando categorias serem carregadas...');
             return;
+        }
+
+        if (!this.items || this.items.length === 0) {
+            console.log('⏳ Nenhum equipamento para renderizar');
         }
 
         this.categories.forEach(category => {
             const container = document.getElementById(`${category.slug}-items`);
 
             if (!container) {
-                console.log(`Aguardando container: ${category.slug}-items`);
+                console.log(`❌ Container não encontrado: ${category.slug}-items`);
                 return;
             }
 
             container.innerHTML = '';
 
             const categoryItems = this.items.filter(item => item.category === category.slug);
+            console.log(`📦 Categoria ${category.name} (${category.slug}): ${categoryItems.length} items`);
 
             categoryItems.forEach(item => {
+                console.log(`  - Renderizando: ${item.name}`);
                 const itemElement = this.createItemElement(item);
                 container.appendChild(itemElement);
             });
         });
+
+        console.log('✅ renderAllItems concluído');
     }
 
     createItemElement(item) {
