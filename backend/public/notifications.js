@@ -134,6 +134,9 @@ class NotificationSystem {
     }
 
     show(message, type = 'info', duration = 4000) {
+        // Garantir que o container existe
+        this.createNotificationContainer();
+
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
 
@@ -184,6 +187,10 @@ class NotificationSystem {
         `;
 
         const container = document.getElementById('notification-container');
+        if (!container) {
+            console.error('Container de notificações não encontrado!');
+            return;
+        }
         container.appendChild(notification);
 
         // Adicionar animação

@@ -189,24 +189,33 @@ router.post('/entry', authenticateToken, async (req, res) => {
             const newTotalValue = newQuantity * newCurrentCost;
 
             // Atualizar equipamento
+            const updateParams = [newQuantity, newCurrentCost, newTotalValue, equipmentId];
+            let paramIndex = 4;
+            let updateFields = `
+                quantity = $1,
+                current_cost = $2,
+                total_value = $3,
+            `;
+
+            if (expiryDate) {
+                paramIndex++;
+                updateFields += `expiry_date = $${paramIndex},`;
+                updateParams.push(expiryDate);
+            }
+
+            if (supplier) {
+                paramIndex++;
+                updateFields += `supplier = $${paramIndex},`;
+                updateParams.push(supplier);
+            }
+
+            updateFields += `updated_at = NOW()`;
+
             await client.query(`
                 UPDATE equipment
-                SET
-                    quantity = $1,
-                    current_cost = $2,
-                    total_value = $3,
-                    ${expiryDate ? 'expiry_date = $6,' : ''}
-                    ${supplier ? 'supplier = $7,' : ''}
-                    updated_at = NOW()
+                SET ${updateFields}
                 WHERE id = $4
-            `, [
-                newQuantity,
-                newCurrentCost,
-                newTotalValue,
-                equipmentId,
-                ...(expiryDate ? [expiryDate] : []),
-                ...(supplier ? [supplier] : [])
-            ]);
+            `, updateParams);
 
             // Buscar categoria para o log
             const categoryResult = await client.query(
