@@ -10,7 +10,7 @@ router.get('/run-migration-007', async (req, res) => {
         console.log('🔧 Iniciando execução da migration 007...');
 
         // Verificar se migration já foi executada
-        const { pool } = require('../database/db');
+        const { pool } = require('../database/connection');
 
         const tableCheck = await pool.query(`
             SELECT EXISTS (
@@ -81,7 +81,7 @@ router.get('/run-migration-007', async (req, res) => {
 // Endpoint para verificar status das tabelas
 router.get('/check-tables', async (req, res) => {
     try {
-        const { pool } = require('../database/db');
+        const { pool } = require('../database/connection');
 
         const result = await pool.query(`
             SELECT
