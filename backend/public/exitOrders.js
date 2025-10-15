@@ -407,8 +407,10 @@ class ExitOrdersManager {
                             ${history.map(entry => `
                                 <div class="history-entry">
                                     <div class="history-header">
-                                        <strong>${this.formatDateTime(entry.changedAt)}</strong>
-                                        <span>${entry.changedBy.name}</span>
+                                        <strong>📅 ${this.formatDateTime(entry.changedAt)}</strong>
+                                        <span style="background: #2196F3; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: 600;">
+                                            👤 ${entry.changedBy.name}
+                                        </span>
                                     </div>
                                     <div class="history-details">
                                         <div>Quantidade alterada de <strong>${entry.previousQuantity} ${entry.equipmentUnit}</strong> para <strong>${entry.newQuantity} ${entry.equipmentUnit}</strong></div>
@@ -903,8 +905,10 @@ class ExitOrdersManager {
                             ${history.map(entry => `
                                 <div class="history-entry">
                                     <div class="history-header">
-                                        <strong>${this.formatDateTime(entry.changedAt)}</strong>
-                                        <span>${entry.changedBy.name}</span>
+                                        <strong>📅 ${this.formatDateTime(entry.changedAt)}</strong>
+                                        <span style="background: #2196F3; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: 600;">
+                                            👤 ${entry.changedBy.name}
+                                        </span>
                                     </div>
                                     <div class="history-details">
                                         <div>Quantidade alterada de <strong>${entry.previousQuantity} ${entry.equipmentUnit}</strong> para <strong>${entry.newQuantity} ${entry.equipmentUnit}</strong></div>
