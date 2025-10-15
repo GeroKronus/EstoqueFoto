@@ -297,7 +297,6 @@ class PhotoInventoryManager {
         const quantity = parseFloat(document.getElementById('entryQuantity').value);
         const cost = parseFloat(document.getElementById('entryCost').value) || 0;
         const supplier = document.getElementById('entrySupplier').value;
-        const expiryDate = document.getElementById('entryExpiry').value;
         const notes = document.getElementById('entryNotes').value;
 
         if (!itemId || !quantity || quantity <= 0) {
@@ -319,7 +318,6 @@ class PhotoInventoryManager {
                 quantity,
                 cost,
                 supplier,
-                expiryDate: expiryDate || null,
                 notes
             });
 
@@ -808,7 +806,6 @@ class PhotoInventoryManager {
                     <th>Quantidade</th>
                     <th>Custo</th>
                     <th>Valor Total</th>
-                    <th>Validade</th>
                     <th>Status</th>
                     <th>Ações</th>
                 </tr>
@@ -840,14 +837,11 @@ class PhotoInventoryManager {
                               isExpired ? '<span class="badge badge-expired">VENCIDO</span>' :
                               '<span class="badge badge-success">OK</span>';
 
-            const expiryDisplay = item.expiryDate ? this.formatDate(item.expiryDate) : '-';
-
             tr.innerHTML = `
                 <td class="item-name-cell">${item.name}</td>
                 <td class="quantity-cell">${item.quantity} ${item.unit}</td>
                 <td class="cost-cell">R$ ${item.currentCost.toFixed(2)}</td>
                 <td class="value-cell">R$ ${item.totalValue.toFixed(2)}</td>
-                <td class="expiry-cell">${expiryDisplay}</td>
                 <td class="status-cell">${stockStatus}</td>
                 <td class="actions-cell">
                     <button class="btn-table-action btn-entry-small" onclick="selectItemForEntry('${item.id}')" title="Entrada">
@@ -886,10 +880,6 @@ class PhotoInventoryManager {
             itemDiv.classList.add('low-stock');
         }
 
-        const expiryInfo = item.expiryDate ?
-            `<div class="item-expiry">Validade: ${this.formatDate(item.expiryDate)}</div>` :
-            '<div class="item-expiry">Sem validade definida</div>';
-
         const valueInfo = item.totalValue > 0 ?
             `<div class="item-value">Valor: R$ ${item.totalValue.toFixed(2)}</div>` : '';
 
@@ -902,7 +892,6 @@ class PhotoInventoryManager {
             <div class="item-quantity">${item.quantity} ${item.unit}</div>
             <div class="item-cost">Custo: R$ ${item.currentCost.toFixed(2)}</div>
             ${valueInfo}
-            ${expiryInfo}
             ${stockStatus ? `<div class="item-status">${stockStatus}</div>` : ''}
             <div class="item-actions">
                 <button class="btn-entry" onclick="selectItemForEntry('${item.id}')">
@@ -961,9 +950,6 @@ class PhotoInventoryManager {
                     case 'low':
                         categoryItems = categoryItems.filter(item =>
                             item.quantity > 0 && item.quantity <= (item.minStock || this.settings.lowStockLimit));
-                        break;
-                    case 'expired':
-                        categoryItems = categoryItems.filter(item => this.isExpired(item.expiryDate));
                         break;
                 }
             }
@@ -1031,7 +1017,6 @@ class PhotoInventoryManager {
         const lowStockItems = this.items.filter(item =>
             item.quantity > 0 && item.quantity <= (item.minStock || this.settings.lowStockLimit)
         ).length;
-        const expiredItems = this.items.filter(item => this.isExpired(item.expiryDate)).length;
 
         const todayTransactions = this.transactions.filter(t => {
             const transactionDate = new Date(t.timestamp).toDateString();
@@ -1065,10 +1050,6 @@ class PhotoInventoryManager {
             <div class="summary-card">
                 <div class="summary-number" style="color: #ff9800">${lowStockItems}</div>
                 <div class="summary-label">Estoque Baixo</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-number" style="color: #f44336">${expiredItems}</div>
-                <div class="summary-label">Itens Vencidos</div>
             </div>
             <div class="summary-card">
                 <div class="summary-number" style="color: #4CAF50">${todayEntries}</div>

@@ -319,7 +319,6 @@ Carregando sistema...`);
                                 <option value="">Todos os estoques</option>
                                 <option value="zero">Estoque Zero</option>
                                 <option value="low">Estoque Baixo</option>
-                                <option value="expired">Vencidos</option>
                             </select>
                             <div class="view-mode-toggle">
                                 <label>Visualização:</label>
@@ -432,7 +431,6 @@ Carregando sistema...`);
                             <input type="number" id="entryQuantity" placeholder="Quantidade" required min="0.01" step="0.01">
                             <input type="number" id="entryCost" placeholder="Custo unitário (R$)" min="0" step="0.01">
                             <input type="text" id="entrySupplier" placeholder="Fornecedor">
-                            <input type="date" id="entryExpiry">
                             <textarea id="entryNotes" placeholder="Observações"></textarea>
                             <div class="modal-actions">
                                 <button type="button" onclick="closeModal('entryModal')">Cancelar</button>
