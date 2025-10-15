@@ -5,7 +5,7 @@ class PhotoInventoryManager {
         this.settings = {};
         this.categories = [];
         this.initialized = false;
-        this.viewMode = localStorage.getItem('viewMode') || 'cards'; // 'cards' ou 'table'
+        this.viewMode = localStorage.getItem('viewMode') || 'table'; // 'cards' ou 'table' (padrão: table)
     }
 
     initialize() {
@@ -973,10 +973,22 @@ class PhotoInventoryManager {
             } else {
                 section.classList.remove('hidden');
                 container.innerHTML = '';
-                categoryItems.forEach(item => {
-                    const itemElement = this.createItemElement(item);
-                    container.appendChild(itemElement);
-                });
+
+                // Ordenar alfabeticamente
+                categoryItems.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+
+                // Renderizar respeitando o modo de visualização atual
+                if (this.viewMode === 'table') {
+                    if (categoryItems.length > 0) {
+                        const tableElement = this.createTableView(categoryItems);
+                        container.appendChild(tableElement);
+                    }
+                } else {
+                    categoryItems.forEach(item => {
+                        const itemElement = this.createItemElement(item);
+                        container.appendChild(itemElement);
+                    });
+                }
             }
         });
     }
