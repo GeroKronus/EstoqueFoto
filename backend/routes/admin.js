@@ -13,15 +13,23 @@ router.use(requireAdmin);
  * ATENÇÃO: Esta é uma operação DESTRUTIVA e IRREVERSÍVEL!
  */
 router.post('/reset-movements', async (req, res) => {
-    const client = await pool.connect();
+    let client;
 
     try {
+        client = await pool.connect();
+
         // Iniciar transação
         await client.query('BEGIN');
+        console.log('✅ Transação iniciada');
 
-        // 1. Excluir histórico de itens de ordens de saída
-        const historyResult = await client.query('DELETE FROM exit_order_item_history');
-        console.log(`🗑️ ${historyResult.rowCount} registros deletados de exit_order_item_history`);
+        // 1. Excluir histórico de itens de ordens de saída (se a tabela existir)
+        let historyResult = { rowCount: 0 };
+        try {
+            historyResult = await client.query('DELETE FROM exit_order_item_history');
+            console.log(`🗑️ ${historyResult.rowCount} registros deletados de exit_order_item_history`);
+        } catch (error) {
+            console.log('⚠️ Tabela exit_order_item_history não existe ou está vazia');
+        }
 
         // 2. Excluir itens de ordens de saída
         const orderItemsResult = await client.query('DELETE FROM exit_order_items');
@@ -45,12 +53,17 @@ router.post('/reset-movements', async (req, res) => {
         `);
         console.log(`🔄 ${equipmentResult.rowCount} equipamentos tiveram quantidades zeradas`);
 
-        // 6. Resetar sequências (auto-increment) das tabelas
-        await client.query("SELECT setval('exit_orders_order_number_seq', 1, false)");
-        console.log(`🔄 Sequência de order_number resetada`);
+        // 6. Resetar sequências (auto-increment) das tabelas (se existir)
+        try {
+            await client.query("SELECT setval('exit_orders_order_number_seq', 1, false)");
+            console.log(`🔄 Sequência de order_number resetada`);
+        } catch (error) {
+            console.log('⚠️ Sequência exit_orders_order_number_seq não existe');
+        }
 
         // Commit da transação
         await client.query('COMMIT');
+        console.log('✅ Transação commitada com sucesso');
 
         // Log da operação
         console.log(`⚠️ RESET DE MOVIMENTOS executado por: ${req.user.name} (ID: ${req.user.id})`);
@@ -74,15 +87,28 @@ router.post('/reset-movements', async (req, res) => {
 
     } catch (error) {
         // Rollback em caso de erro
-        await client.query('ROLLBACK');
+        if (client) {
+            try {
+                await client.query('ROLLBACK');
+                console.log('🔄 Rollback executado');
+            } catch (rollbackError) {
+                console.error('❌ Erro ao fazer rollback:', rollbackError);
+            }
+        }
+
         console.error('❌ Erro ao resetar movimentos:', error);
+        console.error('Stack trace:', error.stack);
 
         res.status(500).json({
             error: 'Erro ao resetar movimentos',
-            message: error.message
+            message: error.message,
+            details: process.env.NODE_ENV === 'production' ? undefined : error.stack
         });
     } finally {
-        client.release();
+        if (client) {
+            client.release();
+            console.log('🔌 Conexão liberada');
+        }
     }
 });
 
