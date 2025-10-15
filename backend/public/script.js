@@ -1284,10 +1284,30 @@ async function runMigration008() {
             }
         });
 
-        const data = await response.json();
+        let data;
+        try {
+            data = await response.json();
+        } catch (e) {
+            throw new Error(`Erro ao processar resposta: ${response.status} ${response.statusText}`);
+        }
+
+        console.log('Response status:', response.status);
+        console.log('Response data:', data);
 
         if (!response.ok) {
-            throw new Error(data.error || data.details || `HTTP ${response.status}`);
+            // Verificar se já foi executada
+            if (data.details && data.details.includes('already exists')) {
+                statusDiv.innerHTML = `
+                    <span style="color: #4CAF50; font-weight: 600;">✅ Migration já está ativa!</span><br>
+                    <span style="color: #666;">A tabela de histórico já existe. Você pode usar a edição de ordens.</span>
+                `;
+                button.textContent = '✓ Já Executada';
+                button.style.background = '#4CAF50';
+                window.notify.success('Migration 008 já está ativa! Pode usar a edição de ordens.');
+                return;
+            }
+
+            throw new Error(data.details || data.error || `HTTP ${response.status}`);
         }
 
         statusDiv.innerHTML = `
@@ -1301,8 +1321,14 @@ async function runMigration008() {
         window.notify.success('Migration 008 executada! Atualize a página (F5).');
 
     } catch (error) {
-        console.error('Erro ao executar migration:', error);
-        statusDiv.innerHTML = `<span style="color: #f44336; font-weight: 600;">❌ Erro: ${error.message}</span>`;
+        console.error('Erro completo ao executar migration:', error);
+        statusDiv.innerHTML = `
+            <span style="color: #f44336; font-weight: 600;">❌ Erro: ${error.message}</span><br>
+            <details style="margin-top: 10px; color: #666; font-size: 0.8rem;">
+                <summary style="cursor: pointer;">Ver detalhes técnicos</summary>
+                <pre style="margin-top: 5px; background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">${error.stack || 'Sem stack trace'}</pre>
+            </details>
+        `;
         button.disabled = false;
         button.textContent = 'Tentar Novamente';
         window.notify.error('Erro: ' + error.message);
