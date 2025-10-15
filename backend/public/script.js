@@ -5,6 +5,7 @@ class PhotoInventoryManager {
         this.settings = {};
         this.categories = [];
         this.initialized = false;
+        this.viewMode = localStorage.getItem('viewMode') || 'cards'; // 'cards' ou 'table'
     }
 
     initialize() {
@@ -726,8 +727,30 @@ class PhotoInventoryManager {
         });
     }
 
+    toggleViewMode() {
+        this.viewMode = this.viewMode === 'cards' ? 'table' : 'cards';
+        localStorage.setItem('viewMode', this.viewMode);
+        this.renderAllItems();
+        this.updateViewModeButtons();
+    }
+
+    updateViewModeButtons() {
+        const cardsBtn = document.getElementById('viewModeCards');
+        const tableBtn = document.getElementById('viewModeTable');
+
+        if (cardsBtn && tableBtn) {
+            if (this.viewMode === 'cards') {
+                cardsBtn.classList.add('active');
+                tableBtn.classList.remove('active');
+            } else {
+                cardsBtn.classList.remove('active');
+                tableBtn.classList.add('active');
+            }
+        }
+    }
+
     renderAllItems() {
-        console.log('🎨 renderAllItems chamado. Items:', this.items.length, 'Categorias:', this.categories.length);
+        console.log('🎨 renderAllItems chamado. Items:', this.items.length, 'Categorias:', this.categories.length, 'Modo:', this.viewMode);
 
         if (!this.categories || this.categories.length === 0) {
             console.log('⏳ Aguardando categorias serem carregadas...');
@@ -748,17 +771,103 @@ class PhotoInventoryManager {
 
             container.innerHTML = '';
 
-            const categoryItems = this.items.filter(item => item.category === category.slug);
+            const categoryItems = this.items.filter(item => item.category === category.slug)
+                .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+
             console.log(`📦 Categoria ${category.name} (${category.slug}): ${categoryItems.length} items`);
 
-            categoryItems.forEach(item => {
-                console.log(`  - Renderizando: ${item.name}`);
-                const itemElement = this.createItemElement(item);
-                container.appendChild(itemElement);
-            });
+            if (this.viewMode === 'table') {
+                // Renderizar em modo tabela
+                if (categoryItems.length > 0) {
+                    const tableElement = this.createTableView(categoryItems);
+                    container.appendChild(tableElement);
+                }
+            } else {
+                // Renderizar em modo cards (padrão)
+                categoryItems.forEach(item => {
+                    console.log(`  - Renderizando: ${item.name}`);
+                    const itemElement = this.createItemElement(item);
+                    container.appendChild(itemElement);
+                });
+            }
         });
 
+        this.updateViewModeButtons();
         console.log('✅ renderAllItems concluído');
+    }
+
+    createTableView(items) {
+        const table = document.createElement('table');
+        table.className = 'inventory-table';
+
+        // Cabeçalho
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>Equipamento</th>
+                    <th>Quantidade</th>
+                    <th>Custo</th>
+                    <th>Valor Total</th>
+                    <th>Validade</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        `;
+
+        const tbody = table.querySelector('tbody');
+
+        items.forEach(item => {
+            const tr = document.createElement('tr');
+
+            const isExpired = this.isExpired(item.expiryDate);
+            const isLowStock = item.quantity <= (item.minStock || this.settings.lowStockLimit);
+            const isZeroStock = item.quantity === 0;
+
+            // Adicionar classes de status
+            if (isExpired) {
+                tr.classList.add('expired');
+            } else if (isZeroStock) {
+                tr.classList.add('zero-stock');
+            } else if (isLowStock) {
+                tr.classList.add('low-stock');
+            }
+
+            const stockStatus = isZeroStock ? '<span class="badge badge-danger">SEM ESTOQUE</span>' :
+                              isLowStock ? '<span class="badge badge-warning">ESTOQUE BAIXO</span>' :
+                              isExpired ? '<span class="badge badge-expired">VENCIDO</span>' :
+                              '<span class="badge badge-success">OK</span>';
+
+            const expiryDisplay = item.expiryDate ? this.formatDate(item.expiryDate) : '-';
+
+            tr.innerHTML = `
+                <td class="item-name-cell">${item.name}</td>
+                <td class="quantity-cell">${item.quantity} ${item.unit}</td>
+                <td class="cost-cell">R$ ${item.currentCost.toFixed(2)}</td>
+                <td class="value-cell">R$ ${item.totalValue.toFixed(2)}</td>
+                <td class="expiry-cell">${expiryDisplay}</td>
+                <td class="status-cell">${stockStatus}</td>
+                <td class="actions-cell">
+                    <button class="btn-table-action btn-entry-small" onclick="selectItemForEntry('${item.id}')" title="Entrada">
+                        📥
+                    </button>
+                    <button class="btn-table-action btn-exit-small" onclick="selectItemForExit('${item.id}')" ${item.quantity <= 0 ? 'disabled' : ''} title="Saída">
+                        📤
+                    </button>
+                    ${photoAuthManager.isAdmin() ? `
+                        <button class="btn-table-action btn-delete-small" onclick="photoInventory.deleteProduct('${item.id}')" title="Excluir">
+                            🗑️
+                        </button>
+                    ` : ''}
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+
+        return table;
     }
 
     createItemElement(item) {

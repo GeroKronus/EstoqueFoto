@@ -321,6 +321,17 @@ Carregando sistema...`);
                                 <option value="low">Estoque Baixo</option>
                                 <option value="expired">Vencidos</option>
                             </select>
+                            <div class="view-mode-toggle">
+                                <label>Visualização:</label>
+                                <div class="toggle-buttons">
+                                    <button id="viewModeCards" class="toggle-btn active" onclick="photoInventory.toggleViewMode()" title="Visualização em Cards">
+                                        🔲 Cards
+                                    </button>
+                                    <button id="viewModeTable" class="toggle-btn" onclick="photoInventory.toggleViewMode()" title="Visualização em Tabela">
+                                        📋 Tabela
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
