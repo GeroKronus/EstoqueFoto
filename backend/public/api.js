@@ -236,6 +236,17 @@ class ApiService {
         });
     }
 
+    async updateExitOrderItem(orderId, itemId, newQuantity) {
+        return this.request(`${CONFIG.ENDPOINTS.EXIT_ORDERS}/${orderId}/items/${itemId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ newQuantity })
+        });
+    }
+
+    async getExitOrderItemHistory(orderId, itemId) {
+        return this.request(`${CONFIG.ENDPOINTS.EXIT_ORDERS}/${orderId}/items/${itemId}/history`);
+    }
+
     // === DASHBOARD ===
     async getDashboardData() {
         try {

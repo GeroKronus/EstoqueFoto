@@ -457,4 +457,251 @@ router.post('/:id/cancel', authenticateToken, async (req, res) => {
     }
 });
 
+// PUT /api/exit-orders/:orderId/items/:itemId - Editar quantidade de um item da ordem
+router.put('/:orderId/items/:itemId', authenticateToken, async (req, res) => {
+    try {
+        const { orderId, itemId } = req.params;
+        const { newQuantity } = req.body;
+
+        // Validações
+        if (newQuantity === undefined || newQuantity === null) {
+            return res.status(400).json({ error: 'Nova quantidade é obrigatória' });
+        }
+
+        if (parseFloat(newQuantity) < 0) {
+            return res.status(400).json({ error: 'Quantidade não pode ser negativa' });
+        }
+
+        const result = await transaction(async (client) => {
+            // Buscar ordem
+            const orderResult = await client.query(
+                'SELECT * FROM exit_orders WHERE id = $1',
+                [orderId]
+            );
+
+            if (orderResult.rows.length === 0) {
+                throw new Error('Ordem de saída não encontrada');
+            }
+
+            const order = orderResult.rows[0];
+
+            if (order.status !== 'ativa') {
+                throw new Error('Apenas ordens ativas podem ser editadas');
+            }
+
+            // Buscar item da ordem
+            const itemResult = await client.query(
+                'SELECT * FROM exit_order_items WHERE id = $1 AND exit_order_id = $2',
+                [itemId, orderId]
+            );
+
+            if (itemResult.rows.length === 0) {
+                throw new Error('Item não encontrado nesta ordem');
+            }
+
+            const orderItem = itemResult.rows[0];
+            const previousQuantity = parseFloat(orderItem.quantity);
+            const newQty = parseFloat(newQuantity);
+            const quantityDifference = newQty - previousQuantity;
+
+            // Se não houve mudança, retornar
+            if (quantityDifference === 0) {
+                return { orderItem, modified: false };
+            }
+
+            // Buscar equipamento
+            const equipmentResult = await client.query(
+                'SELECT * FROM equipment WHERE id = $1',
+                [orderItem.equipment_id]
+            );
+
+            if (equipmentResult.rows.length === 0) {
+                throw new Error('Equipamento não encontrado');
+            }
+
+            const equipment = equipmentResult.rows[0];
+            const currentStockQuantity = parseFloat(equipment.quantity);
+
+            // Se aumentou a quantidade na ordem, verificar estoque disponível
+            if (quantityDifference > 0) {
+                if (quantityDifference > currentStockQuantity) {
+                    throw new Error(`Quantidade insuficiente em estoque! Disponível: ${currentStockQuantity} ${equipment.unit}`);
+                }
+            }
+
+            // Ajustar estoque
+            // Se aumentou: diminuir do estoque
+            // Se diminuiu: aumentar no estoque
+            const newStockQuantity = currentStockQuantity - quantityDifference;
+            const newTotalValue = newStockQuantity * parseFloat(equipment.current_cost);
+
+            await client.query(`
+                UPDATE equipment
+                SET quantity = $1, total_value = $2, updated_at = NOW()
+                WHERE id = $3
+            `, [newStockQuantity, newTotalValue, equipment.id]);
+
+            // Calcular novos valores do item
+            const newTotalCost = newQty * parseFloat(orderItem.unit_cost);
+
+            // Atualizar item da ordem
+            // Se a quantidade original não foi salva ainda, salvar
+            const originalQty = orderItem.original_quantity || previousQuantity;
+
+            await client.query(`
+                UPDATE exit_order_items
+                SET
+                    quantity = $1,
+                    total_cost = $2,
+                    is_modified = $3,
+                    original_quantity = $4
+                WHERE id = $5
+            `, [newQty, newTotalCost, true, originalQty, itemId]);
+
+            // Registrar no histórico
+            const changeType = quantityDifference > 0 ? 'quantity_increased' : 'quantity_decreased';
+
+            await client.query(`
+                INSERT INTO exit_order_items_history (
+                    exit_order_id, exit_order_item_id, equipment_id,
+                    previous_quantity, new_quantity, change_type,
+                    quantity_difference, changed_by, reason
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            `, [
+                orderId,
+                itemId,
+                equipment.id,
+                previousQuantity,
+                newQty,
+                changeType,
+                quantityDifference,
+                req.user.id,
+                `Quantidade alterada de ${previousQuantity} para ${newQty} ${equipment.unit}`
+            ]);
+
+            // Registrar transação apropriada
+            if (quantityDifference > 0) {
+                // Aumentou: registrar saída adicional
+                await client.query(`
+                    INSERT INTO transactions (
+                        type, equipment_id, equipment_name, category_name,
+                        quantity, unit, cost, total_cost, reason, destination,
+                        notes, created_by, user_name
+                    )
+                    SELECT
+                        'saida', $1, e.name, c.name,
+                        $2, e.unit, e.current_cost, $3,
+                        $4, $5, $6, $7, $8
+                    FROM equipment e
+                    LEFT JOIN categories c ON e.category_id = c.id
+                    WHERE e.id = $1
+                `, [
+                    equipment.id,
+                    Math.abs(quantityDifference),
+                    Math.abs(quantityDifference) * parseFloat(equipment.current_cost),
+                    `Edição OS #${order.order_number} - ${order.reason}`,
+                    order.destination,
+                    `Aumento de quantidade - OS #${order.order_number}`,
+                    req.user.id,
+                    req.user.name
+                ]);
+            } else {
+                // Diminuiu: registrar entrada (devolução parcial)
+                await client.query(`
+                    INSERT INTO transactions (
+                        type, equipment_id, equipment_name, category_name,
+                        quantity, unit, cost, total_cost, supplier,
+                        notes, created_by, user_name
+                    )
+                    SELECT
+                        'entrada', $1, e.name, c.name,
+                        $2, e.unit, e.current_cost, $3,
+                        'Devolução Parcial OS',
+                        $4, $5, $6
+                    FROM equipment e
+                    LEFT JOIN categories c ON e.category_id = c.id
+                    WHERE e.id = $1
+                `, [
+                    equipment.id,
+                    Math.abs(quantityDifference),
+                    Math.abs(quantityDifference) * parseFloat(equipment.current_cost),
+                    `Redução de quantidade - OS #${order.order_number}`,
+                    req.user.id,
+                    req.user.name
+                ]);
+            }
+
+            // Buscar item atualizado
+            const updatedItemResult = await client.query(
+                'SELECT * FROM exit_order_items WHERE id = $1',
+                [itemId]
+            );
+
+            return { orderItem: updatedItemResult.rows[0], modified: true };
+        });
+
+        res.json({
+            message: result.modified ? 'Quantidade do item atualizada com sucesso' : 'Nenhuma alteração realizada',
+            item: {
+                id: result.orderItem.id,
+                equipmentName: result.orderItem.equipment_name,
+                quantity: parseFloat(result.orderItem.quantity),
+                unit: result.orderItem.unit,
+                totalCost: parseFloat(result.orderItem.total_cost),
+                isModified: result.orderItem.is_modified,
+                originalQuantity: parseFloat(result.orderItem.original_quantity)
+            }
+        });
+
+    } catch (error) {
+        console.error('Erro ao editar item da ordem:', error);
+        res.status(400).json({ error: error.message || 'Erro ao editar item' });
+    }
+});
+
+// GET /api/exit-orders/:orderId/items/:itemId/history - Buscar histórico de alterações de um item
+router.get('/:orderId/items/:itemId/history', authenticateToken, async (req, res) => {
+    try {
+        const { orderId, itemId } = req.params;
+
+        const historyQuery = `
+            SELECT
+                h.*,
+                u.name as changed_by_name,
+                e.name as equipment_name,
+                e.unit as equipment_unit
+            FROM exit_order_items_history h
+            LEFT JOIN users u ON h.changed_by = u.id
+            LEFT JOIN equipment e ON h.equipment_id = e.id
+            WHERE h.exit_order_id = $1 AND h.exit_order_item_id = $2
+            ORDER BY h.changed_at DESC
+        `;
+
+        const result = await query(historyQuery, [orderId, itemId]);
+
+        const history = result.rows.map(row => ({
+            id: row.id,
+            equipmentName: row.equipment_name,
+            equipmentUnit: row.equipment_unit,
+            previousQuantity: parseFloat(row.previous_quantity),
+            newQuantity: parseFloat(row.new_quantity),
+            quantityDifference: parseFloat(row.quantity_difference),
+            changeType: row.change_type,
+            changedBy: {
+                id: row.changed_by,
+                name: row.changed_by_name
+            },
+            changedAt: row.changed_at,
+            reason: row.reason
+        }));
+
+        res.json({ history });
+
+    } catch (error) {
+        console.error('Erro ao buscar histórico do item:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
 module.exports = router;

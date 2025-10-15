@@ -9,13 +9,25 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
     const { migrationNumber } = req.params;
 
     try {
-        // Verificar se o arquivo de migration existe
-        const migrationFile = `${String(migrationNumber).padStart(3, '0')}_create_exit_orders.sql`;
+        // Mapear números de migration para arquivos
+        const migrationFiles = {
+            '007': '007_create_exit_orders.sql',
+            '008': '008_create_exit_order_history.sql'
+        };
+
+        const migrationFile = migrationFiles[String(migrationNumber).padStart(3, '0')];
+
+        if (!migrationFile) {
+            return res.status(404).json({
+                error: `Migration ${migrationNumber} não encontrada`
+            });
+        }
+
         const migrationPath = path.join(__dirname, '..', 'database', 'migrations', migrationFile);
 
         if (!fs.existsSync(migrationPath)) {
             return res.status(404).json({
-                error: `Migration ${migrationFile} não encontrada`
+                error: `Arquivo de migration ${migrationFile} não encontrado`
             });
         }
 
@@ -30,14 +42,21 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
 
         console.log(`✅ Migration ${migrationFile} executada com sucesso`);
 
-        // Verificar tabelas criadas
+        // Verificar tabelas criadas (dinâmico baseado no número)
+        let tablesToCheck = [];
+        if (migrationNumber == '007') {
+            tablesToCheck = ['exit_orders', 'exit_order_items'];
+        } else if (migrationNumber == '008') {
+            tablesToCheck = ['exit_order_items_history'];
+        }
+
         const result = await pool.query(`
             SELECT table_name
             FROM information_schema.tables
             WHERE table_schema = 'public'
-            AND table_name IN ('exit_orders', 'exit_order_items')
+            AND table_name = ANY($1)
             ORDER BY table_name;
-        `);
+        `, [tablesToCheck]);
 
         res.json({
             message: `Migration ${migrationFile} executada com sucesso`,

@@ -1679,3 +1679,100 @@ header {
         padding: 5px 8px;
     }
 }
+
+/* Estilos para itens modificados em ordens de saída */
+.modified-item {
+    background-color: #fff3cd !important;
+    border-left: 4px solid #ff9800 !important;
+}
+
+.modified-item:hover {
+    background-color: #ffe8a1 !important;
+}
+
+.modified-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #ff9800;
+    color: white;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    margin-left: 8px;
+    font-weight: 500;
+}
+
+/* Estilos para histórico de alterações */
+.history-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin: 20px 0;
+}
+
+.history-entry {
+    background: #f9f9f9;
+    border-left: 3px solid #4CAF50;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+}
+
+.history-entry:hover {
+    background: #f5f5f5;
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.history-header strong {
+    color: #333;
+    font-size: 0.95rem;
+}
+
+.history-header span {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.history-details {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.history-reason {
+    margin-top: 8px;
+    padding: 8px;
+    background: #fff;
+    border-radius: 4px;
+    font-style: italic;
+    color: #666;
+    font-size: 0.85rem;
+}
+
+/* Botões pequenos */
+.btn-small {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    margin-left: 5px;
+}
+
+/* Estilo para inputs de edição na ordem */
+.exit-order-item-row input[type="number"] {
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    padding: 6px;
+    font-size: 0.9rem;
+}
+
+.exit-order-item-row input[type="number"]:focus {
+    outline: none;
+    border-color: #4CAF50;
+}

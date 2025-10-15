@@ -371,9 +371,12 @@ class ExitOrdersManager {
             const response = await window.api.getExitOrder(orderId);
             const order = response.order;
 
+            this.currentEditingOrder = order; // Armazenar ordem atual
+            this.isEditMode = false; // Modo de edição
+
             const modalHtml = `
                 <div id="viewExitOrderModal" class="modal" style="display: flex;">
-                    <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+                    <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
                         <h2>📋 Ordem de Saída #${order.orderNumber}</h2>
 
                         <div class="exit-order-details">
@@ -403,22 +406,15 @@ class ExitOrdersManager {
                                 </div>
                             ` : ''}
 
-                            <h3>Itens da Ordem</h3>
-                            <div class="exit-order-items-table">
-                                ${order.items.map(item => `
-                                    <div class="exit-order-item-row">
-                                        <div>${item.equipmentName}</div>
-                                        <div>${item.quantity} ${item.unit}</div>
-                                        <div>R$ ${item.unitCost.toFixed(2)}</div>
-                                        <div>R$ ${item.totalCost.toFixed(2)}</div>
-                                    </div>
-                                `).join('')}
-                                <div class="exit-order-total-row">
-                                    <div><strong>TOTAL</strong></div>
-                                    <div><strong>${order.totalItems} itens</strong></div>
-                                    <div></div>
-                                    <div><strong>R$ ${order.totalValue.toFixed(2)}</strong></div>
-                                </div>
+                            <h3>Itens da Ordem
+                                ${order.status === 'ativa' ? `
+                                    <button id="toggleEditModeBtn" class="btn-secondary btn-small" onclick="exitOrdersManager.toggleEditMode()" style="margin-left: 10px;">
+                                        ✏️ Editar
+                                    </button>
+                                ` : ''}
+                            </h3>
+                            <div id="exitOrderItemsContainer" class="exit-order-items-table">
+                                ${this.renderOrderItems(order.items, false)}
                             </div>
                         </div>
 
@@ -443,6 +439,178 @@ class ExitOrdersManager {
             console.error('Erro ao visualizar ordem:', error);
             window.notify.error('Erro ao carregar ordem');
         }
+    }
+
+    // Renderizar itens da ordem (modo visualização ou edição)
+    renderOrderItems(items, editMode) {
+        let html = '';
+
+        items.forEach(item => {
+            const isModified = item.isModified || false;
+            const rowClass = isModified ? 'exit-order-item-row modified-item' : 'exit-order-item-row';
+
+            if (editMode) {
+                // Modo de edição com inputs
+                html += `
+                    <div class="${rowClass}" ${isModified ? `onclick="exitOrdersManager.showItemHistory('${item.id}')"` : ''} style="${isModified ? 'cursor: pointer;' : ''}">
+                        <div>${item.equipmentName} ${isModified ? '<span class="modified-badge">✏️ Modificado</span>' : ''}</div>
+                        <div>
+                            <input
+                                type="number"
+                                id="item-qty-${item.id}"
+                                value="${item.quantity}"
+                                min="0"
+                                step="0.01"
+                                style="width: 80px; padding: 4px;"
+                            />
+                            ${item.unit}
+                            <button class="btn-primary btn-small" onclick="exitOrdersManager.updateItemQuantity('${item.id}', document.getElementById('item-qty-${item.id}').value); event.stopPropagation();" style="margin-left: 5px;">
+                                💾 Salvar
+                            </button>
+                        </div>
+                        <div>R$ ${item.unitCost.toFixed(2)}</div>
+                        <div>R$ ${item.totalCost.toFixed(2)}</div>
+                    </div>
+                `;
+            } else {
+                // Modo visualização normal
+                html += `
+                    <div class="${rowClass}" ${isModified ? `onclick="exitOrdersManager.showItemHistory('${item.id}')"` : ''} style="${isModified ? 'cursor: pointer;' : ''}">
+                        <div>${item.equipmentName} ${isModified ? '<span class="modified-badge">✏️ Modificado</span>' : ''}</div>
+                        <div>${item.quantity} ${item.unit}</div>
+                        <div>R$ ${item.unitCost.toFixed(2)}</div>
+                        <div>R$ ${item.totalCost.toFixed(2)}</div>
+                    </div>
+                `;
+            }
+        });
+
+        // Total
+        const totalItems = items.length;
+        const totalValue = items.reduce((sum, item) => sum + item.totalCost, 0);
+
+        html += `
+            <div class="exit-order-total-row">
+                <div><strong>TOTAL</strong></div>
+                <div><strong>${totalItems} itens</strong></div>
+                <div></div>
+                <div><strong>R$ ${totalValue.toFixed(2)}</strong></div>
+            </div>
+        `;
+
+        return html;
+    }
+
+    // Alternar modo de edição
+    toggleEditMode() {
+        this.isEditMode = !this.isEditMode;
+        const container = document.getElementById('exitOrderItemsContainer');
+        const btn = document.getElementById('toggleEditModeBtn');
+
+        if (this.isEditMode) {
+            btn.textContent = '👁️ Visualizar';
+            btn.classList.remove('btn-secondary');
+            btn.classList.add('btn-warning');
+        } else {
+            btn.textContent = '✏️ Editar';
+            btn.classList.remove('btn-warning');
+            btn.classList.add('btn-secondary');
+        }
+
+        container.innerHTML = this.renderOrderItems(this.currentEditingOrder.items, this.isEditMode);
+    }
+
+    // Atualizar quantidade de um item
+    async updateItemQuantity(itemId, newQuantity) {
+        try {
+            const orderId = this.currentEditingOrder.id;
+            const newQty = parseFloat(newQuantity);
+
+            if (isNaN(newQty) || newQty < 0) {
+                window.notify.warning('Quantidade inválida');
+                return;
+            }
+
+            const response = await window.api.updateExitOrderItem(orderId, itemId, newQty);
+
+            window.notify.success(response.message);
+
+            // Recarregar ordem
+            const updatedOrder = await window.api.getExitOrder(orderId);
+            this.currentEditingOrder = updatedOrder.order;
+
+            // Atualizar visualização
+            const container = document.getElementById('exitOrderItemsContainer');
+            container.innerHTML = this.renderOrderItems(this.currentEditingOrder.items, this.isEditMode);
+
+            // Recarregar estoque
+            this.photoInventory.items = await this.photoInventory.loadItems();
+            this.photoInventory.renderAllItems();
+            this.photoInventory.updateSummary();
+            this.photoInventory.populateModalSelects();
+
+        } catch (error) {
+            console.error('Erro ao atualizar item:', error);
+            window.notify.error('Erro: ' + error.message);
+        }
+    }
+
+    // Mostrar histórico de alterações de um item
+    async showItemHistory(itemId) {
+        try {
+            const orderId = this.currentEditingOrder.id;
+            const response = await window.api.getExitOrderItemHistory(orderId, itemId);
+            const history = response.history;
+
+            if (!history || history.length === 0) {
+                window.notify.info('Nenhuma alteração registrada para este item');
+                return;
+            }
+
+            const modalHtml = `
+                <div id="itemHistoryModal" class="modal" style="display: flex;">
+                    <div class="modal-content" style="max-width: 600px;">
+                        <h2>📜 Histórico de Alterações</h2>
+                        <h3>${history[0].equipmentName}</h3>
+
+                        <div class="history-list">
+                            ${history.map(entry => `
+                                <div class="history-entry">
+                                    <div class="history-header">
+                                        <strong>${this.formatDateTime(entry.changedAt)}</strong>
+                                        <span>${entry.changedBy.name}</span>
+                                    </div>
+                                    <div class="history-details">
+                                        <div>Quantidade alterada de <strong>${entry.previousQuantity} ${entry.equipmentUnit}</strong> para <strong>${entry.newQuantity} ${entry.equipmentUnit}</strong></div>
+                                        <div>Diferença: <strong style="color: ${entry.quantityDifference > 0 ? '#f44336' : '#4CAF50'}">${entry.quantityDifference > 0 ? '+' : ''}${entry.quantityDifference} ${entry.equipmentUnit}</strong></div>
+                                        ${entry.reason ? `<div class="history-reason">${entry.reason}</div>` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div class="modal-actions">
+                            <button type="button" onclick="exitOrdersManager.closeItemHistoryModal()">Fechar</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const existingModal = document.getElementById('itemHistoryModal');
+            if (existingModal) existingModal.remove();
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        } catch (error) {
+            console.error('Erro ao carregar histórico:', error);
+            window.notify.error('Erro ao carregar histórico');
+        }
+    }
+
+    // Fechar modal de histórico
+    closeItemHistoryModal() {
+        const modal = document.getElementById('itemHistoryModal');
+        if (modal) modal.remove();
     }
 
     // Fechar modal de visualização
