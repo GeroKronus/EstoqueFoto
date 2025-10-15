@@ -641,17 +641,103 @@ class ExitOrdersManager {
             return;
         }
 
-        container.innerHTML = this.currentOrder.items.map(item => `
-            <div class="exit-order-item">
-                <div class="exit-order-item-info">
-                    <strong>${item.equipmentName}</strong><br>
-                    ${item.quantity} ${item.unit} × R$ ${item.unitCost.toFixed(2)} = R$ ${item.totalCost.toFixed(2)}
-                </div>
-                <button class="btn-danger btn-small" onclick="exitOrdersManager.removeItemFromOrder('${item.equipmentId}')">
-                    🗑️
-                </button>
-            </div>
-        `).join('');
+        // Renderizar como tabela com capacidade de editar quantidades
+        let html = `
+            <table class="order-items-preview-table">
+                <thead>
+                    <tr>
+                        <th>Equipamento</th>
+                        <th style="width: 180px;">Quantidade</th>
+                        <th style="width: 100px;">Custo Unit.</th>
+                        <th style="width: 100px;">Total</th>
+                        <th style="width: 80px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        this.currentOrder.items.forEach(item => {
+            html += `
+                <tr>
+                    <td><strong>${item.equipmentName}</strong></td>
+                    <td>
+                        <input
+                            type="number"
+                            id="preview-qty-${item.equipmentId}"
+                            value="${item.quantity}"
+                            min="0.01"
+                            step="0.01"
+                            class="inline-edit-input"
+                            onchange="exitOrdersManager.updatePreviewItemQuantity('${item.equipmentId}', this.value)"
+                        />
+                        <span class="item-unit">${item.unit}</span>
+                    </td>
+                    <td>R$ ${item.unitCost.toFixed(2)}</td>
+                    <td><strong>R$ ${item.totalCost.toFixed(2)}</strong></td>
+                    <td style="text-align: center;">
+                        <button
+                            class="btn-danger btn-small"
+                            onclick="exitOrdersManager.removeItemFromOrder('${item.equipmentId}')"
+                            title="Remover item">
+                            🗑️
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `
+                </tbody>
+            </table>
+        `;
+
+        container.innerHTML = html;
+    }
+
+    // Atualizar quantidade de item no preview (antes de criar a ordem)
+    updatePreviewItemQuantity(equipmentId, newQuantity) {
+        const qty = parseFloat(newQuantity);
+
+        if (isNaN(qty) || qty <= 0) {
+            window.notify.warning('Quantidade inválida');
+            // Restaurar valor anterior
+            const item = this.currentOrder.items.find(i => i.equipmentId === equipmentId);
+            if (item) {
+                document.getElementById(`preview-qty-${equipmentId}`).value = item.quantity;
+            }
+            return;
+        }
+
+        // Verificar estoque disponível
+        const equipment = this.photoInventory.items.find(e => e.id === equipmentId);
+        if (equipment && qty > equipment.quantity) {
+            window.notify.error(`Quantidade insuficiente! Disponível: ${equipment.quantity} ${equipment.unit}`);
+            // Restaurar valor anterior
+            const item = this.currentOrder.items.find(i => i.equipmentId === equipmentId);
+            if (item) {
+                document.getElementById(`preview-qty-${equipmentId}`).value = item.quantity;
+            }
+            return;
+        }
+
+        // Atualizar item
+        const item = this.currentOrder.items.find(i => i.equipmentId === equipmentId);
+        if (item) {
+            item.quantity = qty;
+            item.totalCost = qty * item.unitCost;
+
+            // Atualizar apenas o total na linha (sem re-renderizar tudo)
+            const row = document.querySelector(`tr:has(#preview-qty-${equipmentId})`);
+            if (row) {
+                const totalCell = row.querySelector('td:nth-child(4)');
+                if (totalCell) {
+                    totalCell.innerHTML = `<strong>R$ ${item.totalCost.toFixed(2)}</strong>`;
+                }
+            }
+
+            // Atualizar resumo
+            this.updateOrderSummary();
+        }
     }
 
     // Atualizar resumo da ordem

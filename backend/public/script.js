@@ -1260,6 +1260,11 @@ function saveSettings() {
 window.onclick = function(event) {
     const modals = document.querySelectorAll('.modal');
     modals.forEach(modal => {
+        // Não fechar o modal de nova ordem de saída ao clicar fora (proteção contra perda de dados)
+        if (modal.id === 'newExitOrderModal') {
+            return;
+        }
+
         if (event.target === modal) {
             modal.style.display = 'none';
         }

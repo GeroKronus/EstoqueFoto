@@ -2294,3 +2294,66 @@ header {
         gap: 8px;
     }
 }
+
+/* TABELA DE PREVIEW DE ITENS DA ORDEM (antes de criar) */
+.order-items-preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.order-items-preview-table thead {
+    background: #f0f8f0;
+}
+
+.order-items-preview-table th {
+    padding: 12px 10px;
+    text-align: left;
+    font-weight: 600;
+    color: #4CAF50;
+    font-size: 0.9rem;
+    border-bottom: 2px solid #4CAF50;
+}
+
+.order-items-preview-table tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+}
+
+.order-items-preview-table tbody tr:hover {
+    background: #f9f9f9;
+}
+
+.order-items-preview-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.order-items-preview-table td {
+    padding: 12px 10px;
+    font-size: 0.9rem;
+    vertical-align: middle;
+}
+
+.order-items-preview-table .inline-edit-input {
+    width: 90px;
+}
+
+/* Responsividade da tabela de preview */
+@media (max-width: 768px) {
+    .order-items-preview-table {
+        font-size: 0.8rem;
+    }
+
+    .order-items-preview-table th,
+    .order-items-preview-table td {
+        padding: 8px 6px;
+    }
+
+    .order-items-preview-table .inline-edit-input {
+        width: 70px;
+        font-size: 0.85rem;
+    }
+}
