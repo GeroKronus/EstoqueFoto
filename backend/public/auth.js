@@ -460,7 +460,7 @@ Carregando sistema...`);
                             <select id="entryItem" required>
                                 <option value="">Selecione o equipamento</option>
                             </select>
-                            <input type="number" id="entryQuantity" placeholder="Quantidade" required min="0.01" step="0.01">
+                            <input type="number" id="entryQuantity" placeholder="Quantidade" required min="1" step="1">
                             <input type="number" id="entryCost" placeholder="Custo unitário (R$)" min="0" step="0.01">
                             <input type="text" id="entrySupplier" placeholder="Fornecedor">
                             <textarea id="entryNotes" placeholder="Observações"></textarea>
@@ -479,7 +479,7 @@ Carregando sistema...`);
                             <select id="exitItem" required>
                                 <option value="">Selecione o equipamento</option>
                             </select>
-                            <input type="number" id="exitQuantity" placeholder="Quantidade" required min="0.01" step="0.01">
+                            <input type="number" id="exitQuantity" placeholder="Quantidade" required min="1" step="1">
                             <select id="exitReason" required>
                                 <option value="">Motivo da saída</option>
                                 <option value="venda">Venda</option>

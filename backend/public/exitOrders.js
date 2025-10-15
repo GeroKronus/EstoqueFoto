@@ -306,8 +306,8 @@ class ExitOrdersManager {
                                 type="number"
                                 id="inline-qty-${item.id}"
                                 value="${item.quantity}"
-                                min="0"
-                                step="0.01"
+                                min="1"
+                                step="1"
                                 class="inline-edit-input"
                             />
                             <span class="item-unit">${item.unit}</span>
@@ -506,7 +506,7 @@ class ExitOrdersManager {
                                 <select id="newExitOrderItemSelect">
                                     <option value="">Selecione um equipamento</option>
                                 </select>
-                                <input type="number" id="newExitOrderItemQuantity" placeholder="Quantidade" min="0.01" step="0.01">
+                                <input type="number" id="newExitOrderItemQuantity" placeholder="Quantidade" min="1" step="1">
                                 <button type="button" class="btn-primary" onclick="exitOrdersManager.addItemToOrder()">
                                     ➕ Adicionar Item
                                 </button>
@@ -665,8 +665,8 @@ class ExitOrdersManager {
                             type="number"
                             id="preview-qty-${item.equipmentId}"
                             value="${item.quantity}"
-                            min="0.01"
-                            step="0.01"
+                            min="1"
+                            step="1"
                             class="inline-edit-input"
                             onchange="exitOrdersManager.updatePreviewItemQuantity('${item.equipmentId}', this.value)"
                         />
@@ -908,8 +908,8 @@ class ExitOrdersManager {
                                 type="number"
                                 id="item-qty-${item.id}"
                                 value="${item.quantity}"
-                                min="0"
-                                step="0.01"
+                                min="1"
+                                step="1"
                                 style="width: 80px; padding: 4px;"
                             />
                             ${item.unit}
