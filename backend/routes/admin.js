@@ -22,22 +22,35 @@ router.post('/reset-movements', async (req, res) => {
         await client.query('BEGIN');
         console.log('✅ Transação iniciada');
 
+        // Função helper para deletar de uma tabela se ela existir
+        const deleteIfExists = async (tableName) => {
+            try {
+                const result = await client.query(`
+                    DELETE FROM ${tableName} WHERE 1=1
+                `);
+                console.log(`🗑️ ${result.rowCount} registros deletados de ${tableName}`);
+                return result.rowCount;
+            } catch (error) {
+                if (error.code === '42P01') { // Tabela não existe
+                    console.log(`⚠️ Tabela ${tableName} não existe (pulando)`);
+                    return 0;
+                }
+                throw error; // Outros erros devem ser propagados
+            }
+        };
+
         // Deletar na ordem correta respeitando foreign keys
         // 1. Excluir histórico de itens de ordens de saída (dependência de exit_order_items)
-        const historyResult = await client.query('DELETE FROM exit_order_item_history WHERE 1=1');
-        console.log(`🗑️ ${historyResult.rowCount} registros deletados de exit_order_item_history`);
+        const historyDeleted = await deleteIfExists('exit_order_item_history');
 
         // 2. Excluir itens de ordens de saída (dependência de exit_orders)
-        const orderItemsResult = await client.query('DELETE FROM exit_order_items WHERE 1=1');
-        console.log(`🗑️ ${orderItemsResult.rowCount} registros deletados de exit_order_items`);
+        const orderItemsDeleted = await deleteIfExists('exit_order_items');
 
         // 3. Excluir ordens de saída
-        const ordersResult = await client.query('DELETE FROM exit_orders WHERE 1=1');
-        console.log(`🗑️ ${ordersResult.rowCount} registros deletados de exit_orders`);
+        const ordersDeleted = await deleteIfExists('exit_orders');
 
         // 4. Excluir transações (dependência de equipment)
-        const transactionsResult = await client.query('DELETE FROM transactions WHERE 1=1');
-        console.log(`🗑️ ${transactionsResult.rowCount} registros deletados de transactions`);
+        const transactionsDeleted = await deleteIfExists('transactions');
 
         // 5. Resetar quantidades dos equipamentos para zero
         const equipmentResult = await client.query(`
@@ -50,9 +63,17 @@ router.post('/reset-movements', async (req, res) => {
         `);
         console.log(`🔄 ${equipmentResult.rowCount} equipamentos tiveram quantidades zeradas`);
 
-        // 6. Resetar sequências (auto-increment) das tabelas
-        await client.query("SELECT setval('exit_orders_order_number_seq', 1, false)");
-        console.log(`🔄 Sequência de order_number resetada`);
+        // 6. Resetar sequências (auto-increment) das tabelas (se existir)
+        try {
+            await client.query("SELECT setval('exit_orders_order_number_seq', 1, false)");
+            console.log(`🔄 Sequência de order_number resetada`);
+        } catch (error) {
+            if (error.code === '42P01') {
+                console.log('⚠️ Sequência exit_orders_order_number_seq não existe (pulando)');
+            } else {
+                throw error;
+            }
+        }
 
         // Commit da transação
         await client.query('COMMIT');
@@ -64,10 +85,10 @@ router.post('/reset-movements', async (req, res) => {
         res.json({
             message: 'Todos os movimentos foram zerados com sucesso',
             details: {
-                exit_order_history_deleted: historyResult.rowCount,
-                exit_order_items_deleted: orderItemsResult.rowCount,
-                exit_orders_deleted: ordersResult.rowCount,
-                transactions_deleted: transactionsResult.rowCount,
+                exit_order_history_deleted: historyDeleted,
+                exit_order_items_deleted: orderItemsDeleted,
+                exit_orders_deleted: ordersDeleted,
+                transactions_deleted: transactionsDeleted,
                 equipment_reset: equipmentResult.rowCount
             },
             executed_by: {
