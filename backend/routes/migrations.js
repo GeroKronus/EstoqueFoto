@@ -37,8 +37,8 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
         console.log(`📄 Executando migration: ${migrationFile}`);
 
         // Executar migration
-        const { pool } = require('../database/db');
-        await pool.query(migrationSQL);
+        const { query } = require('../database/connection');
+        await query(migrationSQL);
 
         console.log(`✅ Migration ${migrationFile} executada com sucesso`);
 
@@ -50,7 +50,7 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
             tablesToCheck = ['exit_order_items_history'];
         }
 
-        const result = await pool.query(`
+        const result = await query(`
             SELECT table_name
             FROM information_schema.tables
             WHERE table_schema = 'public'
@@ -75,8 +75,8 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
 // Endpoint para listar tabelas existentes
 router.get('/tables', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const { pool } = require('../database/db');
-        const result = await pool.query(`
+        const { query } = require('../database/connection');
+        const result = await query(`
             SELECT table_name, table_type
             FROM information_schema.tables
             WHERE table_schema = 'public'
