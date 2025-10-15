@@ -130,6 +130,57 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/exit-orders/conditional/summary - Buscar ordens com itens condicionais
+router.get('/conditional/summary', authenticateToken, async (req, res) => {
+    try {
+        const ordersQuery = `
+            SELECT DISTINCT
+                eo.id,
+                eo.order_number,
+                eo.reason,
+                eo.destination,
+                eo.customer_name,
+                eo.status,
+                eo.created_at,
+                u.name as created_by_name,
+                COUNT(eoi.id) FILTER (WHERE eoi.is_conditional = true) as conditional_items_count
+            FROM exit_orders eo
+            INNER JOIN exit_order_items eoi ON eo.id = eoi.exit_order_id
+            LEFT JOIN users u ON eo.created_by = u.id
+            WHERE eo.status = 'ativa' AND eoi.is_conditional = true
+            GROUP BY eo.id, eo.order_number, eo.reason, eo.destination,
+                     eo.customer_name, eo.status, eo.created_at, u.name
+            ORDER BY eo.order_number DESC
+        `;
+
+        const result = await query(ordersQuery);
+
+        const orders = result.rows.map(row => ({
+            id: row.id,
+            orderNumber: row.order_number,
+            reason: row.reason,
+            destination: row.destination,
+            customerName: row.customer_name,
+            status: row.status,
+            conditionalItemsCount: parseInt(row.conditional_items_count),
+            createdBy: row.created_by_name,
+            createdAt: row.created_at
+        }));
+
+        res.json({
+            totalOrders: orders.length,
+            totalConditionalItems: orders.reduce((sum, o) => sum + o.conditionalItemsCount, 0),
+            orders
+        });
+
+    } catch (error) {
+        console.error('Erro ao buscar ordens com itens condicionais:', error);
+        res.status(500).json({
+            error: 'Erro interno do servidor'
+        });
+    }
+});
+
 // GET /api/exit-orders/:id - Buscar ordem específica com itens
 router.get('/:id', authenticateToken, async (req, res) => {
     try {

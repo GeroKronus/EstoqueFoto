@@ -254,6 +254,10 @@ class ApiService {
         });
     }
 
+    async getConditionalItemsSummary() {
+        return this.request(`${CONFIG.ENDPOINTS.EXIT_ORDERS}/conditional/summary`);
+    }
+
     // === DASHBOARD ===
     async getDashboardData() {
         try {

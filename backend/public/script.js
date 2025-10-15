@@ -1403,4 +1403,97 @@ async function runMigration009() {
     }
 }
 
+// Função para verificar e mostrar alerta de itens condicionais
+async function checkConditionalItems() {
+    try {
+        const response = await window.api.getConditionalItemsSummary();
+
+        if (response.totalOrders > 0) {
+            // Há itens condicionais, mostrar modal
+            const content = document.getElementById('conditionalItemsAlertContent');
+
+            let html = `
+                <div class="conditional-summary">
+                    <div class="conditional-stat">
+                        <span class="stat-number">${response.totalOrders}</span>
+                        <span class="stat-label">Ordem(ns) com itens condicionais</span>
+                    </div>
+                    <div class="conditional-stat">
+                        <span class="stat-number">${response.totalConditionalItems}</span>
+                        <span class="stat-label">Item(ns) condicional(is) total</span>
+                    </div>
+                </div>
+
+                <div class="conditional-orders-list">
+                    <h3>Ordens de Saída com Itens Condicionais:</h3>
+            `;
+
+            response.orders.forEach(order => {
+                html += `
+                    <div class="conditional-order-item" onclick="goToExitOrder('${order.id}')">
+                        <div class="order-info">
+                            <div class="order-number">📋 OS #${order.orderNumber}</div>
+                            <div class="order-details">
+                                <span><strong>Motivo:</strong> ${order.reason}</span>
+                                ${order.destination ? `<span><strong>Destino:</strong> ${order.destination}</span>` : ''}
+                                ${order.customerName ? `<span><strong>Cliente:</strong> ${order.customerName}</span>` : ''}
+                            </div>
+                            <div class="order-meta">
+                                <span class="conditional-count">🔄 ${order.conditionalItemsCount} item(ns) condicional(is)</span>
+                                <span class="order-date">${new Date(order.createdAt).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                        </div>
+                        <div class="order-arrow">→</div>
+                    </div>
+                `;
+            });
+
+            html += `
+                </div>
+                <p class="conditional-note">
+                    <strong>Nota:</strong> Itens condicionais são equipamentos que saíram do estoque
+                    mas ainda não foram pagos e podem ser devolvidos pelo cliente.
+                </p>
+            `;
+
+            content.innerHTML = html;
+
+            // Mostrar modal
+            showModal('conditionalItemsAlertModal');
+        }
+    } catch (error) {
+        console.error('Erro ao verificar itens condicionais:', error);
+        // Não mostrar erro ao usuário, apenas logar
+    }
+}
+
+// Função para ir para uma ordem de saída específica
+function goToExitOrder(orderId) {
+    closeModal('conditionalItemsAlertModal');
+
+    // Trocar para a seção de ordens de saída
+    document.querySelectorAll('.section').forEach(section => {
+        section.classList.remove('active');
+    });
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    document.getElementById('exit-orders-section').classList.add('active');
+    document.querySelector('[data-section="exit-orders"]').classList.add('active');
+
+    // Inicializar exitOrdersManager se necessário
+    if (!window.exitOrdersManager) {
+        window.exitOrdersManager = new ExitOrdersManager(window.photoInventory);
+    }
+
+    // Renderizar a seção e depois carregar a ordem
+    window.exitOrdersManager.renderSection();
+
+    // Aguardar um pouco para garantir que a seção foi renderizada
+    setTimeout(() => {
+        window.exitOrdersManager.loadOrderDetails(orderId);
+    }, 300);
+}
+
 // Autenticação é inicializada pelo auth.js

@@ -520,6 +520,22 @@ Carregando sistema...`);
                         </form>
                     </div>
                 </div>
+
+                <!-- Modal de Alerta de Itens Condicionais -->
+                <div id="conditionalItemsAlertModal" class="modal">
+                    <div class="modal-content conditional-alert-modal">
+                        <div class="conditional-alert-header">
+                            <h2>🔄 Itens Condicionais Pendentes</h2>
+                            <p>Existem itens condicionais em ordens de saída ativas (podem ser devolvidos pelo cliente)</p>
+                        </div>
+                        <div id="conditionalItemsAlertContent" class="conditional-alert-content">
+                            <!-- Conteúdo será preenchido dinamicamente -->
+                        </div>
+                        <div class="modal-actions">
+                            <button type="button" onclick="closeModal('conditionalItemsAlertModal')" class="btn-primary">Fechar</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
 
@@ -533,6 +549,14 @@ Carregando sistema...`);
             // Sempre criar nova instância para garantir estado limpo
             window.photoInventory = new PhotoInventoryManager();
             window.photoInventory.initialize();
+
+            // Verificar itens condicionais após 2 segundos (tempo para inicializar tudo)
+            setTimeout(() => {
+                console.log('🔍 Verificando itens condicionais...');
+                if (typeof checkConditionalItems === 'function') {
+                    checkConditionalItems();
+                }
+            }, 2000);
         }, 100);
     }
 }
