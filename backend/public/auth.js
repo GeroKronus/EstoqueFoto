@@ -402,6 +402,12 @@ Carregando sistema...`);
                             <input type="file" id="importFile" accept=".json" onchange="importAllData(event)">
                             <label for="importFile" class="file-label">Restaurar Backup</label>
                         </div>
+                        <div class="setting-card ${adminClass}" style="${adminStyle}">
+                            <h3>🔧 Sistema (Admin)</h3>
+                            <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">Executar migration 008 para ativar edição de ordens de saída</p>
+                            <button id="runMigration008Btn" onclick="runMigration008()" class="btn-warning">Executar Migration 008</button>
+                            <div id="migration008Status" style="margin-top: 10px; font-size: 0.85rem;"></div>
+                        </div>
                     </div>
                 </div>
 

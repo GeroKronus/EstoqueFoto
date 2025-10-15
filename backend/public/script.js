@@ -1266,4 +1266,47 @@ window.onclick = function(event) {
     });
 };
 
+// Função para executar migration 008
+async function runMigration008() {
+    const button = document.getElementById('runMigration008Btn');
+    const statusDiv = document.getElementById('migration008Status');
+
+    button.disabled = true;
+    button.textContent = 'Executando...';
+    statusDiv.innerHTML = '<span style="color: #ff9800;">⏳ Executando migration...</span>';
+
+    try {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/migrations/run/008`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${getAuthToken()}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || data.details || `HTTP ${response.status}`);
+        }
+
+        statusDiv.innerHTML = `
+            <span style="color: #4CAF50; font-weight: 600;">✅ ${data.message}</span><br>
+            <span style="color: #666;">Atualize a página (F5) para usar as novas funcionalidades!</span>
+        `;
+
+        button.textContent = '✓ Migration Concluída';
+        button.style.background = '#4CAF50';
+
+        window.notify.success('Migration 008 executada! Atualize a página (F5).');
+
+    } catch (error) {
+        console.error('Erro ao executar migration:', error);
+        statusDiv.innerHTML = `<span style="color: #f44336; font-weight: 600;">❌ Erro: ${error.message}</span>`;
+        button.disabled = false;
+        button.textContent = 'Tentar Novamente';
+        window.notify.error('Erro: ' + error.message);
+    }
+}
+
 // Autenticação é inicializada pelo auth.js
