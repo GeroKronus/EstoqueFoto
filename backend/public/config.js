@@ -31,7 +31,8 @@ const CONFIG = {
         EQUIPMENT: '/equipment',
         TRANSACTIONS: '/transactions',
         USERS: '/users',
-        EXIT_ORDERS: '/exit-orders'
+        EXIT_ORDERS: '/exit-orders',
+        ADMIN: '/admin'
     }
 };
 

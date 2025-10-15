@@ -258,6 +258,17 @@ class ApiService {
         return this.request(`${CONFIG.ENDPOINTS.EXIT_ORDERS}/conditional/summary`);
     }
 
+    // === ADMINISTRAÇÃO ===
+    async resetMovements() {
+        return this.request(`${CONFIG.ENDPOINTS.ADMIN}/reset-movements`, {
+            method: 'POST'
+        });
+    }
+
+    async getSystemStats() {
+        return this.request(`${CONFIG.ENDPOINTS.ADMIN}/system-stats`);
+    }
+
     // === DASHBOARD ===
     async getDashboardData() {
         try {

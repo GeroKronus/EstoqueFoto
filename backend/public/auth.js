@@ -414,6 +414,26 @@ Carregando sistema...`);
                             <button id="runMigration009Btn" onclick="runMigration009()" class="btn-warning">Executar Migration 009</button>
                             <div id="migration009Status" style="margin-top: 10px; font-size: 0.85rem;"></div>
                         </div>
+                        <div class="setting-card ${adminClass}" style="${adminStyle}">
+                            <h3>⚠️ Administração Avançada (Admin)</h3>
+                            <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
+                                <strong>ATENÇÃO:</strong> Esta ação irá zerar TODOS os movimentos do sistema mantendo apenas os itens cadastrados.
+                            </p>
+                            <div style="background: #fff3cd; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #ff9800;">
+                                <strong>⚠️ Esta operação irá:</strong>
+                                <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.85rem;">
+                                    <li>Excluir todas as transações (entradas e saídas)</li>
+                                    <li>Excluir todas as ordens de saída</li>
+                                    <li>Resetar quantidades de todos os equipamentos para zero</li>
+                                    <li>Manter equipamentos, categorias e usuários cadastrados</li>
+                                </ul>
+                                <strong style="color: #d32f2f;">⚠️ ESTA AÇÃO É IRREVERSÍVEL!</strong>
+                            </div>
+                            <button id="resetMovementsBtn" onclick="resetAllMovements()" class="btn-danger" style="background: #d32f2f; width: 100%;">
+                                🗑️ ZERAR TODOS OS MOVIMENTOS
+                            </button>
+                            <div id="resetMovementsStatus" style="margin-top: 10px; font-size: 0.85rem;"></div>
+                        </div>
                     </div>
                 </div>
 

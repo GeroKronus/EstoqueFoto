@@ -1501,4 +1501,131 @@ function goToExitOrder(orderId) {
     }, 300);
 }
 
+// Função para resetar todos os movimentos do sistema
+async function resetAllMovements() {
+    if (!photoAuthManager.isAdmin()) {
+        window.notify.warning('Apenas administradores podem executar esta ação!');
+        return;
+    }
+
+    // Primeira confirmação
+    const firstConfirm = await window.notify.confirm({
+        title: '⚠️ ATENÇÃO: Zerar Todos os Movimentos',
+        message: 'Esta operação irá:\n\n• Excluir TODAS as transações (entradas e saídas)\n• Excluir TODAS as ordens de saída\n• Resetar as quantidades de TODOS os equipamentos para ZERO\n• Manter apenas equipamentos, categorias e usuários cadastrados\n\n⚠️ ESTA AÇÃO É IRREVERSÍVEL!\n\nDeseja continuar?',
+        type: 'danger',
+        confirmText: 'Continuar',
+        cancelText: 'Cancelar'
+    });
+
+    if (!firstConfirm) {
+        return;
+    }
+
+    // Segunda confirmação com texto de verificação
+    const confirmText = prompt(
+        'Para confirmar esta ação DESTRUTIVA, digite exatamente a palavra:\nZERAR\n\n(em letras maiúsculas)'
+    );
+
+    if (confirmText !== 'ZERAR') {
+        window.notify.info('Operação cancelada. O texto digitado não corresponde.');
+        return;
+    }
+
+    // Terceira e última confirmação
+    const finalConfirm = await window.notify.confirm({
+        title: '🚨 ÚLTIMA CONFIRMAÇÃO',
+        message: 'Você está prestes a ZERAR TODOS OS MOVIMENTOS do sistema.\n\nTodos os dados de transações e quantidades serão PERDIDOS PERMANENTEMENTE.\n\nTem CERTEZA ABSOLUTA que deseja continuar?',
+        type: 'danger',
+        confirmText: 'SIM, ZERAR TUDO',
+        cancelText: 'NÃO, CANCELAR'
+    });
+
+    if (!finalConfirm) {
+        return;
+    }
+
+    // Executar o reset
+    const button = document.getElementById('resetMovementsBtn');
+    const statusDiv = document.getElementById('resetMovementsStatus');
+
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Zerando...';
+    }
+
+    if (statusDiv) {
+        statusDiv.innerHTML = '<span style="color: #ff9800;">⏳ Processando... Isso pode levar alguns segundos.</span>';
+    }
+
+    try {
+        console.log('⚠️ Executando reset de movimentos...');
+
+        const response = await window.api.resetMovements();
+
+        console.log('✅ Reset executado com sucesso:', response);
+
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <div style="background: #d4edda; padding: 12px; border-radius: 6px; border-left: 4px solid #28a745; margin-top: 10px;">
+                    <strong style="color: #155724;">✅ ${response.message}</strong><br>
+                    <div style="margin-top: 8px; font-size: 0.85rem; color: #155724;">
+                        <strong>Detalhes:</strong><br>
+                        • ${response.details.transactions_deleted} transações excluídas<br>
+                        • ${response.details.exit_orders_deleted} ordens de saída excluídas<br>
+                        • ${response.details.exit_order_items_deleted} itens de ordens excluídos<br>
+                        • ${response.details.equipment_reset} equipamentos com quantidades zeradas<br>
+                        <br>
+                        <span style="font-style: italic;">Operação realizada às ${new Date(response.timestamp).toLocaleString('pt-BR')}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (button) {
+            button.textContent = '✓ Reset Concluído';
+            button.style.background = '#28a745';
+        }
+
+        // Recarregar dados do sistema
+        console.log('🔄 Recarregando dados do sistema...');
+        if (window.photoInventory) {
+            window.photoInventory.items = await window.photoInventory.loadItems();
+            window.photoInventory.transactions = await window.photoInventory.loadTransactions();
+            window.photoInventory.renderAllItems();
+            window.photoInventory.updateSummary();
+            window.photoInventory.populateModalSelects();
+        }
+
+        window.notify.success('Todos os movimentos foram zerados com sucesso! O sistema está pronto para iniciar um novo inventário.');
+
+        // Resetar botão após 5 segundos
+        setTimeout(() => {
+            if (button) {
+                button.disabled = false;
+                button.textContent = '🗑️ ZERAR TODOS OS MOVIMENTOS';
+                button.style.background = '#d32f2f';
+            }
+        }, 5000);
+
+    } catch (error) {
+        console.error('❌ Erro ao resetar movimentos:', error);
+
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <div style="background: #f8d7da; padding: 12px; border-radius: 6px; border-left: 4px solid #dc3545; margin-top: 10px;">
+                    <strong style="color: #721c24;">❌ Erro: ${error.message}</strong><br>
+                    <span style="color: #721c24; font-size: 0.85rem;">O reset não foi concluído. Nenhum dado foi alterado.</span>
+                </div>
+            `;
+        }
+
+        if (button) {
+            button.disabled = false;
+            button.textContent = '🗑️ ZERAR TODOS OS MOVIMENTOS';
+        }
+
+        window.notify.error('Erro ao resetar movimentos: ' + error.message);
+    }
+}
+
 // Autenticação é inicializada pelo auth.js

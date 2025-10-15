@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, device-scale=1.0">
+    <title>Executar Migration 008</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background: #e8f5e9;
+            color: #4CAF50;
+            border: 1px solid #4CAF50;
+        }
+        .error {
+            background: #ffebee;
+            color: #f44336;
+            border: 1px solid #f44336;
+        }
+        .info {
+            background: #e3f2fd;
+            color: #2196F3;
+            border: 1px solid #2196F3;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Executar Migration 008</h1>
+        <p>Esta migration criará:</p>
+        <ul>
+            <li>Tabela <code>exit_order_items_history</code> para histórico de alterações</li>
+            <li>Coluna <code>is_modified</code> em <code>exit_order_items</code></li>
+            <li>Coluna <code>original_quantity</code> em <code>exit_order_items</code></li>
+        </ul>
+
+        <div id="result"></div>
+
+        <button id="executeBtn" onclick="executeMigration()">
+            Executar Migration 008
+        </button>
+    </div>
+
+    <script>
+        const API_URL = 'https://estoque.stonecoin.com.br/api';
+
+        async function executeMigration() {
+            const resultDiv = document.getElementById('result');
+            const button = document.getElementById('executeBtn');
+
+            button.disabled = true;
+            button.textContent = 'Executando...';
+
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'info';
+            resultDiv.innerHTML = '⏳ Executando migration 008...';
+
+            try {
+                // Pegar token do sessionStorage
+                const token = sessionStorage.getItem('auth_token');
+
+                if (!token) {
+                    throw new Error('Você precisa estar logado como administrador. Acesse o sistema primeiro: https://estoque.stonecoin.com.br');
+                }
+
+                const response = await fetch(`${API_URL}/migrations/run/008`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                }
+
+                resultDiv.className = 'success';
+                resultDiv.innerHTML = `
+                    <h3>✅ Migration executada com sucesso!</h3>
+                    <p><strong>Mensagem:</strong> ${data.message}</p>
+                    ${data.tablesCreated && data.tablesCreated.length > 0 ? `
+                        <p><strong>Tabelas criadas:</strong></p>
+                        <ul>
+                            ${data.tablesCreated.map(table => `<li>${table}</li>`).join('')}
+                        </ul>
+                    ` : ''}
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                button.textContent = 'Migration Concluída!';
+                button.style.background = '#4CAF50';
+
+            } catch (error) {
+                resultDiv.className = 'error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro ao executar migration</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                    <p>Certifique-se de que:</p>
+                    <ul>
+                        <li>Você está logado como administrador</li>
+                        <li>O sistema está funcionando</li>
+                        <li>A migration ainda não foi executada</li>
+                    </ul>
+                    <p><strong>Para fazer login, acesse:</strong></p>
+                    <p><a href="https://estoque.stonecoin.com.br" target="_blank">https://estoque.stonecoin.com.br</a></p>
+                    <p>Depois de fazer login, volte aqui e tente novamente.</p>
+                `;
+                button.disabled = false;
+                button.textContent = 'Tentar Novamente';
+            }
+        }
+    </script>
+</body>
+</html>
