@@ -128,84 +128,170 @@ router.post('/reset-movements', async (req, res) => {
 
 /**
  * POST /api/admin/ensure-tables
- * Garante que todas as tabelas necessárias existam
+ * Garante que TODAS as tabelas e campos necessários existam
+ * Verifica TODAS as features solicitadas pelo usuário
  */
 router.post('/ensure-tables', async (req, res) => {
     const client = await pool.connect();
+    const results = {
+        tables_verified: [],
+        tables_created: [],
+        columns_added: [],
+        indexes_created: [],
+        errors: []
+    };
 
     try {
         await client.query('BEGIN');
-        console.log('🔍 Verificando e criando tabelas faltantes...');
+        console.log('🔍 Verificando TODAS as tabelas e campos necessários...');
 
-        // 1. Criar tabela exit_order_item_history se não existir
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS exit_order_item_history (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                order_item_id UUID NOT NULL REFERENCES exit_order_items(id) ON DELETE CASCADE,
-                previous_quantity DECIMAL(10, 2) NOT NULL,
-                new_quantity DECIMAL(10, 2) NOT NULL,
-                quantity_difference DECIMAL(10, 2) NOT NULL,
-                reason TEXT,
-                changed_by_id UUID NOT NULL REFERENCES users(id),
-                changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-        console.log('✅ Tabela exit_order_item_history verificada/criada');
+        // ========================================
+        // 1. TABELA: exit_order_item_history
+        // Necessária para: Histórico de modificações de itens em ordens
+        // ========================================
+        try {
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS exit_order_item_history (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    order_item_id UUID NOT NULL REFERENCES exit_order_items(id) ON DELETE CASCADE,
+                    previous_quantity DECIMAL(10, 2) NOT NULL,
+                    new_quantity DECIMAL(10, 2) NOT NULL,
+                    quantity_difference DECIMAL(10, 2) NOT NULL,
+                    reason TEXT,
+                    changed_by_id UUID NOT NULL REFERENCES users(id),
+                    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            results.tables_verified.push('exit_order_item_history');
+            console.log('✅ Tabela exit_order_item_history verificada/criada');
+        } catch (error) {
+            console.error('❌ Erro ao criar exit_order_item_history:', error.message);
+            results.errors.push(`exit_order_item_history: ${error.message}`);
+        }
 
-        // 2. Adicionar coluna is_conditional se não existir
-        await client.query(`
-            DO $$
-            BEGIN
-                IF NOT EXISTS (
-                    SELECT 1 FROM information_schema.columns
-                    WHERE table_name = 'exit_order_items'
-                    AND column_name = 'is_conditional'
-                ) THEN
-                    ALTER TABLE exit_order_items
-                    ADD COLUMN is_conditional BOOLEAN DEFAULT FALSE;
-                END IF;
-            END $$;
-        `);
-        console.log('✅ Coluna is_conditional verificada/criada');
+        // ========================================
+        // 2. COLUNA: exit_order_items.is_conditional
+        // Necessária para: Marcar itens condicionais (podem ser devolvidos)
+        // ========================================
+        try {
+            await client.query(`
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'exit_order_items'
+                        AND column_name = 'is_conditional'
+                    ) THEN
+                        ALTER TABLE exit_order_items
+                        ADD COLUMN is_conditional BOOLEAN DEFAULT FALSE;
+                        RAISE NOTICE 'Coluna is_conditional adicionada';
+                    END IF;
+                END $$;
+            `);
+            results.columns_added.push('exit_order_items.is_conditional');
+            console.log('✅ Coluna is_conditional verificada/criada');
+        } catch (error) {
+            console.error('❌ Erro ao criar is_conditional:', error.message);
+            results.errors.push(`is_conditional: ${error.message}`);
+        }
 
-        // 3. Adicionar coluna is_modified se não existir
-        await client.query(`
-            DO $$
-            BEGIN
-                IF NOT EXISTS (
-                    SELECT 1 FROM information_schema.columns
-                    WHERE table_name = 'exit_order_items'
-                    AND column_name = 'is_modified'
-                ) THEN
-                    ALTER TABLE exit_order_items
-                    ADD COLUMN is_modified BOOLEAN DEFAULT FALSE;
-                END IF;
-            END $$;
-        `);
-        console.log('✅ Coluna is_modified verificada/criada');
+        // ========================================
+        // 3. COLUNA: exit_order_items.is_modified
+        // Necessária para: Marcar itens que tiveram quantidades modificadas
+        // ========================================
+        try {
+            await client.query(`
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'exit_order_items'
+                        AND column_name = 'is_modified'
+                    ) THEN
+                        ALTER TABLE exit_order_items
+                        ADD COLUMN is_modified BOOLEAN DEFAULT FALSE;
+                        RAISE NOTICE 'Coluna is_modified adicionada';
+                    END IF;
+                END $$;
+            `);
+            results.columns_added.push('exit_order_items.is_modified');
+            console.log('✅ Coluna is_modified verificada/criada');
+        } catch (error) {
+            console.error('❌ Erro ao criar is_modified:', error.message);
+            results.errors.push(`is_modified: ${error.message}`);
+        }
+
+        // ========================================
+        // 4. ÍNDICES para melhor performance
+        // ========================================
+        try {
+            // Índice para buscar histórico por item
+            await client.query(`
+                CREATE INDEX IF NOT EXISTS idx_exit_order_item_history_order_item_id
+                ON exit_order_item_history(order_item_id)
+            `);
+            results.indexes_created.push('idx_exit_order_item_history_order_item_id');
+
+            // Índice para buscar itens condicionais
+            await client.query(`
+                CREATE INDEX IF NOT EXISTS idx_exit_order_items_conditional
+                ON exit_order_items(is_conditional)
+                WHERE is_conditional = TRUE
+            `);
+            results.indexes_created.push('idx_exit_order_items_conditional');
+
+            console.log('✅ Índices criados para melhor performance');
+        } catch (error) {
+            console.error('⚠️ Erro ao criar índices:', error.message);
+            results.errors.push(`indexes: ${error.message}`);
+        }
+
+        // ========================================
+        // 5. VERIFICAR ESTRUTURA DAS TABELAS PRINCIPAIS
+        // ========================================
+        const mainTables = ['users', 'categories', 'equipment', 'transactions', 'exit_orders', 'exit_order_items'];
+        for (const table of mainTables) {
+            const tableCheck = await client.query(`
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables
+                    WHERE table_name = $1
+                )
+            `, [table]);
+
+            if (tableCheck.rows[0].exists) {
+                results.tables_verified.push(table);
+                console.log(`✅ Tabela ${table} existe`);
+            } else {
+                results.errors.push(`Tabela essencial ${table} NÃO EXISTE!`);
+                console.error(`❌ Tabela ${table} NÃO EXISTE!`);
+            }
+        }
 
         await client.query('COMMIT');
 
-        res.json({
-            message: 'Todas as tabelas necessárias foram verificadas e criadas',
-            tables_created: [
-                'exit_order_item_history',
-            ],
-            columns_added: [
-                'exit_order_items.is_conditional',
-                'exit_order_items.is_modified'
-            ],
+        const summary = {
+            success: results.errors.length === 0,
+            message: results.errors.length === 0
+                ? 'Banco de dados completamente configurado e pronto!'
+                : 'Algumas tabelas foram configuradas, mas há erros',
+            tables_verified: results.tables_verified,
+            columns_added: results.columns_added,
+            indexes_created: results.indexes_created,
+            errors: results.errors,
             timestamp: new Date().toISOString()
-        });
+        };
+
+        res.json(summary);
 
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error('❌ Erro ao criar tabelas:', error);
+        console.error('❌ Erro crítico ao verificar banco:', error);
 
         res.status(500).json({
-            error: 'Erro ao criar tabelas',
-            message: error.message
+            error: 'Erro ao verificar/criar estrutura do banco',
+            message: error.message,
+            details: results
         });
     } finally {
         client.release();
