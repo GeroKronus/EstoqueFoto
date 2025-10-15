@@ -6,12 +6,16 @@ class ExitOrdersManager {
         this.currentOrder = {
             items: [] // Array de { equipmentId, equipmentName, quantity, unit, unitCost }
         };
+        this.expandedOrders = []; // Array de IDs de ordens expandidas
     }
 
     // Renderizar seção de ordens de saída
     renderSection() {
         const section = document.getElementById('exit-orders-section');
         if (!section) return;
+
+        // Carregar modo de visualização do localStorage
+        this.viewMode = localStorage.getItem('exitOrdersViewMode') || 'table';
 
         section.innerHTML = `
             <div class="exit-orders-container">
@@ -31,6 +35,18 @@ class ExitOrdersManager {
                     <input type="date" id="exitOrderDateFrom" onchange="exitOrdersManager.loadOrders()">
                     <input type="date" id="exitOrderDateTo" onchange="exitOrdersManager.loadOrders()">
                     <button onclick="exitOrdersManager.loadOrders()">Filtrar</button>
+
+                    <div class="view-mode-toggle" style="margin-left: auto;">
+                        <label>Visualização:</label>
+                        <div class="toggle-buttons">
+                            <button id="exitOrdersViewCards" class="toggle-btn ${this.viewMode === 'cards' ? 'active' : ''}" onclick="exitOrdersManager.toggleViewMode('cards')">
+                                🔲 Cards
+                            </button>
+                            <button id="exitOrdersViewTable" class="toggle-btn ${this.viewMode === 'table' ? 'active' : ''}" onclick="exitOrdersManager.toggleViewMode('table')">
+                                📋 Tabela
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="exitOrdersList" class="exit-orders-list">
@@ -42,6 +58,21 @@ class ExitOrdersManager {
         `;
 
         this.loadOrders();
+    }
+
+    // Toggle modo de visualização
+    toggleViewMode(mode) {
+        this.viewMode = mode;
+        localStorage.setItem('exitOrdersViewMode', mode);
+
+        // Atualizar botões
+        document.getElementById('exitOrdersViewCards')?.classList.toggle('active', mode === 'cards');
+        document.getElementById('exitOrdersViewTable')?.classList.toggle('active', mode === 'table');
+
+        // Re-renderizar com os dados atuais
+        if (this.currentOrders) {
+            this.renderOrdersList(this.currentOrders);
+        }
     }
 
     // Carregar ordens
@@ -57,7 +88,8 @@ class ExitOrdersManager {
             if (dateTo) params.dateTo = dateTo;
 
             const response = await window.api.getExitOrders(params);
-            this.renderOrdersList(response.orders || []);
+            this.currentOrders = response.orders || [];
+            this.renderOrdersList(this.currentOrders);
         } catch (error) {
             console.error('Erro ao carregar ordens:', error);
             window.notify.error('Erro ao carregar ordens de saída');
@@ -78,7 +110,16 @@ class ExitOrdersManager {
             return;
         }
 
-        container.innerHTML = orders.map(order => `
+        if (this.viewMode === 'table') {
+            container.innerHTML = this.renderTableView(orders);
+        } else {
+            container.innerHTML = this.renderCardsView(orders);
+        }
+    }
+
+    // Renderizar visualização em cards (modo anterior)
+    renderCardsView(orders) {
+        return orders.map(order => `
             <div class="exit-order-card ${order.status === 'cancelada' ? 'cancelled' : ''}">
                 <div class="exit-order-header">
                     <div class="exit-order-number">
@@ -109,6 +150,291 @@ class ExitOrdersManager {
                 </div>
             </div>
         `).join('');
+    }
+
+    // Renderizar visualização em tabela
+    renderTableView(orders) {
+        return `
+            <table class="exit-orders-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;"></th>
+                        <th>OS #</th>
+                        <th>Data</th>
+                        <th>Status</th>
+                        <th>Motivo</th>
+                        <th>Cliente/Destino</th>
+                        <th>Itens</th>
+                        <th>Valor Total</th>
+                        <th>Criado por</th>
+                        <th style="width: 120px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${orders.map(order => this.renderTableOrderRow(order)).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    // Renderizar linha da ordem na tabela
+    renderTableOrderRow(order) {
+        const rowId = `order-row-${order.id}`;
+        const detailsId = `order-details-${order.id}`;
+        const isExpanded = this.expandedOrders?.includes(order.id);
+
+        return `
+            <tr class="exit-order-table-row ${order.status === 'cancelada' ? 'cancelled-row' : ''}" data-order-id="${order.id}">
+                <td class="expand-cell">
+                    <button class="expand-btn ${isExpanded ? 'expanded' : ''}" onclick="exitOrdersManager.toggleOrderDetails('${order.id}')" title="Expandir/Recolher itens">
+                        ▶
+                    </button>
+                </td>
+                <td><strong>${order.orderNumber}</strong></td>
+                <td>${this.formatDate(order.createdAt)}<br><small style="color: #666;">${this.formatTime(order.createdAt)}</small></td>
+                <td><span class="status-badge status-${order.status}">${order.status.toUpperCase()}</span></td>
+                <td>${this.translateReason(order.reason)}</td>
+                <td>${order.customerName || order.destination || '-'}</td>
+                <td style="text-align: center;">${order.totalItems}</td>
+                <td><strong>R$ ${order.totalValue.toFixed(2)}</strong></td>
+                <td>${order.createdBy.name}</td>
+                <td class="actions-cell-compact">
+                    ${order.status === 'ativa' ? `
+                        <button class="btn-icon" onclick="exitOrdersManager.cancelOrder('${order.id}')" title="Cancelar ordem">
+                            ❌
+                        </button>
+                    ` : ''}
+                </td>
+            </tr>
+            <tr id="${detailsId}" class="order-details-row" style="display: ${isExpanded ? 'table-row' : 'none'};">
+                <td colspan="10">
+                    <div class="order-details-container" id="order-details-content-${order.id}">
+                        <div style="padding: 15px; text-align: center; color: #666;">
+                            Carregando itens...
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
+    // Expandir/Recolher detalhes da ordem
+    async toggleOrderDetails(orderId) {
+        const detailsRow = document.getElementById(`order-details-${orderId}`);
+        const expandBtn = event.target;
+        const isCurrentlyExpanded = this.expandedOrders.includes(orderId);
+
+        if (isCurrentlyExpanded) {
+            // Recolher
+            detailsRow.style.display = 'none';
+            expandBtn.classList.remove('expanded');
+            this.expandedOrders = this.expandedOrders.filter(id => id !== orderId);
+        } else {
+            // Expandir
+            detailsRow.style.display = 'table-row';
+            expandBtn.classList.add('expanded');
+            this.expandedOrders.push(orderId);
+
+            // Carregar detalhes da ordem
+            await this.loadOrderDetails(orderId);
+        }
+    }
+
+    // Carregar detalhes da ordem para exibição expandida
+    async loadOrderDetails(orderId) {
+        const container = document.getElementById(`order-details-content-${orderId}`);
+
+        try {
+            const response = await window.api.getExitOrder(orderId);
+            const order = response.order;
+
+            // Renderizar detalhes expandidos
+            container.innerHTML = this.renderExpandedOrderDetails(order);
+
+        } catch (error) {
+            console.error('Erro ao carregar detalhes da ordem:', error);
+            container.innerHTML = `
+                <div style="padding: 15px; text-align: center; color: #f44336;">
+                    Erro ao carregar detalhes da ordem
+                </div>
+            `;
+        }
+    }
+
+    // Renderizar detalhes expandidos da ordem (com edição inline)
+    renderExpandedOrderDetails(order) {
+        const isEditable = order.status === 'ativa';
+
+        let html = `
+            <div class="expanded-order-details">
+                <div class="expanded-order-info">
+                    ${order.destination ? `<div><strong>Destino:</strong> ${order.destination}</div>` : ''}
+                    ${order.customerName ? `<div><strong>Cliente:</strong> ${order.customerName}</div>` : ''}
+                    ${order.customerDocument ? `<div><strong>Doc:</strong> ${order.customerDocument}</div>` : ''}
+                    ${order.notes ? `<div><strong>Obs:</strong> ${order.notes}</div>` : ''}
+                </div>
+
+                <table class="order-items-table">
+                    <thead>
+                        <tr>
+                            <th>Equipamento</th>
+                            <th style="width: 200px;">Quantidade</th>
+                            <th>Custo Unit.</th>
+                            <th>Total</th>
+                            ${isEditable ? '<th style="width: 80px;"></th>' : ''}
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        order.items.forEach(item => {
+            const isModified = item.isModified || false;
+            const rowClass = isModified ? 'modified-item-row' : '';
+
+            html += `
+                <tr class="${rowClass}" data-item-id="${item.id}">
+                    <td>
+                        ${item.equipmentName}
+                        ${isModified ? '<span class="modified-badge">✏️ Modificado</span>' : ''}
+                    </td>
+                    <td>
+                        ${isEditable ? `
+                            <input
+                                type="number"
+                                id="inline-qty-${item.id}"
+                                value="${item.quantity}"
+                                min="0"
+                                step="0.01"
+                                class="inline-edit-input"
+                            />
+                            <span class="item-unit">${item.unit}</span>
+                        ` : `${item.quantity} ${item.unit}`}
+                    </td>
+                    <td>R$ ${item.unitCost.toFixed(2)}</td>
+                    <td><strong>R$ ${item.totalCost.toFixed(2)}</strong></td>
+                    ${isEditable ? `
+                        <td class="item-actions">
+                            <button
+                                class="btn-save-inline"
+                                onclick="exitOrdersManager.saveInlineEdit('${order.id}', '${item.id}')"
+                                title="Salvar alteração">
+                                💾
+                            </button>
+                            ${isModified ? `
+                                <button
+                                    class="btn-history-inline"
+                                    onclick="exitOrdersManager.showItemHistoryInline('${order.id}', '${item.id}')"
+                                    title="Ver histórico">
+                                    📜
+                                </button>
+                            ` : ''}
+                        </td>
+                    ` : ''}
+                </tr>
+            `;
+        });
+
+        const totalValue = order.items.reduce((sum, item) => sum + item.totalCost, 0);
+
+        html += `
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td><strong>TOTAL</strong></td>
+                            <td><strong>${order.items.length} itens</strong></td>
+                            <td></td>
+                            <td><strong>R$ ${totalValue.toFixed(2)}</strong></td>
+                            ${isEditable ? '<td></td>' : ''}
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        `;
+
+        return html;
+    }
+
+    // Salvar edição inline
+    async saveInlineEdit(orderId, itemId) {
+        const input = document.getElementById(`inline-qty-${itemId}`);
+        const newQuantity = parseFloat(input.value);
+
+        if (isNaN(newQuantity) || newQuantity < 0) {
+            window.notify.warning('Quantidade inválida');
+            return;
+        }
+
+        try {
+            const response = await window.api.updateExitOrderItem(orderId, itemId, newQuantity);
+            window.notify.success(response.message);
+
+            // Recarregar detalhes da ordem
+            await this.loadOrderDetails(orderId);
+
+            // Recarregar lista de ordens (para atualizar totais)
+            await this.loadOrders();
+
+            // Recarregar estoque
+            this.photoInventory.items = await this.photoInventory.loadItems();
+            this.photoInventory.renderAllItems();
+            this.photoInventory.updateSummary();
+            this.photoInventory.populateModalSelects();
+
+        } catch (error) {
+            console.error('Erro ao atualizar item:', error);
+            window.notify.error('Erro: ' + error.message);
+        }
+    }
+
+    // Mostrar histórico inline
+    async showItemHistoryInline(orderId, itemId) {
+        try {
+            const response = await window.api.getExitOrderItemHistory(orderId, itemId);
+            const history = response.history;
+
+            if (!history || history.length === 0) {
+                window.notify.info('Nenhuma alteração registrada para este item');
+                return;
+            }
+
+            const modalHtml = `
+                <div id="itemHistoryModal" class="modal" style="display: flex;">
+                    <div class="modal-content" style="max-width: 600px;">
+                        <h2>📜 Histórico de Alterações</h2>
+                        <h3>${history[0].equipmentName}</h3>
+
+                        <div class="history-list">
+                            ${history.map(entry => `
+                                <div class="history-entry">
+                                    <div class="history-header">
+                                        <strong>${this.formatDateTime(entry.changedAt)}</strong>
+                                        <span>${entry.changedBy.name}</span>
+                                    </div>
+                                    <div class="history-details">
+                                        <div>Quantidade alterada de <strong>${entry.previousQuantity} ${entry.equipmentUnit}</strong> para <strong>${entry.newQuantity} ${entry.equipmentUnit}</strong></div>
+                                        <div>Diferença: <strong style="color: ${entry.quantityDifference > 0 ? '#f44336' : '#4CAF50'}">${entry.quantityDifference > 0 ? '+' : ''}${entry.quantityDifference} ${entry.equipmentUnit}</strong></div>
+                                        ${entry.reason ? `<div class="history-reason">${entry.reason}</div>` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div class="modal-actions">
+                            <button type="button" onclick="exitOrdersManager.closeItemHistoryModal()">Fechar</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const existingModal = document.getElementById('itemHistoryModal');
+            if (existingModal) existingModal.remove();
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        } catch (error) {
+            console.error('Erro ao carregar histórico:', error);
+            window.notify.error('Erro ao carregar histórico');
+        }
     }
 
     // Mostrar modal de nova ordem
@@ -677,6 +1003,12 @@ class ExitOrdersManager {
         if (!dateString) return '';
         const date = new Date(dateString);
         return date.toLocaleDateString('pt-BR');
+    }
+
+    formatTime(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     }
 
     formatDateTime(dateString) {
