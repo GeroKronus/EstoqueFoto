@@ -1528,18 +1528,33 @@ async function ensureDatabaseTables() {
         console.log('✅ Tabelas verificadas:', response);
 
         if (statusDiv) {
-            statusDiv.innerHTML = `
-                <div style="background: #d4edda; padding: 12px; border-radius: 6px; border-left: 4px solid #28a745;">
-                    <strong style="color: #155724;">✅ ${response.message}</strong><br>
-                    <div style="margin-top: 8px; font-size: 0.85rem; color: #155724;">
-                        <strong>Tabelas verificadas/criadas:</strong><br>
-                        ${response.tables_created.map(t => `• ${t}`).join('<br>')}
-                        <br><br>
-                        <strong>Colunas verificadas/criadas:</strong><br>
-                        ${response.columns_added.map(c => `• ${c}`).join('<br>')}
-                    </div>
-                </div>
-            `;
+            let html = `
+                <div style="background: ${response.success ? '#d4edda' : '#fff3cd'}; padding: 12px; border-radius: 6px; border-left: 4px solid ${response.success ? '#28a745' : '#ff9800'};">
+                    <strong style="color: ${response.success ? '#155724' : '#856404'};">${response.success ? '✅' : '⚠️'} ${response.message}</strong><br>
+                    <div style="margin-top: 8px; font-size: 0.85rem; color: ${response.success ? '#155724' : '#856404'};">`;
+
+            if (response.tables_verified && response.tables_verified.length > 0) {
+                html += `<strong>Tabelas verificadas:</strong><br>
+                        ${response.tables_verified.map(t => `• ${t}`).join('<br>')}<br><br>`;
+            }
+
+            if (response.columns_added && response.columns_added.length > 0) {
+                html += `<strong>Colunas verificadas/criadas:</strong><br>
+                        ${response.columns_added.map(c => `• ${c}`).join('<br>')}<br><br>`;
+            }
+
+            if (response.indexes_created && response.indexes_created.length > 0) {
+                html += `<strong>Índices criados:</strong><br>
+                        ${response.indexes_created.map(i => `• ${i}`).join('<br>')}<br><br>`;
+            }
+
+            if (response.errors && response.errors.length > 0) {
+                html += `<strong style="color: #d32f2f;">❌ Erros encontrados:</strong><br>
+                        ${response.errors.map(e => `• ${e}`).join('<br>')}`;
+            }
+
+            html += `</div></div>`;
+            statusDiv.innerHTML = html;
         }
 
         if (button) {
