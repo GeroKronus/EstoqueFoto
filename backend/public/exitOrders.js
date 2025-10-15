@@ -614,7 +614,7 @@ class ExitOrdersManager {
         quantityInput.value = '';
 
         // Atualizar lista
-        this.renderOrderItems();
+        this.renderNewOrderItems();
         this.updateOrderSummary();
     }
 
@@ -623,12 +623,12 @@ class ExitOrdersManager {
         this.currentOrder.items = this.currentOrder.items.filter(
             item => item.equipmentId !== equipmentId
         );
-        this.renderOrderItems();
+        this.renderNewOrderItems();
         this.updateOrderSummary();
     }
 
-    // Renderizar itens da ordem
-    renderOrderItems() {
+    // Renderizar itens da nova ordem (durante criação)
+    renderNewOrderItems() {
         const container = document.getElementById('exitOrderItemsList');
         if (!container) return;
 
