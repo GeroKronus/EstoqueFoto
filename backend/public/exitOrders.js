@@ -31,6 +31,7 @@ class ExitOrdersManager {
                         <option value="">Todos os Status</option>
                         <option value="ativa">Ativas</option>
                         <option value="cancelada">Canceladas</option>
+                        <option value="condicional">Condicionais (c/ itens para devolução)</option>
                     </select>
                     <input type="date" id="exitOrderDateFrom" onchange="exitOrdersManager.loadOrders()">
                     <input type="date" id="exitOrderDateTo" onchange="exitOrdersManager.loadOrders()">

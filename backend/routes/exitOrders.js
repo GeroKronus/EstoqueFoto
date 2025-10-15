@@ -20,12 +20,21 @@ router.get('/', authenticateToken, async (req, res) => {
         let whereConditions = [];
         let queryParams = [];
         let paramCount = 0;
+        let joinConditionalItems = false;
 
         // Filtro por status
         if (status) {
-            paramCount++;
-            whereConditions.push(`eo.status = $${paramCount}`);
-            queryParams.push(status);
+            if (status === 'condicional') {
+                // Filtro especial: ordens com itens condicionais
+                joinConditionalItems = true;
+                whereConditions.push(`eo.status = 'ativa'`);
+                whereConditions.push(`eoi.is_conditional = true`);
+            } else {
+                // Filtro normal por status (ativa/cancelada)
+                paramCount++;
+                whereConditions.push(`eo.status = $${paramCount}`);
+                queryParams.push(status);
+            }
         }
 
         // Filtro por data inicial
@@ -59,12 +68,14 @@ router.get('/', authenticateToken, async (req, res) => {
         const offsetParam = paramCount;
         queryParams.push(parseInt(limit), offset);
 
+        // Se filtro condicional, adicionar JOIN e DISTINCT
         const ordersQuery = `
-            SELECT
+            SELECT ${joinConditionalItems ? 'DISTINCT' : ''}
                 eo.*,
                 u.name as created_by_name,
                 uc.name as cancelled_by_name
             FROM exit_orders eo
+            ${joinConditionalItems ? 'INNER JOIN exit_order_items eoi ON eo.id = eoi.exit_order_id' : ''}
             LEFT JOIN users u ON eo.created_by = u.id
             LEFT JOIN users uc ON eo.cancelled_by = uc.id
             ${whereClause}
@@ -73,8 +84,9 @@ router.get('/', authenticateToken, async (req, res) => {
         `;
 
         const countQuery = `
-            SELECT COUNT(*) as total
+            SELECT COUNT(${joinConditionalItems ? 'DISTINCT eo.id' : '*'}) as total
             FROM exit_orders eo
+            ${joinConditionalItems ? 'INNER JOIN exit_order_items eoi ON eo.id = eoi.exit_order_id' : ''}
             ${whereClause}
         `;
 
