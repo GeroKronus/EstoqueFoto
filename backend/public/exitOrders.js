@@ -281,6 +281,7 @@ class ExitOrdersManager {
                             <th style="width: 200px;">Quantidade</th>
                             <th>Custo Unit.</th>
                             <th>Total</th>
+                            ${isEditable ? '<th style="width: 100px;">Condicional</th>' : ''}
                             ${isEditable ? '<th style="width: 80px;"></th>' : ''}
                         </tr>
                     </thead>
@@ -289,13 +290,15 @@ class ExitOrdersManager {
 
         order.items.forEach(item => {
             const isModified = item.isModified || false;
-            const rowClass = isModified ? 'modified-item-row' : '';
+            const isConditional = item.isConditional || false;
+            const rowClass = isModified ? 'modified-item-row' : (isConditional ? 'conditional-item-row' : '');
 
             html += `
                 <tr class="${rowClass}" data-item-id="${item.id}">
                     <td>
                         ${item.equipmentName}
                         ${isModified ? '<span class="modified-badge">✏️ Modificado</span>' : ''}
+                        ${isConditional ? '<span class="conditional-badge">🔄 Condicional</span>' : ''}
                     </td>
                     <td>
                         ${isEditable ? `
@@ -313,6 +316,16 @@ class ExitOrdersManager {
                     <td>R$ ${item.unitCost.toFixed(2)}</td>
                     <td><strong>R$ ${item.totalCost.toFixed(2)}</strong></td>
                     ${isEditable ? `
+                        <td class="conditional-cell" style="text-align: center;">
+                            <input
+                                type="checkbox"
+                                id="conditional-${item.id}"
+                                ${isConditional ? 'checked' : ''}
+                                onchange="exitOrdersManager.toggleConditional('${order.id}', '${item.id}', this.checked)"
+                                class="conditional-checkbox"
+                                title="Marcar como condicional (pode ser devolvido)"
+                            />
+                        </td>
                         <td class="item-actions">
                             <button
                                 class="btn-save-inline"
@@ -344,7 +357,7 @@ class ExitOrdersManager {
                             <td><strong>${order.items.length} itens</strong></td>
                             <td></td>
                             <td><strong>R$ ${totalValue.toFixed(2)}</strong></td>
-                            ${isEditable ? '<td></td>' : ''}
+                            ${isEditable ? '<td></td><td></td>' : ''}
                         </tr>
                     </tfoot>
                 </table>
@@ -436,6 +449,27 @@ class ExitOrdersManager {
         } catch (error) {
             console.error('Erro ao carregar histórico:', error);
             window.notify.error('Erro ao carregar histórico');
+        }
+    }
+
+    // Toggle item condicional
+    async toggleConditional(orderId, itemId, isConditional) {
+        try {
+            const response = await window.api.toggleExitOrderItemConditional(orderId, itemId, isConditional);
+            window.notify.success(response.message);
+
+            // Recarregar detalhes da ordem
+            await this.loadOrderDetails(orderId);
+
+        } catch (error) {
+            console.error('Erro ao atualizar status condicional:', error);
+            window.notify.error('Erro: ' + error.message);
+
+            // Reverter checkbox
+            const checkbox = document.getElementById(`conditional-${itemId}`);
+            if (checkbox) {
+                checkbox.checked = !isConditional;
+            }
         }
     }
 

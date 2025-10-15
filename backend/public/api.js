@@ -247,6 +247,13 @@ class ApiService {
         return this.request(`${CONFIG.ENDPOINTS.EXIT_ORDERS}/${orderId}/items/${itemId}/history`);
     }
 
+    async toggleExitOrderItemConditional(orderId, itemId, isConditional) {
+        return this.request(`${CONFIG.ENDPOINTS.EXIT_ORDERS}/${orderId}/items/${itemId}/conditional`, {
+            method: 'PATCH',
+            body: JSON.stringify({ isConditional })
+        });
+    }
+
     // === DASHBOARD ===
     async getDashboardData() {
         try {

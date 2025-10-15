@@ -201,6 +201,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
                 unitCost: parseFloat(item.unit_cost),
                 totalCost: parseFloat(item.total_cost),
                 isModified: item.is_modified || false,
+                isConditional: item.is_conditional || false,
                 originalQuantity: item.original_quantity ? parseFloat(item.original_quantity) : null,
                 createdAt: item.created_at
             }))
@@ -556,7 +557,8 @@ router.put('/:orderId/items/:itemId', authenticateToken, async (req, res) => {
                     quantity = $1,
                     total_cost = $2,
                     is_modified = $3,
-                    original_quantity = $4
+                    original_quantity = $4,
+                    is_conditional = FALSE
                 WHERE id = $5
             `, [newQty, newTotalCost, true, originalQty, itemId]);
 
@@ -659,6 +661,75 @@ router.put('/:orderId/items/:itemId', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Erro ao editar item da ordem:', error);
         res.status(400).json({ error: error.message || 'Erro ao editar item' });
+    }
+});
+
+// PATCH /api/exit-orders/:orderId/items/:itemId/conditional - Marcar/desmarcar item como condicional
+router.patch('/:orderId/items/:itemId/conditional', authenticateToken, async (req, res) => {
+    try {
+        const { orderId, itemId } = req.params;
+        const { isConditional } = req.body;
+
+        // Validações
+        if (isConditional === undefined || isConditional === null) {
+            return res.status(400).json({ error: 'Campo isConditional é obrigatório' });
+        }
+
+        const result = await transaction(async (client) => {
+            // Buscar ordem
+            const orderResult = await client.query(
+                'SELECT * FROM exit_orders WHERE id = $1',
+                [orderId]
+            );
+
+            if (orderResult.rows.length === 0) {
+                throw new Error('Ordem de saída não encontrada');
+            }
+
+            const order = orderResult.rows[0];
+
+            if (order.status !== 'ativa') {
+                throw new Error('Apenas ordens ativas podem ser editadas');
+            }
+
+            // Buscar item da ordem
+            const itemResult = await client.query(
+                'SELECT * FROM exit_order_items WHERE id = $1 AND exit_order_id = $2',
+                [itemId, orderId]
+            );
+
+            if (itemResult.rows.length === 0) {
+                throw new Error('Item não encontrado nesta ordem');
+            }
+
+            // Atualizar status condicional do item
+            await client.query(`
+                UPDATE exit_order_items
+                SET is_conditional = $1
+                WHERE id = $2
+            `, [isConditional, itemId]);
+
+            // Buscar item atualizado
+            const updatedItemResult = await client.query(
+                'SELECT * FROM exit_order_items WHERE id = $1',
+                [itemId]
+            );
+
+            return updatedItemResult.rows[0];
+        });
+
+        res.json({
+            message: isConditional ? 'Item marcado como condicional' : 'Item desmarcado como condicional',
+            item: {
+                id: result.id,
+                equipmentName: result.equipment_name,
+                isConditional: result.is_conditional
+            }
+        });
+
+    } catch (error) {
+        console.error('Erro ao atualizar status condicional do item:', error);
+        res.status(400).json({ error: error.message || 'Erro ao atualizar item' });
     }
 });
 

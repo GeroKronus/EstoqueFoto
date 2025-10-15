@@ -407,6 +407,12 @@ Carregando sistema...`);
                             <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">Executar migration 008 para ativar edição de ordens de saída</p>
                             <button id="runMigration008Btn" onclick="runMigration008()" class="btn-warning">Executar Migration 008</button>
                             <div id="migration008Status" style="margin-top: 10px; font-size: 0.85rem;"></div>
+
+                            <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
+
+                            <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">Executar migration 009 para ativar itens condicionais em ordens de saída</p>
+                            <button id="runMigration009Btn" onclick="runMigration009()" class="btn-warning">Executar Migration 009</button>
+                            <div id="migration009Status" style="margin-top: 10px; font-size: 0.85rem;"></div>
                         </div>
                     </div>
                 </div>

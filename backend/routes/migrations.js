@@ -12,7 +12,8 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
         // Mapear números de migration para arquivos
         const migrationFiles = {
             '007': '007_create_exit_orders.sql',
-            '008': '008_create_exit_order_history.sql'
+            '008': '008_create_exit_order_history.sql',
+            '009': '009_add_conditional_items.sql'
         };
 
         const migrationFile = migrationFiles[String(migrationNumber).padStart(3, '0')];
@@ -48,6 +49,8 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
             tablesToCheck = ['exit_orders', 'exit_order_items'];
         } else if (migrationNumber == '008') {
             tablesToCheck = ['exit_order_items_history'];
+        } else if (migrationNumber == '009') {
+            tablesToCheck = ['exit_order_items']; // Verifica se a tabela existe (a migration adiciona coluna)
         }
 
         const result = await query(`

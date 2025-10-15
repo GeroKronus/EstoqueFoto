@@ -1335,4 +1335,72 @@ async function runMigration008() {
     }
 }
 
+async function runMigration009() {
+    const button = document.getElementById('runMigration009Btn');
+    const statusDiv = document.getElementById('migration009Status');
+
+    button.disabled = true;
+    button.textContent = 'Executando...';
+    statusDiv.innerHTML = '<span style="color: #ff9800;">⏳ Executando migration...</span>';
+
+    try {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/migrations/run/009`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${getAuthToken()}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        let data;
+        try {
+            data = await response.json();
+        } catch (e) {
+            throw new Error(`Erro ao processar resposta: ${response.status} ${response.statusText}`);
+        }
+
+        console.log('Response status:', response.status);
+        console.log('Response data:', data);
+
+        if (!response.ok) {
+            // Verificar se já foi executada
+            if (data.details && (data.details.includes('already exists') || data.details.includes('column "is_conditional" of relation "exit_order_items" already exists'))) {
+                statusDiv.innerHTML = `
+                    <span style="color: #4CAF50; font-weight: 600;">✅ Migration já está ativa!</span><br>
+                    <span style="color: #666;">A coluna de itens condicionais já existe. Você pode usar itens condicionais nas ordens.</span>
+                `;
+                button.textContent = '✓ Já Executada';
+                button.style.background = '#4CAF50';
+                window.notify.success('Migration 009 já está ativa! Pode usar itens condicionais.');
+                return;
+            }
+
+            throw new Error(data.details || data.error || `HTTP ${response.status}`);
+        }
+
+        statusDiv.innerHTML = `
+            <span style="color: #4CAF50; font-weight: 600;">✅ ${data.message}</span><br>
+            <span style="color: #666;">Atualize a página (F5) para usar as novas funcionalidades!</span>
+        `;
+
+        button.textContent = '✓ Migration Concluída';
+        button.style.background = '#4CAF50';
+
+        window.notify.success('Migration 009 executada! Atualize a página (F5).');
+
+    } catch (error) {
+        console.error('Erro completo ao executar migration:', error);
+        statusDiv.innerHTML = `
+            <span style="color: #f44336; font-weight: 600;">❌ Erro: ${error.message}</span><br>
+            <details style="margin-top: 10px; color: #666; font-size: 0.8rem;">
+                <summary style="cursor: pointer;">Ver detalhes técnicos</summary>
+                <pre style="margin-top: 5px; background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">${error.stack || 'Sem stack trace'}</pre>
+            </details>
+        `;
+        button.disabled = false;
+        button.textContent = 'Tentar Novamente';
+        window.notify.error('Erro: ' + error.message);
+    }
+}
+
 // Autenticação é inicializada pelo auth.js
