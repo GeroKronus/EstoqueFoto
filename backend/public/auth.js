@@ -462,9 +462,10 @@ Carregando sistema...`);
                             <input type="number" id="exitQuantity" placeholder="Quantidade" required min="0.01" step="0.01">
                             <select id="exitReason" required>
                                 <option value="">Motivo da saída</option>
-                                <option value="aluguel">Aluguel</option>
                                 <option value="venda">Venda</option>
-                                <option value="manutencao">Manutenção</option>
+                                <option value="garantia">Garantia</option>
+                                <option value="condicional">Condicional</option>
+                                <option value="instalacao">Instalação</option>
                                 <option value="uso_interno">Uso Interno</option>
                                 <option value="perda">Perda/Avaria</option>
                                 <option value="outros">Outros</option>
