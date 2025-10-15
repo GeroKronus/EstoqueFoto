@@ -200,6 +200,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
                 unit: item.unit,
                 unitCost: parseFloat(item.unit_cost),
                 totalCost: parseFloat(item.total_cost),
+                isModified: item.is_modified || false,
+                originalQuantity: item.original_quantity ? parseFloat(item.original_quantity) : null,
                 createdAt: item.created_at
             }))
         };
