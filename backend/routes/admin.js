@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { query } = require('../database/connection');
+const { query, pool } = require('../database/connection');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 // Aplicar middlewares de autenticação e admin em todas as rotas
@@ -13,7 +13,7 @@ router.use(requireAdmin);
  * ATENÇÃO: Esta é uma operação DESTRUTIVA e IRREVERSÍVEL!
  */
 router.post('/reset-movements', async (req, res) => {
-    const client = await require('../database/connection').pool.connect();
+    const client = await pool.connect();
 
     try {
         // Iniciar transação
