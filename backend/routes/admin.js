@@ -22,25 +22,21 @@ router.post('/reset-movements', async (req, res) => {
         await client.query('BEGIN');
         console.log('✅ Transação iniciada');
 
-        // 1. Excluir histórico de itens de ordens de saída (se a tabela existir)
-        let historyResult = { rowCount: 0 };
-        try {
-            historyResult = await client.query('DELETE FROM exit_order_item_history');
-            console.log(`🗑️ ${historyResult.rowCount} registros deletados de exit_order_item_history`);
-        } catch (error) {
-            console.log('⚠️ Tabela exit_order_item_history não existe ou está vazia');
-        }
+        // Deletar na ordem correta respeitando foreign keys
+        // 1. Excluir histórico de itens de ordens de saída (dependência de exit_order_items)
+        const historyResult = await client.query('DELETE FROM exit_order_item_history WHERE 1=1');
+        console.log(`🗑️ ${historyResult.rowCount} registros deletados de exit_order_item_history`);
 
-        // 2. Excluir itens de ordens de saída
-        const orderItemsResult = await client.query('DELETE FROM exit_order_items');
+        // 2. Excluir itens de ordens de saída (dependência de exit_orders)
+        const orderItemsResult = await client.query('DELETE FROM exit_order_items WHERE 1=1');
         console.log(`🗑️ ${orderItemsResult.rowCount} registros deletados de exit_order_items`);
 
         // 3. Excluir ordens de saída
-        const ordersResult = await client.query('DELETE FROM exit_orders');
+        const ordersResult = await client.query('DELETE FROM exit_orders WHERE 1=1');
         console.log(`🗑️ ${ordersResult.rowCount} registros deletados de exit_orders`);
 
-        // 4. Excluir transações
-        const transactionsResult = await client.query('DELETE FROM transactions');
+        // 4. Excluir transações (dependência de equipment)
+        const transactionsResult = await client.query('DELETE FROM transactions WHERE 1=1');
         console.log(`🗑️ ${transactionsResult.rowCount} registros deletados de transactions`);
 
         // 5. Resetar quantidades dos equipamentos para zero
@@ -50,16 +46,13 @@ router.post('/reset-movements', async (req, res) => {
                 current_cost = 0,
                 total_value = 0,
                 updated_at = CURRENT_TIMESTAMP
+            WHERE 1=1
         `);
         console.log(`🔄 ${equipmentResult.rowCount} equipamentos tiveram quantidades zeradas`);
 
-        // 6. Resetar sequências (auto-increment) das tabelas (se existir)
-        try {
-            await client.query("SELECT setval('exit_orders_order_number_seq', 1, false)");
-            console.log(`🔄 Sequência de order_number resetada`);
-        } catch (error) {
-            console.log('⚠️ Sequência exit_orders_order_number_seq não existe');
-        }
+        // 6. Resetar sequências (auto-increment) das tabelas
+        await client.query("SELECT setval('exit_orders_order_number_seq', 1, false)");
+        console.log(`🔄 Sequência de order_number resetada`);
 
         // Commit da transação
         await client.query('COMMIT');
