@@ -23,13 +23,13 @@ class ExitOrdersManager {
                 </div>
 
                 <div class="exit-orders-filters">
-                    <select id="exitOrderStatusFilter">
+                    <select id="exitOrderStatusFilter" onchange="exitOrdersManager.loadOrders()">
                         <option value="">Todos os Status</option>
                         <option value="ativa">Ativas</option>
                         <option value="cancelada">Canceladas</option>
                     </select>
-                    <input type="date" id="exitOrderDateFrom" placeholder="Data inicial">
-                    <input type="date" id="exitOrderDateTo" placeholder="Data final">
+                    <input type="date" id="exitOrderDateFrom" onchange="exitOrdersManager.loadOrders()">
+                    <input type="date" id="exitOrderDateTo" onchange="exitOrdersManager.loadOrders()">
                     <button onclick="exitOrdersManager.loadOrders()">Filtrar</button>
                 </div>
 
