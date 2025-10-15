@@ -969,23 +969,59 @@ header {
 
 .exit-orders-filters {
     display: flex;
-    gap: 15px;
+    gap: 12px;
     flex: 1;
+    align-items: center;
 }
 
 .exit-orders-filters input,
 .exit-orders-filters select {
-    padding: 10px;
-    border: 2px solid #ddd;
-    border-radius: 5px;
+    padding: 11px 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
     font-size: 14px;
-    transition: border-color 0.3s;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    background: white;
+    color: #333;
+}
+
+.exit-orders-filters input:hover,
+.exit-orders-filters select:hover {
+    border-color: #4CAF50;
+    box-shadow: 0 2px 6px rgba(76, 175, 80, 0.15);
 }
 
 .exit-orders-filters input:focus,
 .exit-orders-filters select:focus {
     outline: none;
     border-color: #4CAF50;
+    box-shadow: 0 3px 10px rgba(76, 175, 80, 0.2);
+}
+
+.exit-orders-filters button {
+    padding: 11px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
+    white-space: nowrap;
+}
+
+.exit-orders-filters button:hover {
+    background: linear-gradient(135deg, #45a049, #3d8b40);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+    transform: translateY(-2px);
+}
+
+.exit-orders-filters button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
 }
 
 .btn-new-order {
@@ -1431,46 +1467,50 @@ header {
 
 /* MODO DE VISUALIZAÇÃO (Cards/Tabela) */
 .view-mode-toggle {
-    margin-top: 15px;
-    padding-top: 15px;
-    border-top: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .view-mode-toggle label {
-    display: block;
-    margin-bottom: 8px;
     font-weight: 600;
     color: #666;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    white-space: nowrap;
 }
 
 .toggle-buttons {
     display: flex;
-    gap: 5px;
+    gap: 0;
+    background: #f0f0f0;
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .toggle-btn {
-    flex: 1;
-    padding: 10px 16px;
-    border: 2px solid #ddd;
-    background: white;
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
     color: #666;
     border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
     font-weight: 600;
-    transition: all 0.3s;
+    transition: all 0.3s ease;
+    white-space: nowrap;
 }
 
-.toggle-btn:hover {
-    border-color: #4CAF50;
-    background: #f0f8f0;
+.toggle-btn:hover:not(.active) {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4CAF50;
 }
 
 .toggle-btn.active {
-    border-color: #4CAF50;
-    background: #4CAF50;
+    background: linear-gradient(135deg, #4CAF50, #45a049);
     color: white;
+    box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
+    transform: translateY(-1px);
 }
 
 /* TABELA DE INVENTÁRIO */
@@ -1670,13 +1710,33 @@ header {
         -webkit-overflow-scrolling: touch;
     }
 
-    .toggle-buttons {
+    .view-mode-toggle {
         flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .toggle-buttons {
+        width: 100%;
+    }
+
+    .toggle-btn {
+        flex: 1;
+        padding: 10px 16px;
     }
 
     .btn-table-action {
         font-size: 14px;
         padding: 5px 8px;
+    }
+
+    .exit-orders-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .exit-orders-filters button {
+        width: 100%;
     }
 }
 
