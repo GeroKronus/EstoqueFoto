@@ -259,6 +259,12 @@ class ApiService {
     }
 
     // === ADMINISTRAÇÃO ===
+    async ensureTables() {
+        return this.request(`${CONFIG.ENDPOINTS.ADMIN}/ensure-tables`, {
+            method: 'POST'
+        });
+    }
+
     async resetMovements() {
         return this.request(`${CONFIG.ENDPOINTS.ADMIN}/reset-movements`, {
             method: 'POST'

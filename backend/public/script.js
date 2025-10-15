@@ -1501,6 +1501,83 @@ function goToExitOrder(orderId) {
     }, 300);
 }
 
+// Função para garantir que todas as tabelas existam
+async function ensureDatabaseTables() {
+    if (!photoAuthManager.isAdmin()) {
+        window.notify.warning('Apenas administradores podem executar esta ação!');
+        return;
+    }
+
+    const button = document.getElementById('ensureTablesBtn');
+    const statusDiv = document.getElementById('ensureTablesStatus');
+
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Verificando...';
+    }
+
+    if (statusDiv) {
+        statusDiv.innerHTML = '<span style="color: #ff9800;">⏳ Verificando e criando tabelas...</span>';
+    }
+
+    try {
+        console.log('🔧 Garantindo que todas as tabelas existam...');
+
+        const response = await window.api.ensureTables();
+
+        console.log('✅ Tabelas verificadas:', response);
+
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <div style="background: #d4edda; padding: 12px; border-radius: 6px; border-left: 4px solid #28a745;">
+                    <strong style="color: #155724;">✅ ${response.message}</strong><br>
+                    <div style="margin-top: 8px; font-size: 0.85rem; color: #155724;">
+                        <strong>Tabelas verificadas/criadas:</strong><br>
+                        ${response.tables_created.map(t => `• ${t}`).join('<br>')}
+                        <br><br>
+                        <strong>Colunas verificadas/criadas:</strong><br>
+                        ${response.columns_added.map(c => `• ${c}`).join('<br>')}
+                    </div>
+                </div>
+            `;
+        }
+
+        if (button) {
+            button.textContent = '✓ Tabelas Verificadas';
+            button.style.background = '#28a745';
+        }
+
+        window.notify.success('Todas as tabelas necessárias foram verificadas e criadas!');
+
+        // Resetar botão após 5 segundos
+        setTimeout(() => {
+            if (button) {
+                button.disabled = false;
+                button.textContent = '🔧 Verificar e Criar Tabelas Faltantes';
+                button.style.background = '';
+            }
+        }, 5000);
+
+    } catch (error) {
+        console.error('❌ Erro ao garantir tabelas:', error);
+
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <div style="background: #f8d7da; padding: 12px; border-radius: 6px; border-left: 4px solid #dc3545;">
+                    <strong style="color: #721c24;">❌ Erro: ${error.message}</strong>
+                </div>
+            `;
+        }
+
+        if (button) {
+            button.disabled = false;
+            button.textContent = '🔧 Verificar e Criar Tabelas Faltantes';
+        }
+
+        window.notify.error('Erro ao verificar tabelas: ' + error.message);
+    }
+}
+
 // Função para resetar todos os movimentos do sistema
 async function resetAllMovements() {
     if (!photoAuthManager.isAdmin()) {

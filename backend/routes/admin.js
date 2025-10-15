@@ -127,6 +127,92 @@ router.post('/reset-movements', async (req, res) => {
 });
 
 /**
+ * POST /api/admin/ensure-tables
+ * Garante que todas as tabelas necessárias existam
+ */
+router.post('/ensure-tables', async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+        console.log('🔍 Verificando e criando tabelas faltantes...');
+
+        // 1. Criar tabela exit_order_item_history se não existir
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS exit_order_item_history (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                order_item_id UUID NOT NULL REFERENCES exit_order_items(id) ON DELETE CASCADE,
+                previous_quantity DECIMAL(10, 2) NOT NULL,
+                new_quantity DECIMAL(10, 2) NOT NULL,
+                quantity_difference DECIMAL(10, 2) NOT NULL,
+                reason TEXT,
+                changed_by_id UUID NOT NULL REFERENCES users(id),
+                changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        console.log('✅ Tabela exit_order_item_history verificada/criada');
+
+        // 2. Adicionar coluna is_conditional se não existir
+        await client.query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'exit_order_items'
+                    AND column_name = 'is_conditional'
+                ) THEN
+                    ALTER TABLE exit_order_items
+                    ADD COLUMN is_conditional BOOLEAN DEFAULT FALSE;
+                END IF;
+            END $$;
+        `);
+        console.log('✅ Coluna is_conditional verificada/criada');
+
+        // 3. Adicionar coluna is_modified se não existir
+        await client.query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'exit_order_items'
+                    AND column_name = 'is_modified'
+                ) THEN
+                    ALTER TABLE exit_order_items
+                    ADD COLUMN is_modified BOOLEAN DEFAULT FALSE;
+                END IF;
+            END $$;
+        `);
+        console.log('✅ Coluna is_modified verificada/criada');
+
+        await client.query('COMMIT');
+
+        res.json({
+            message: 'Todas as tabelas necessárias foram verificadas e criadas',
+            tables_created: [
+                'exit_order_item_history',
+            ],
+            columns_added: [
+                'exit_order_items.is_conditional',
+                'exit_order_items.is_modified'
+            ],
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('❌ Erro ao criar tabelas:', error);
+
+        res.status(500).json({
+            error: 'Erro ao criar tabelas',
+            message: error.message
+        });
+    } finally {
+        client.release();
+    }
+});
+
+/**
  * GET /api/admin/system-stats
  * Retorna estatísticas do sistema
  */

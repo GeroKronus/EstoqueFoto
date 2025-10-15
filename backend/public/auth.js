@@ -415,7 +415,18 @@ Carregando sistema...`);
                             <div id="migration009Status" style="margin-top: 10px; font-size: 0.85rem;"></div>
                         </div>
                         <div class="setting-card ${adminClass}" style="${adminStyle}">
-                            <h3>⚠️ Administração Avançada (Admin)</h3>
+                            <h3>🔧 Manutenção do Banco de Dados (Admin)</h3>
+                            <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
+                                Certifique-se de que todas as tabelas necessárias existam no banco de dados.
+                            </p>
+                            <button id="ensureTablesBtn" onclick="ensureDatabaseTables()" class="btn-primary" style="width: 100%; margin-bottom: 20px;">
+                                🔧 Verificar e Criar Tabelas Faltantes
+                            </button>
+                            <div id="ensureTablesStatus" style="margin-bottom: 20px; font-size: 0.85rem;"></div>
+
+                            <hr style="margin: 20px 0; border: none; border-top: 2px solid #ddd;">
+
+                            <h3 style="margin-top: 20px;">⚠️ Administração Avançada (Admin)</h3>
                             <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
                                 <strong>ATENÇÃO:</strong> Esta ação irá zerar TODOS os movimentos do sistema mantendo apenas os itens cadastrados.
                             </p>
