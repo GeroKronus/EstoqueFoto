@@ -970,11 +970,9 @@ header {
 .exit-orders-filters {
     display: flex;
     gap: 12px;
-    flex: 1;
     align-items: center;
 }
 
-.exit-orders-filters input,
 .exit-orders-filters select {
     padding: 11px 14px;
     border: 2px solid #e0e0e0;
@@ -984,23 +982,37 @@ header {
     transition: all 0.3s ease;
     background: white;
     color: #333;
+    min-width: 160px;
+    max-width: 200px;
 }
 
-.exit-orders-filters input:hover,
-.exit-orders-filters select:hover {
+.exit-orders-filters input[type="date"] {
+    padding: 11px 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    background: white;
+    color: #333;
+    width: 160px;
+}
+
+.exit-orders-filters select:hover,
+.exit-orders-filters input[type="date"]:hover {
     border-color: #4CAF50;
     box-shadow: 0 2px 6px rgba(76, 175, 80, 0.15);
 }
 
-.exit-orders-filters input:focus,
-.exit-orders-filters select:focus {
+.exit-orders-filters select:focus,
+.exit-orders-filters input[type="date"]:focus {
     outline: none;
     border-color: #4CAF50;
     box-shadow: 0 3px 10px rgba(76, 175, 80, 0.2);
 }
 
 .exit-orders-filters button {
-    padding: 11px 24px;
+    padding: 11px 20px;
     border: none;
     border-radius: 8px;
     font-size: 14px;
@@ -1011,6 +1023,7 @@ header {
     transition: all 0.3s ease;
     box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
     white-space: nowrap;
+    min-width: 100px;
 }
 
 .exit-orders-filters button:hover {
@@ -1731,12 +1744,20 @@ header {
     }
 
     .exit-orders-filters {
-        flex-direction: column;
-        align-items: stretch;
+        flex-wrap: wrap;
+    }
+
+    .exit-orders-filters select {
+        min-width: 140px;
+        max-width: 100%;
+    }
+
+    .exit-orders-filters input[type="date"] {
+        width: 140px;
     }
 
     .exit-orders-filters button {
-        width: 100%;
+        min-width: 90px;
     }
 }
 
