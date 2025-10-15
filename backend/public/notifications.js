@@ -247,7 +247,16 @@ class NotificationSystem {
 
     async confirm(options) {
         return new Promise((resolve) => {
+            // Garantir que o modal existe
+            this.createConfirmModal();
+
             const modal = document.getElementById('confirm-modal');
+            if (!modal) {
+                console.error('Modal de confirmação não encontrado!');
+                resolve(false);
+                return;
+            }
+
             const title = modal.querySelector('.confirm-title');
             const message = modal.querySelector('.confirm-message');
             const icon = modal.querySelector('.confirm-icon');
