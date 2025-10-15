@@ -299,6 +299,80 @@ router.post('/ensure-tables', async (req, res) => {
 });
 
 /**
+ * POST /api/admin/fix-exit-orders-constraint
+ * Corrige a constraint de reason na tabela exit_orders
+ * Adiciona novos valores: garantia, condicional, instalacao
+ */
+router.post('/fix-exit-orders-constraint', async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+        console.log('🔧 Corrigindo constraint de reason na tabela exit_orders...');
+
+        // Remover constraint antiga
+        await client.query(`
+            ALTER TABLE exit_orders DROP CONSTRAINT IF EXISTS exit_orders_reason_check
+        `);
+        console.log('✅ Constraint antiga removida');
+
+        // Adicionar nova constraint com todos os valores
+        await client.query(`
+            ALTER TABLE exit_orders ADD CONSTRAINT exit_orders_reason_check
+                CHECK (reason IN (
+                    'venda',
+                    'garantia',
+                    'condicional',
+                    'instalacao',
+                    'uso_interno',
+                    'perda',
+                    'aluguel',
+                    'manutencao',
+                    'outros'
+                ))
+        `);
+        console.log('✅ Nova constraint criada');
+
+        // Adicionar comentário
+        await client.query(`
+            COMMENT ON COLUMN exit_orders.reason IS 'Motivo da saída: venda, garantia, condicional, instalacao, uso_interno, perda, aluguel, manutencao, outros'
+        `);
+
+        await client.query('COMMIT');
+        console.log('✅ Constraint corrigida com sucesso!');
+
+        res.json({
+            success: true,
+            message: 'Constraint de reason atualizada com sucesso',
+            allowed_values: [
+                'venda',
+                'garantia',
+                'condicional',
+                'instalacao',
+                'uso_interno',
+                'perda',
+                'aluguel',
+                'manutencao',
+                'outros'
+            ],
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('❌ Erro ao corrigir constraint:', error);
+
+        res.status(500).json({
+            error: 'Erro ao corrigir constraint',
+            message: error.message,
+            details: process.env.NODE_ENV === 'production' ? undefined : error.stack
+        });
+    } finally {
+        client.release();
+    }
+});
+
+/**
  * GET /api/admin/system-stats
  * Retorna estatísticas do sistema
  */
