@@ -1115,10 +1115,14 @@ class ExitOrdersManager {
                             <div class="detail-row">
                                 <strong>Motivo:</strong> ${this.translateReason(order.reason)}
                             </div>
-                            ${order.destination ? `<div class="detail-row"><strong>Destino:</strong> ${order.destination}</div>` : ''}
+                            <div class="detail-row">
+                                <strong>Destino/Local:</strong> ${order.destination || '-'}
+                            </div>
                             ${(order.customer?.razaoSocial || order.customerName) ? `<div class="detail-row"><strong>Cliente:</strong> ${order.customer?.razaoSocial || order.customerName}</div>` : ''}
                             ${order.customerDocument ? `<div class="detail-row"><strong>Documento:</strong> ${order.customerDocument}</div>` : ''}
-                            ${order.notes ? `<div class="detail-row"><strong>Observações:</strong> ${order.notes}</div>` : ''}
+                            <div class="detail-row">
+                                <strong>Observações:</strong> ${order.notes || '-'}
+                            </div>
 
                             ${order.status === 'cancelada' ? `
                                 <div class="cancellation-info">
