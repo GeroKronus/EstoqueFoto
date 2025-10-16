@@ -15,6 +15,9 @@ class ExitOrdersManager {
         const section = document.getElementById('exit-orders-section');
         if (!section) return;
 
+        // Limpar estado de ordens expandidas ao entrar na seção
+        this.expandedOrders = [];
+
         // Carregar modo de visualização do localStorage
         this.viewMode = localStorage.getItem('exitOrdersViewMode') || 'table';
 
