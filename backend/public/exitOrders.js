@@ -771,13 +771,20 @@ class ExitOrdersManager {
     // Povoar select de clientes
     async populateCustomersSelect() {
         const select = document.getElementById('newExitOrderCustomerId');
-        if (!select) return;
+        if (!select) {
+            console.warn('Select de clientes não encontrado');
+            return;
+        }
 
         try {
+            console.log('🔍 Buscando clientes...');
             // Buscar todos os clientes ativos
             const response = await window.api.searchCustomers('', 1000);
+            console.log('✅ Resposta da API:', response);
 
             if (response.customers && response.customers.length > 0) {
+                console.log(`📦 ${response.customers.length} clientes recebidos`);
+
                 const activeCustomers = response.customers
                     .filter(c => c.ativo !== false)
                     .sort((a, b) => {
@@ -786,16 +793,23 @@ class ExitOrdersManager {
                         return nameA.localeCompare(nameB, 'pt-BR');
                     });
 
+                console.log(`✔️ ${activeCustomers.length} clientes ativos filtrados`);
+
                 select.innerHTML = '<option value="">👤 Selecione um cliente (opcional)</option>' +
                     activeCustomers.map(customer =>
                         `<option value="${customer.id}">
                             ${customer.nome_fantasia || customer.razao_social}${customer.cidade ? ` - ${customer.cidade}` : ''}
                         </option>`
                     ).join('');
+
+                console.log('✅ Dropdown populado com sucesso');
+            } else {
+                console.warn('⚠️ Nenhum cliente retornado pela API');
+                select.innerHTML = '<option value="">👤 Nenhum cliente cadastrado</option>';
             }
         } catch (error) {
-            console.error('Erro ao carregar clientes:', error);
-            select.innerHTML = '<option value="">👤 Selecione um cliente (opcional)</option>';
+            console.error('❌ Erro ao carregar clientes:', error);
+            select.innerHTML = '<option value="">👤 Erro ao carregar clientes</option>';
         }
     }
 
