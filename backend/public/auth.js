@@ -343,14 +343,13 @@ Carregando sistema...`);
                     <div class="transaction-controls">
                         <h2>Histórico de Movimentações</h2>
                         <div class="date-filters">
-                            <input type="date" id="dateFrom" placeholder="Data inicial">
-                            <input type="date" id="dateTo" placeholder="Data final">
-                            <select id="transactionType">
+                            <input type="date" id="dateFrom" placeholder="Data inicial" onchange="filterTransactions()">
+                            <input type="date" id="dateTo" placeholder="Data final" onchange="filterTransactions()">
+                            <select id="transactionType" onchange="filterTransactions()">
                                 <option value="">Todos os tipos</option>
                                 <option value="entrada">Entradas</option>
                                 <option value="saida">Saídas</option>
                             </select>
-                            <button onclick="filterTransactions()">Filtrar</button>
                             <div class="view-mode-toggle" style="margin-left: 20px;">
                                 <label>Visualização:</label>
                                 <div class="toggle-buttons">
