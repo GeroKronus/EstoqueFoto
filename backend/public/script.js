@@ -1167,7 +1167,82 @@ function selectItemForExit(itemId) {
 }
 
 function filterTransactions() {
+    if (!window.photoInventory) return;
 
+    const dateFrom = document.getElementById('dateFrom')?.value;
+    const dateTo = document.getElementById('dateTo')?.value;
+    const transactionType = document.getElementById('transactionType')?.value;
+
+    // Filtrar transações
+    let filteredTransactions = [...window.photoInventory.transactions];
+
+    // Filtro por tipo
+    if (transactionType) {
+        filteredTransactions = filteredTransactions.filter(t => t.type === transactionType);
+    }
+
+    // Filtro por data inicial
+    if (dateFrom) {
+        const fromDate = new Date(dateFrom);
+        fromDate.setHours(0, 0, 0, 0);
+        filteredTransactions = filteredTransactions.filter(t => {
+            const transDate = new Date(t.timestamp);
+            return transDate >= fromDate;
+        });
+    }
+
+    // Filtro por data final
+    if (dateTo) {
+        const toDate = new Date(dateTo);
+        toDate.setHours(23, 59, 59, 999);
+        filteredTransactions = filteredTransactions.filter(t => {
+            const transDate = new Date(t.timestamp);
+            return transDate <= toDate;
+        });
+    }
+
+    // Renderizar transações filtradas
+    const container = document.getElementById('transactionsList');
+    if (!container) return;
+
+    if (filteredTransactions.length === 0) {
+        container.innerHTML = `
+            <div style="padding: 40px; text-align: center; color: #666;">
+                Nenhuma transação encontrada com os filtros selecionados.
+            </div>
+        `;
+        return;
+    }
+
+    // Ordenar por data (mais recente primeiro)
+    const sortedTransactions = filteredTransactions.sort((a, b) =>
+        new Date(b.timestamp) - new Date(a.timestamp)
+    );
+
+    container.innerHTML = sortedTransactions.map(transaction => {
+        const typeClass = transaction.type === 'entrada' ? 'transaction-entry' : 'transaction-exit';
+        const icon = transaction.type === 'entrada' ? '📥' : '📤';
+
+        return `
+            <div class="transaction-item ${typeClass}">
+                <div class="transaction-header">
+                    <span class="transaction-icon">${icon}</span>
+                    <span class="transaction-type">${transaction.type.toUpperCase()}</span>
+                    <span class="transaction-date">${window.photoInventory.formatDateTime(transaction.timestamp)}</span>
+                </div>
+                <div class="transaction-details">
+                    <div><strong>${transaction.itemName}</strong> (${window.photoInventory.getCategoryName(transaction.category)})</div>
+                    <div>Quantidade: ${transaction.quantity} ${transaction.unit}</div>
+                    <div>Valor unitário: R$ ${transaction.cost.toFixed(2)}</div>
+                    <div>Valor total: R$ ${transaction.totalCost.toFixed(2)}</div>
+                    ${transaction.supplier ? `<div>Fornecedor: ${transaction.supplier}</div>` : ''}
+                    ${transaction.reason ? `<div>Motivo: ${transaction.reason}</div>` : ''}
+                    ${transaction.destination ? `<div>Destino: ${transaction.destination}</div>` : ''}
+                    ${transaction.notes ? `<div>Observações: ${transaction.notes}</div>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 function generateMovementReport() {
