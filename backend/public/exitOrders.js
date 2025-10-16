@@ -688,11 +688,9 @@ class ExitOrdersManager {
                                 <option value="perda">Perda/Avaria</option>
                                 <option value="outros">Outros</option>
                             </select>
-                            <div style="position: relative;">
-                                <input type="text" id="newExitOrderCustomerSearch" placeholder="🔍 Buscar cliente..." autocomplete="off" oninput="searchOrderCustomer(this.value)">
-                                <input type="hidden" id="newExitOrderCustomerId">
-                                <div id="orderCustomerResults" class="autocomplete-results" style="display: none;"></div>
-                            </div>
+                            <select id="newExitOrderCustomerId">
+                                <option value="">👤 Selecione um cliente (opcional)</option>
+                            </select>
                             <input type="text" id="newExitOrderDestination" placeholder="Destino/Local (texto livre)">
                             <input type="text" id="newExitOrderCustomerName" placeholder="Nome do Cliente (opcional - texto livre)">
                             <input type="text" id="newExitOrderCustomerDoc" placeholder="CPF/CNPJ do Cliente (opcional)">
@@ -741,6 +739,9 @@ class ExitOrdersManager {
         // Povoar select de equipamentos
         this.populateEquipmentSelect();
 
+        // Povoar select de clientes
+        this.populateCustomersSelect();
+
         // Resetar ordem atual
         this.currentOrder = { items: [] };
         this.updateOrderSummary();
@@ -765,6 +766,37 @@ class ExitOrdersManager {
                     ${item.name} (${item.quantity} ${item.unit} disponíveis)
                 </option>`
             ).join('');
+    }
+
+    // Povoar select de clientes
+    async populateCustomersSelect() {
+        const select = document.getElementById('newExitOrderCustomerId');
+        if (!select) return;
+
+        try {
+            // Buscar todos os clientes ativos
+            const response = await window.api.searchCustomers('', 1000);
+
+            if (response.customers && response.customers.length > 0) {
+                const activeCustomers = response.customers
+                    .filter(c => c.ativo !== false)
+                    .sort((a, b) => {
+                        const nameA = (a.nome_fantasia || a.razao_social).toLowerCase();
+                        const nameB = (b.nome_fantasia || b.razao_social).toLowerCase();
+                        return nameA.localeCompare(nameB, 'pt-BR');
+                    });
+
+                select.innerHTML = '<option value="">👤 Selecione um cliente (opcional)</option>' +
+                    activeCustomers.map(customer =>
+                        `<option value="${customer.id}">
+                            ${customer.nome_fantasia || customer.razao_social}${customer.cidade ? ` - ${customer.cidade}` : ''}
+                        </option>`
+                    ).join('');
+            }
+        } catch (error) {
+            console.error('Erro ao carregar clientes:', error);
+            select.innerHTML = '<option value="">👤 Selecione um cliente (opcional)</option>';
+        }
     }
 
     // Adicionar item à ordem

@@ -2719,57 +2719,10 @@ function selectExitCustomer(id, name) {
 document.addEventListener('click', function(e) {
     const exitResultsDiv = document.getElementById('exitCustomerResults');
     const exitSearchInput = document.getElementById('exitCustomerSearch');
-    const orderResultsDiv = document.getElementById('orderCustomerResults');
-    const orderSearchInput = document.getElementById('newExitOrderCustomerSearch');
 
     if (exitResultsDiv && exitSearchInput && e.target !== exitSearchInput && e.target !== exitResultsDiv) {
         exitResultsDiv.style.display = 'none';
     }
-
-    if (orderResultsDiv && orderSearchInput && e.target !== orderSearchInput && e.target !== orderResultsDiv) {
-        orderResultsDiv.style.display = 'none';
-    }
 });
-
-// === FUNÇÕES DE AUTOCOMPLETE PARA ORDEM DE SAÍDA ===
-let searchOrderCustomerTimeout;
-
-async function searchOrderCustomer(query) {
-    clearTimeout(searchOrderCustomerTimeout);
-
-    const resultsDiv = document.getElementById('orderCustomerResults');
-
-    if (!query || query.length < 2) {
-        resultsDiv.style.display = 'none';
-        return;
-    }
-
-    searchOrderCustomerTimeout = setTimeout(async () => {
-        try {
-            const response = await window.api.searchCustomers(query, 10);
-
-            if (response.customers && response.customers.length > 0) {
-                resultsDiv.innerHTML = response.customers.map(customer => `
-                    <div class="autocomplete-item" onclick="selectOrderCustomer('${customer.id}', '${customer.nome_fantasia || customer.razao_social}')">
-                        <strong>${customer.nome_fantasia || customer.razao_social}</strong>
-                        ${customer.cidade && customer.estado ? `<br><small>${customer.cidade} - ${customer.estado}</small>` : ''}
-                    </div>
-                `).join('');
-                resultsDiv.style.display = 'block';
-            } else {
-                resultsDiv.innerHTML = '<div class="autocomplete-item">Nenhum cliente encontrado</div>';
-                resultsDiv.style.display = 'block';
-            }
-        } catch (error) {
-            console.error('Erro ao buscar clientes:', error);
-        }
-    }, 300);
-}
-
-function selectOrderCustomer(id, name) {
-    document.getElementById('newExitOrderCustomerId').value = id;
-    document.getElementById('newExitOrderCustomerSearch').value = name;
-    document.getElementById('orderCustomerResults').style.display = 'none';
-}
 
 // Autenticação é inicializada pelo auth.js
