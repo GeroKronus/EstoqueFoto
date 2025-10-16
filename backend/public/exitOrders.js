@@ -553,7 +553,11 @@ class ExitOrdersManager {
         const select = document.getElementById('newExitOrderItemSelect');
         if (!select) return;
 
-        const availableItems = this.photoInventory.items
+        // CORREÇÃO: Sempre usar a referência atualizada do window.photoInventory
+        // para garantir que temos os dados mais recentes do estoque
+        const currentInventory = window.photoInventory || this.photoInventory;
+
+        const availableItems = currentInventory.items
             .filter(item => item.quantity > 0)
             .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
@@ -709,8 +713,9 @@ class ExitOrdersManager {
             return;
         }
 
-        // Verificar estoque disponível
-        const equipment = this.photoInventory.items.find(e => e.id === equipmentId);
+        // Verificar estoque disponível - usar referência atualizada
+        const currentInventory = window.photoInventory || this.photoInventory;
+        const equipment = currentInventory.items.find(e => e.id === equipmentId);
         if (equipment && qty > equipment.quantity) {
             window.notify.error(`Quantidade insuficiente! Disponível: ${equipment.quantity} ${equipment.unit}`);
             // Restaurar valor anterior
