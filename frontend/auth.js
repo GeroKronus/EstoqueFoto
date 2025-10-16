@@ -294,7 +294,7 @@ Carregando sistema...`);
                 <header>
                     <div class="header-content">
                         <div class="header-title">
-                            <h1>📸 Sistema de Estoque Fotográfico</h1>
+                            <h1>📸 Sistema de Estoque PicStone</h1>
                             <p>Controle Profissional de Equipamentos e Materiais</p>
                         </div>
                         <div class="header-user">

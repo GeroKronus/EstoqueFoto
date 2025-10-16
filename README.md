@@ -1,4 +1,4 @@
-# 📸 Sistema de Estoque Fotográfico
+# 📸 Sistema de Estoque PicStone
 
 Sistema profissional de controle de estoque para equipamentos fotográficos com backend Node.js, PostgreSQL e deploy automático no Railway.
 

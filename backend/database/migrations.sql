@@ -1,4 +1,4 @@
--- Migrations para Sistema de Estoque Fotográfico
+-- Migrations para Sistema de Estoque PicStone
 
 -- Extensão para UUID
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
