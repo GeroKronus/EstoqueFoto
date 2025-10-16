@@ -9,10 +9,17 @@
 - **Frontend (public)**: `D:\ClaudeTeste\estoque-fotografia\backend\public`
 - **Database**: `D:\ClaudeTeste\estoque-fotografia\backend\database`
 
+### Ambiente de Produção
+- **URL de Produção**: `https://estoque.stonecoin.com.br`
+- **IMPORTANTE**: NADA é rodado localmente - todo o desenvolvimento e testes são feitos direto em produção
+- **Deploy**: Automático via GitHub (push para main dispara deploy no Render.com)
+- **Workflow**: Editar código localmente → Commit → Push → Deploy automático → Testar em produção
+
 ### Git & GitHub
 - **Repositório Remoto**: `https://github.com/GeroKronus/EstoqueFoto.git`
 - **Branch Principal**: `main`
 - **Push Automático**: Sempre fazer push após commit (padrão do projeto)
+- **Deploy**: Cada push para main dispara deploy automático no Render.com
 
 ### Arquivos Principais
 - **Frontend**:
@@ -81,7 +88,10 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - 011: Permitir quantidade >= 0 em exit_order_items
 
 ## Notas Importantes
-1. NUNCA esquecer de usar `/d/ClaudeTeste/estoque-fotografia` para comandos git
-2. SEMPRE fazer push após commit (é o padrão do projeto)
-3. Verificar `git status` antes de qualquer operação git
-4. O working directory do Claude Code pode ser diferente do diretório do projeto
+1. **AMBIENTE**: NADA roda localmente - tudo é testado direto em produção (estoque.stonecoin.com.br)
+2. **GIT**: NUNCA esquecer de usar `/d/ClaudeTeste/estoque-fotografia` para comandos git
+3. **PUSH**: SEMPRE fazer push após commit (é o padrão do projeto e dispara deploy automático)
+4. **DEPLOY**: Após push, aguardar ~2-3 minutos para deploy no Render.com completar
+5. **TESTES**: Testar funcionalidades diretamente em estoque.stonecoin.com.br após deploy
+6. Verificar `git status` antes de qualquer operação git
+7. O working directory do Claude Code pode ser diferente do diretório do projeto
