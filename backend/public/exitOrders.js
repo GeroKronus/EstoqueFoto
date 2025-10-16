@@ -258,17 +258,38 @@ class ExitOrdersManager {
         const container = document.getElementById(`order-details-content-${orderId}`);
 
         try {
+            console.log('🔍 Carregando detalhes da ordem:', orderId);
             const response = await window.api.getExitOrder(orderId);
+            console.log('✅ Resposta recebida:', response);
+
             const order = response.order;
+
+            if (!order) {
+                throw new Error('Ordem não encontrada na resposta');
+            }
+
+            if (!order.items || !Array.isArray(order.items)) {
+                console.warn('⚠️ Ordem sem itens ou itens inválidos:', order);
+                order.items = [];
+            }
+
+            console.log('📦 Ordem carregada com', order.items.length, 'itens');
 
             // Renderizar detalhes expandidos
             container.innerHTML = this.renderExpandedOrderDetails(order);
 
+            console.log('✅ Detalhes renderizados com sucesso');
+
         } catch (error) {
-            console.error('Erro ao carregar detalhes da ordem:', error);
+            console.error('❌ Erro ao carregar detalhes da ordem:', error);
+            console.error('Stack trace:', error.stack);
             container.innerHTML = `
                 <div style="padding: 15px; text-align: center; color: #f44336;">
-                    Erro ao carregar detalhes da ordem
+                    ❌ Erro ao carregar detalhes da ordem<br>
+                    <small style="color: #666; font-size: 0.85rem;">${error.message}</small><br>
+                    <button class="btn-secondary btn-small" onclick="exitOrdersManager.loadOrderDetails('${orderId}')" style="margin-top: 10px;">
+                        🔄 Tentar Novamente
+                    </button>
                 </div>
             `;
         }
