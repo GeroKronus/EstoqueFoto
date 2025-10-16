@@ -414,6 +414,24 @@ Carregando sistema...`);
                             <label for="importFile" class="file-label">Restaurar Backup</label>
                         </div>
                         <div class="setting-card ${adminClass}" style="${adminStyle}">
+                            <h3>🔢 Manutenção de Ordens (Admin)</h3>
+                            <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
+                                Se você está recebendo erro de "duplicate key" ao criar ordens de saída, esta ferramenta corrige automaticamente a sequência de numeração.
+                            </p>
+                            <div style="background: #fff3cd; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #ff9800;">
+                                <strong>⚠️ Quando usar:</strong>
+                                <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.85rem;">
+                                    <li>Erro: "duplicate key violates constraint exit_orders_order_number_key"</li>
+                                    <li>Não consegue criar novas ordens de saída</li>
+                                    <li>Após restaurar backup ou migração de dados</li>
+                                </ul>
+                            </div>
+                            <button id="fixOrderSequenceBtn" onclick="fixOrderSequence()" class="btn-warning" style="width: 100%; padding: 12px; font-size: 15px; margin-bottom: 10px;">
+                                🔧 Corrigir Sequence de Ordens
+                            </button>
+                            <div id="fixOrderSequenceStatus" style="margin-top: 10px; font-size: 0.85rem;"></div>
+                        </div>
+                        <div class="setting-card ${adminClass}" style="${adminStyle}">
                             <h3>⚠️ Administração Avançada (Admin)</h3>
                             <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
                                 <strong>ATENÇÃO:</strong> Esta ação irá zerar TODOS os movimentos do sistema mantendo apenas os itens cadastrados.
@@ -463,29 +481,6 @@ Carregando sistema...`);
                             <button class="btn-primary" onclick="showModal('addUserModal')">➕ Cadastrar Usuário</button>
                         </div>
                         <div id="usersList" class="users-list"></div>
-
-                        <!-- Seção de Manutenção do Sistema -->
-                        <div style="margin-top: 40px; border-top: 2px solid #ddd; padding-top: 30px;">
-                            <h2>🔧 Manutenção do Sistema</h2>
-                            <div class="setting-card" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 15px;">
-                                <h3 style="color: #667eea; margin-bottom: 10px;">🔢 Corrigir Numeração de Ordens</h3>
-                                <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
-                                    Se você está recebendo erro de "duplicate key" ao criar ordens de saída, esta ferramenta corrige automaticamente a sequência de numeração.
-                                </p>
-                                <div style="background: #fff3cd; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #ff9800;">
-                                    <strong>⚠️ Quando usar:</strong>
-                                    <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.85rem;">
-                                        <li>Erro: "duplicate key violates constraint exit_orders_order_number_key"</li>
-                                        <li>Não consegue criar novas ordens de saída</li>
-                                        <li>Após restaurar backup ou migração de dados</li>
-                                    </ul>
-                                </div>
-                                <button id="fixOrderSequenceBtn" onclick="fixOrderSequence()" class="btn-warning" style="width: 100%; padding: 12px; font-size: 15px;">
-                                    🔧 Corrigir Sequence de Ordens
-                                </button>
-                                <div id="fixOrderSequenceStatus" style="margin-top: 10px; font-size: 0.85rem;"></div>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
