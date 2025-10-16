@@ -9,7 +9,7 @@ async function importCustomers() {
         console.log('📦 Iniciando importação de clientes...');
 
         // Ler o arquivo TXT
-        const filePath = path.join(__dirname, '../../Tbl_clientes_reduzida.txt');
+        const filePath = path.join(__dirname, '../Tbl_clientes_reduzida.txt');
         const fileContent = fs.readFileSync(filePath, 'latin1'); // Usando latin1 para suportar caracteres especiais
 
         const lines = fileContent.split('\n');
