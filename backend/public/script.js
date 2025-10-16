@@ -1256,14 +1256,27 @@ function renderTransactionsCards(transactions) {
     const container = document.getElementById('transactionsList');
 
     container.innerHTML = transactions.map(transaction => {
-        const typeClass = transaction.type === 'entrada' ? 'transaction-entry' : 'transaction-exit';
-        const icon = transaction.type === 'entrada' ? '📥' : '📤';
+        let typeClass, icon, typeLabel;
+
+        if (transaction.type === 'entrada') {
+            typeClass = 'transaction-entry';
+            icon = '📥';
+            typeLabel = 'ENTRADA';
+        } else if (transaction.type === 'criacao') {
+            typeClass = 'transaction-register';
+            icon = '📋';
+            typeLabel = 'CADASTRO';
+        } else {
+            typeClass = 'transaction-exit';
+            icon = '📤';
+            typeLabel = 'SAÍDA';
+        }
 
         return `
             <div class="transaction-item ${typeClass}">
                 <div class="transaction-header">
                     <span class="transaction-icon">${icon}</span>
-                    <span class="transaction-type">${transaction.type.toUpperCase()}</span>
+                    <span class="transaction-type">${typeLabel}</span>
                     <span class="transaction-date">${window.photoInventory.formatDateTime(transaction.timestamp)}</span>
                 </div>
                 <div class="transaction-details">
@@ -1303,9 +1316,21 @@ function renderTransactionsTable(transactions) {
         </thead>
         <tbody>
             ${transactions.map(transaction => {
-                const typeClass = transaction.type === 'entrada' ? 'transaction-entry' : 'transaction-exit';
-                const icon = transaction.type === 'entrada' ? '📥' : '📤';
-                const typeLabel = transaction.type === 'entrada' ? 'ENTRADA' : 'SAÍDA';
+                let typeClass, icon, typeLabel;
+
+                if (transaction.type === 'entrada') {
+                    typeClass = 'transaction-entry';
+                    icon = '📥';
+                    typeLabel = 'ENTRADA';
+                } else if (transaction.type === 'criacao') {
+                    typeClass = 'transaction-register';
+                    icon = '📋';
+                    typeLabel = 'CADASTRO';
+                } else {
+                    typeClass = 'transaction-exit';
+                    icon = '📤';
+                    typeLabel = 'SAÍDA';
+                }
 
                 let details = [];
                 if (transaction.supplier) details.push(`Fornecedor: ${transaction.supplier}`);

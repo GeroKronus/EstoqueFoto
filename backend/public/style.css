@@ -491,6 +491,10 @@ header {
     border-left: 4px solid #ff9800;
 }
 
+.transaction-register {
+    border-left: 4px solid #2196F3;
+}
+
 .transaction-header {
     display: flex;
     align-items: center;
