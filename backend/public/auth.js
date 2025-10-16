@@ -414,6 +414,24 @@ Carregando sistema...`);
                             <label for="importFile" class="file-label">Restaurar Backup</label>
                         </div>
                         <div class="setting-card ${adminClass}" style="${adminStyle}">
+                            <h3>💻 Adicionar Categoria Informática (Admin)</h3>
+                            <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
+                                Adiciona a categoria <strong>Informática</strong> ao sistema para cadastrar equipamentos de TI.
+                            </p>
+                            <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #2196F3;">
+                                <strong>ℹ️ O que será adicionado:</strong>
+                                <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.85rem;">
+                                    <li>Nova categoria: <strong>Informática 💻</strong></li>
+                                    <li>Para cadastrar: computadores, notebooks, periféricos, etc.</li>
+                                    <li>Se já existe, nenhuma alteração será feita</li>
+                                </ul>
+                            </div>
+                            <button id="addInformaticaBtn" onclick="runMigration014()" class="btn-primary" style="width: 100%; padding: 12px; font-size: 15px; margin-bottom: 10px;">
+                                ➕ Adicionar Categoria Informática
+                            </button>
+                            <div id="addInformaticaStatus" style="margin-top: 10px; font-size: 0.85rem;"></div>
+                        </div>
+                        <div class="setting-card ${adminClass}" style="${adminStyle}">
                             <h3>🔢 Manutenção de Ordens (Admin)</h3>
                             <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
                                 Se você está recebendo erro de "duplicate key" ao criar ordens de saída, esta ferramenta corrige automaticamente a sequência de numeração.
