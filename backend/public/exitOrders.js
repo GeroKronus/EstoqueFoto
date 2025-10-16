@@ -222,9 +222,7 @@ class ExitOrdersManager {
             <tr id="${detailsId}" class="order-details-row" style="display: ${isExpanded ? 'table-row' : 'none'};">
                 <td colspan="10">
                     <div class="order-details-container" id="order-details-content-${order.id}">
-                        <div style="padding: 15px; text-align: center; color: #666;">
-                            Carregando itens...
-                        </div>
+                        <!-- Conteúdo será carregado ao expandir -->
                     </div>
                 </td>
             </tr>
@@ -247,6 +245,12 @@ class ExitOrdersManager {
             detailsRow.style.display = 'table-row';
             expandBtn.classList.add('expanded');
             this.expandedOrders.push(orderId);
+
+            // Mostrar indicador de carregamento
+            const container = document.getElementById(`order-details-content-${orderId}`);
+            if (container) {
+                container.innerHTML = '<div style="padding: 15px; text-align: center; color: #666;">⏳ Carregando itens...</div>';
+            }
 
             // Carregar detalhes da ordem
             await this.loadOrderDetails(orderId);
@@ -315,6 +319,12 @@ class ExitOrdersManager {
         // Expandir a linha
         detailsRow.style.display = 'table-row';
         expandBtn.classList.add('expanded');
+
+        // Mostrar indicador de carregamento
+        const container = document.getElementById(`order-details-content-${orderId}`);
+        if (container) {
+            container.innerHTML = '<div style="padding: 15px; text-align: center; color: #666;">⏳ Carregando itens...</div>';
+        }
 
         // Carregar os detalhes da ordem
         await this.loadOrderDetails(orderId);
