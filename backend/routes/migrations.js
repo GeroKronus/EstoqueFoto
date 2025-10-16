@@ -170,41 +170,48 @@ router.post('/fix-order-number-sequence', authenticateToken, requireAdmin, async
     }
 });
 
-// Endpoint para excluir todas as ordens de saída (mantém estoque)
+// Endpoint para excluir todas as movimentações (entradas, saídas e ordens) mantendo estoque
 router.post('/delete-all-exit-orders', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        console.log('🗑️ Excluindo todas as ordens de saída...');
+        console.log('🗑️ Excluindo todas as movimentações...');
 
         const { query } = require('../database/connection');
 
-        // Contar ordens antes de excluir
-        const countResult = await query('SELECT COUNT(*) as total FROM exit_orders');
-        const totalOrders = parseInt(countResult.rows[0].total);
+        // Contar registros antes de excluir
+        const ordersCount = await query('SELECT COUNT(*) as total FROM exit_orders');
+        const totalOrders = parseInt(ordersCount.rows[0].total);
 
-        // Excluir histórico de itens (referência em exit_order_items_history)
+        const transactionsCount = await query('SELECT COUNT(*) as total FROM transactions');
+        const totalTransactions = parseInt(transactionsCount.rows[0].total);
+
+        // Excluir histórico de itens das ordens
         await query('DELETE FROM exit_order_items_history');
 
-        // Excluir itens das ordens (CASCADE vai excluir automaticamente, mas fazemos explícito)
+        // Excluir itens das ordens
         await query('DELETE FROM exit_order_items');
 
         // Excluir ordens de saída
         await query('DELETE FROM exit_orders');
 
-        // Resetar a sequence para começar do 1 novamente
+        // Excluir todas as transações (entradas e saídas)
+        await query('DELETE FROM transactions');
+
+        // Resetar a sequence das ordens para começar do 1 novamente
         await query("SELECT setval('exit_orders_order_number_seq', 1, false)");
 
-        console.log(`✅ ${totalOrders} ordens de saída excluídas com sucesso`);
+        console.log(`✅ ${totalOrders} ordens e ${totalTransactions} transações excluídas com sucesso`);
 
         res.json({
-            message: 'Todas as ordens de saída foram excluídas com sucesso',
-            total_deleted: totalOrders,
-            details: 'O estoque foi mantido intacto. Apenas as ordens de saída foram removidas.'
+            message: 'Todas as movimentações foram excluídas com sucesso',
+            total_orders_deleted: totalOrders,
+            total_transactions_deleted: totalTransactions,
+            details: 'O estoque foi mantido intacto. Apenas as movimentações (entradas, saídas e ordens) foram removidas.'
         });
 
     } catch (error) {
-        console.error('❌ Erro ao excluir ordens de saída:', error);
+        console.error('❌ Erro ao excluir movimentações:', error);
         res.status(500).json({
-            error: 'Erro ao excluir ordens de saída',
+            error: 'Erro ao excluir movimentações',
             details: error.message
         });
     }

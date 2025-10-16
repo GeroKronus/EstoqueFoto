@@ -437,10 +437,11 @@ Carregando sistema...`);
                                 <strong>ATENÇÃO:</strong> Operações avançadas de administração do sistema.
                             </p>
 
-                            <!-- Excluir apenas ordens de saída -->
+                            <!-- Excluir movimentações mantendo estoque -->
                             <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #2196F3;">
-                                <strong>🗑️ Excluir Ordens de Saída:</strong>
+                                <strong>🗑️ Excluir Movimentações:</strong>
                                 <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.85rem;">
+                                    <li>Exclui TODAS as transações (entradas e saídas)</li>
                                     <li>Exclui TODAS as ordens de saída</li>
                                     <li>Exclui TODOS os itens das ordens</li>
                                     <li>Exclui TODO o histórico de alterações</li>
@@ -448,7 +449,7 @@ Carregando sistema...`);
                                 </ul>
                             </div>
                             <button id="deleteExitOrdersBtn" onclick="deleteAllExitOrders()" class="btn-danger" style="background: #ff6b6b; width: 100%; margin-bottom: 20px;">
-                                🗑️ EXCLUIR TODAS AS ORDENS DE SAÍDA
+                                🗑️ EXCLUIR TODAS AS MOVIMENTAÇÕES
                             </button>
                             <div id="deleteExitOrdersStatus" style="margin-top: 10px; margin-bottom: 20px; font-size: 0.85rem;"></div>
 
