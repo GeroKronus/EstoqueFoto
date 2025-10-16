@@ -160,16 +160,21 @@ router.get('/conditional/summary', authenticateToken, async (req, res) => {
                 eo.reason,
                 eo.destination,
                 eo.customer_name,
+                eo.customer_id,
                 eo.status,
                 eo.created_at,
                 u.name as created_by_name,
+                cust.razao_social as customer_razao_social,
+                cust.nome_fantasia as customer_nome_fantasia,
                 COUNT(eoi.id) FILTER (WHERE eoi.is_conditional = true) as conditional_items_count
             FROM exit_orders eo
             INNER JOIN exit_order_items eoi ON eo.id = eoi.exit_order_id
             LEFT JOIN users u ON eo.created_by = u.id
+            LEFT JOIN customers cust ON eo.customer_id = cust.id
             WHERE eo.status = 'ativa' AND eoi.is_conditional = true
             GROUP BY eo.id, eo.order_number, eo.reason, eo.destination,
-                     eo.customer_name, eo.status, eo.created_at, u.name
+                     eo.customer_name, eo.customer_id, eo.status, eo.created_at,
+                     u.name, cust.razao_social, cust.nome_fantasia
             ORDER BY eo.order_number DESC
         `;
 
@@ -184,7 +189,12 @@ router.get('/conditional/summary', authenticateToken, async (req, res) => {
             status: row.status,
             conditionalItemsCount: parseInt(row.conditional_items_count),
             createdBy: row.created_by_name,
-            createdAt: row.created_at
+            createdAt: row.created_at,
+            customer: row.customer_id ? {
+                id: row.customer_id,
+                razaoSocial: row.customer_razao_social,
+                nomeFantasia: row.customer_nome_fantasia
+            } : null
         }));
 
         res.json({

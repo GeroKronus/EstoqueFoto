@@ -1762,6 +1762,9 @@ async function checkConditionalItems() {
             `;
 
             response.orders.forEach(order => {
+                // Priorizar razão social do cliente
+                const customerDisplay = order.customer?.razaoSocial || order.customerName;
+
                 html += `
                     <div class="conditional-order-item" onclick="goToExitOrder('${order.id}')">
                         <div class="order-info">
@@ -1769,7 +1772,7 @@ async function checkConditionalItems() {
                             <div class="order-details">
                                 <span><strong>Motivo:</strong> ${order.reason}</span>
                                 ${order.destination ? `<span><strong>Destino:</strong> ${order.destination}</span>` : ''}
-                                ${order.customerName ? `<span><strong>Cliente:</strong> ${order.customerName}</span>` : ''}
+                                ${customerDisplay ? `<span><strong>Cliente:</strong> ${customerDisplay}</span>` : ''}
                             </div>
                             <div class="order-meta">
                                 <span class="conditional-count">🔄 ${order.conditionalItemsCount} item(ns) condicional(is)</span>
