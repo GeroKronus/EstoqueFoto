@@ -1478,44 +1478,11 @@ function goToExitOrder(orderId) {
         window.exitOrdersManager = new ExitOrdersManager(window.photoInventory);
     }
 
-    // Renderizar a seção
+    // Definir ordem pendente para expansão automática
+    window.exitOrdersManager.pendingOrderToExpand = orderId;
+
+    // Renderizar a seção (a ordem será expandida automaticamente após renderização)
     window.exitOrdersManager.renderSection();
-
-    // Aguardar um pouco para garantir que a seção foi renderizada e depois expandir a ordem
-    setTimeout(async () => {
-        // Garantir que a ordem está marcada como expandida
-        if (!window.exitOrdersManager.expandedOrders) {
-            window.exitOrdersManager.expandedOrders = [];
-        }
-
-        if (!window.exitOrdersManager.expandedOrders.includes(orderId)) {
-            window.exitOrdersManager.expandedOrders.push(orderId);
-        }
-
-        // Expandir a linha da ordem na tabela
-        const detailsRow = document.getElementById(`order-details-${orderId}`);
-        const expandBtn = document.querySelector(`[onclick*="toggleOrderDetails('${orderId}')"]`);
-
-        if (detailsRow && expandBtn) {
-            detailsRow.style.display = 'table-row';
-            expandBtn.classList.add('expanded');
-
-            // Carregar os detalhes da ordem
-            await window.exitOrdersManager.loadOrderDetails(orderId);
-
-            // Fazer scroll suave até a ordem
-            const orderRow = document.querySelector(`[data-order-id="${orderId}"]`);
-            if (orderRow) {
-                orderRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-                // Adicionar destaque temporário
-                orderRow.style.backgroundColor = '#e3f2fd';
-                setTimeout(() => {
-                    orderRow.style.backgroundColor = '';
-                }, 2000);
-            }
-        }
-    }, 500);
 }
 
 // Função para garantir que todas as tabelas existam

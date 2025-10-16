@@ -7,6 +7,7 @@ class ExitOrdersManager {
             items: [] // Array de { equipmentId, equipmentName, quantity, unit, unitCost }
         };
         this.expandedOrders = []; // Array de IDs de ordens expandidas
+        this.pendingOrderToExpand = null; // ID da ordem que deve ser expandida após renderização
     }
 
     // Renderizar seção de ordens de saída
@@ -115,6 +116,17 @@ class ExitOrdersManager {
             container.innerHTML = this.renderTableView(orders);
         } else {
             container.innerHTML = this.renderCardsView(orders);
+        }
+
+        // Processar ordem pendente para expansão automática
+        if (this.pendingOrderToExpand) {
+            const orderId = this.pendingOrderToExpand;
+            this.pendingOrderToExpand = null; // Limpar para não processar novamente
+
+            // Aguardar um momento para o DOM ser atualizado
+            setTimeout(async () => {
+                await this.expandAndScrollToOrder(orderId);
+            }, 100);
         }
     }
 
@@ -260,6 +272,40 @@ class ExitOrdersManager {
                 </div>
             `;
         }
+    }
+
+    // Expandir e fazer scroll até uma ordem específica
+    async expandAndScrollToOrder(orderId) {
+        // Garantir que a ordem está marcada como expandida
+        if (!this.expandedOrders.includes(orderId)) {
+            this.expandedOrders.push(orderId);
+        }
+
+        // Encontrar elementos da ordem
+        const detailsRow = document.getElementById(`order-details-${orderId}`);
+        const expandBtn = document.querySelector(`[onclick*="toggleOrderDetails('${orderId}')"]`);
+        const orderRow = document.querySelector(`[data-order-id="${orderId}"]`);
+
+        if (!detailsRow || !expandBtn || !orderRow) {
+            console.warn('Ordem não encontrada na tabela:', orderId);
+            return;
+        }
+
+        // Expandir a linha
+        detailsRow.style.display = 'table-row';
+        expandBtn.classList.add('expanded');
+
+        // Carregar os detalhes da ordem
+        await this.loadOrderDetails(orderId);
+
+        // Fazer scroll suave até a ordem
+        orderRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Adicionar destaque temporário
+        orderRow.style.backgroundColor = '#e3f2fd';
+        setTimeout(() => {
+            orderRow.style.backgroundColor = '';
+        }, 2000);
     }
 
     // Renderizar detalhes expandidos da ordem (com edição inline)
