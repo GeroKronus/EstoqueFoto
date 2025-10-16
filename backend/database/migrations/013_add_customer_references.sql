@@ -4,11 +4,11 @@
 
 -- 1. Adicionar coluna customer_id na tabela transactions
 ALTER TABLE transactions
-ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES customers(id) ON DELETE SET NULL;
+ADD COLUMN IF NOT EXISTS customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL;
 
 -- 2. Adicionar coluna customer_id na tabela exit_orders
 ALTER TABLE exit_orders
-ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES customers(id) ON DELETE SET NULL;
+ADD COLUMN IF NOT EXISTS customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL;
 
 -- 3. Criar índices para melhorar performance de busca
 CREATE INDEX IF NOT EXISTS idx_transactions_customer_id ON transactions(customer_id);
