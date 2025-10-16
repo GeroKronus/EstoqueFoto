@@ -414,30 +414,6 @@ Carregando sistema...`);
                             <label for="importFile" class="file-label">Restaurar Backup</label>
                         </div>
                         <div class="setting-card ${adminClass}" style="${adminStyle}">
-                            <h3>👥 Cadastro de Clientes (Admin)</h3>
-                            <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
-                                Gerenciar cadastro de clientes do sistema
-                            </p>
-                            <button id="runMigration012Btn" onclick="runMigration012()" class="btn-info" style="width: 100%; margin-bottom: 10px;">
-                                🔧 Criar Tabela de Clientes (Migration 012)
-                            </button>
-                            <div id="migration012Status" style="margin-bottom: 15px; font-size: 0.85rem;"></div>
-
-                            <button id="runMigration013Btn" onclick="runMigration013()" class="btn-info" style="width: 100%; margin-bottom: 10px;">
-                                🔗 Adicionar Referências de Clientes (Migration 013)
-                            </button>
-                            <div id="migration013Status" style="margin-bottom: 15px; font-size: 0.85rem;"></div>
-
-                            <button id="importCustomersBtn" onclick="importCustomers()" class="btn-success" style="width: 100%; margin-bottom: 10px;">
-                                📥 Importar Clientes do Arquivo
-                            </button>
-                            <div id="importCustomersStatus" style="margin-bottom: 15px; font-size: 0.85rem;"></div>
-
-                            <button onclick="showSection('customers')" class="btn-primary" style="width: 100%;">
-                                👥 Gerenciar Clientes
-                            </button>
-                        </div>
-                        <div class="setting-card ${adminClass}" style="${adminStyle}">
                             <h3>⚠️ Administração Avançada (Admin)</h3>
                             <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
                                 <strong>ATENÇÃO:</strong> Esta ação irá zerar TODOS os movimentos do sistema mantendo apenas os itens cadastrados.
