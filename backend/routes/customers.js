@@ -395,29 +395,45 @@ router.get('/search/autocomplete', async (req, res) => {
     try {
         const { q = '', limit = 10 } = req.query;
 
-        if (!q || q.length < 2) {
-            return res.json({ customers: [] });
-        }
+        let result;
 
-        const result = await query(`
-            SELECT
-                id,
-                razao_social,
-                nome_fantasia,
-                cnpj,
-                cidade,
-                estado
-            FROM customers
-            WHERE
-                ativo = true AND
-                (
-                    LOWER(razao_social) LIKE $1 OR
-                    LOWER(nome_fantasia) LIKE $1 OR
-                    cnpj LIKE $1
-                )
-            ORDER BY razao_social ASC
-            LIMIT $2
-        `, [`%${q.toLowerCase()}%`, limit]);
+        // Se não há query ou é vazia, retornar todos os clientes ativos
+        if (!q || q.length < 2) {
+            result = await query(`
+                SELECT
+                    id,
+                    razao_social,
+                    nome_fantasia,
+                    cnpj,
+                    cidade,
+                    estado
+                FROM customers
+                WHERE ativo = true
+                ORDER BY razao_social ASC
+                LIMIT $1
+            `, [limit]);
+        } else {
+            // Com query, fazer busca filtrada
+            result = await query(`
+                SELECT
+                    id,
+                    razao_social,
+                    nome_fantasia,
+                    cnpj,
+                    cidade,
+                    estado
+                FROM customers
+                WHERE
+                    ativo = true AND
+                    (
+                        LOWER(razao_social) LIKE $1 OR
+                        LOWER(nome_fantasia) LIKE $1 OR
+                        cnpj LIKE $1
+                    )
+                ORDER BY razao_social ASC
+                LIMIT $2
+            `, [`%${q.toLowerCase()}%`, limit]);
+        }
 
         res.json({ customers: result.rows });
 
