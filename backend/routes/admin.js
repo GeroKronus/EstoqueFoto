@@ -421,7 +421,7 @@ router.get('/backup', async (req, res) => {
             query('SELECT * FROM transactions ORDER BY created_at DESC'),
             query('SELECT * FROM exit_orders ORDER BY created_at DESC'),
             query('SELECT * FROM exit_order_items ORDER BY created_at'),
-            query('SELECT * FROM exit_order_item_history ORDER BY changed_at DESC')
+            query('SELECT * FROM exit_order_items_history ORDER BY changed_at DESC')
         ]);
 
         const backup = {
@@ -505,9 +505,9 @@ router.post('/restore', async (req, res) => {
         // Limpar dados existentes (na ordem correta)
         console.log('🗑️ Limpando dados existentes...');
 
-        if (await tableExists('exit_order_item_history')) {
-            await client.query('DELETE FROM exit_order_item_history');
-            console.log('✅ exit_order_item_history limpo');
+        if (await tableExists('exit_order_items_history')) {
+            await client.query('DELETE FROM exit_order_items_history');
+            console.log('✅ exit_order_items_history limpo');
         }
 
         if (await tableExists('exit_order_items')) {
@@ -600,19 +600,23 @@ router.post('/restore', async (req, res) => {
         // 4. Ordens de saída
         if (backupData.data.exit_orders && backupData.data.exit_orders.length > 0) {
             for (const order of backupData.data.exit_orders) {
+                // Mapear nomes de colunas (compatibilidade com backups antigos e novos)
+                const createdBy = order.created_by || order.created_by_id;
+                const cancelledBy = order.cancelled_by || order.cancelled_by_id;
+
                 await client.query(`
                     INSERT INTO exit_orders (
                         id, order_number, status, reason, destination,
                         customer_name, customer_document, notes,
-                        created_by_id, created_at, cancelled_at,
-                        cancelled_by_id, cancellation_reason
+                        created_by, created_at, cancelled_at,
+                        cancelled_by, cancellation_reason
                     )
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                 `, [
                     order.id, order.order_number, order.status, order.reason,
                     order.destination, order.customer_name, order.customer_document,
-                    order.notes, order.created_by_id, order.created_at,
-                    order.cancelled_at, order.cancelled_by_id, order.cancellation_reason
+                    order.notes, createdBy, order.created_at,
+                    order.cancelled_at, cancelledBy, order.cancellation_reason
                 ]);
             }
             console.log(`✅ ${backupData.data.exit_orders.length} ordens de saída restauradas`);
@@ -641,18 +645,29 @@ router.post('/restore', async (req, res) => {
         // 6. Histórico de itens
         if (backupData.data.exit_order_item_history && backupData.data.exit_order_item_history.length > 0) {
             for (const history of backupData.data.exit_order_item_history) {
+                // Mapear nomes de colunas (compatibilidade)
+                const changedBy = history.changed_by || history.changed_by_id;
+                const exitOrderItemId = history.exit_order_item_id || history.order_item_id;
+
                 await client.query(`
-                    INSERT INTO exit_order_item_history (
-                        id, order_item_id, previous_quantity, new_quantity,
-                        quantity_difference, reason, changed_by_id,
-                        changed_at, created_at
+                    INSERT INTO exit_order_items_history (
+                        id, exit_order_id, exit_order_item_id, equipment_id,
+                        previous_quantity, new_quantity, change_type,
+                        quantity_difference, changed_by, changed_at, reason
                     )
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                 `, [
-                    history.id, history.order_item_id, history.previous_quantity,
-                    history.new_quantity, history.quantity_difference,
-                    history.reason, history.changed_by_id, history.changed_at,
-                    history.created_at
+                    history.id,
+                    history.exit_order_id,
+                    exitOrderItemId,
+                    history.equipment_id,
+                    history.previous_quantity,
+                    history.new_quantity,
+                    history.change_type || 'quantity_decreased', // Valor padrão se não existir
+                    history.quantity_difference,
+                    changedBy,
+                    history.changed_at,
+                    history.reason
                 ]);
             }
             console.log(`✅ ${backupData.data.exit_order_item_history.length} registros de histórico restaurados`);
