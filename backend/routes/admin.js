@@ -404,4 +404,289 @@ router.get('/system-stats', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/admin/backup
+ * Gera backup completo do banco de dados PostgreSQL
+ * Exporta: equipamentos, categorias, transações, ordens de saída e histórico
+ * NÃO exporta: usuários (por segurança)
+ */
+router.get('/backup', async (req, res) => {
+    try {
+        console.log('📦 Iniciando backup completo do banco de dados...');
+
+        // Buscar todas as tabelas necessárias
+        const [categories, equipment, transactions, exitOrders, exitOrderItems, exitOrderHistory] = await Promise.all([
+            query('SELECT * FROM categories ORDER BY name'),
+            query('SELECT * FROM equipment ORDER BY name'),
+            query('SELECT * FROM transactions ORDER BY created_at DESC'),
+            query('SELECT * FROM exit_orders ORDER BY created_at DESC'),
+            query('SELECT * FROM exit_order_items ORDER BY created_at'),
+            query('SELECT * FROM exit_order_item_history ORDER BY changed_at DESC')
+        ]);
+
+        const backup = {
+            version: '2.0',
+            database: 'postgresql',
+            backup_date: new Date().toISOString(),
+            backup_by: {
+                id: req.user.id,
+                name: req.user.name,
+                username: req.user.username
+            },
+            data: {
+                categories: categories.rows,
+                equipment: equipment.rows,
+                transactions: transactions.rows,
+                exit_orders: exitOrders.rows,
+                exit_order_items: exitOrderItems.rows,
+                exit_order_item_history: exitOrderHistory.rows
+            },
+            statistics: {
+                total_categories: categories.rows.length,
+                total_equipment: equipment.rows.length,
+                total_transactions: transactions.rows.length,
+                total_exit_orders: exitOrders.rows.length,
+                total_exit_order_items: exitOrderItems.rows.length,
+                total_history_entries: exitOrderHistory.rows.length
+            }
+        };
+
+        console.log('✅ Backup gerado com sucesso');
+        console.log('📊 Estatísticas:', backup.statistics);
+
+        // Retornar JSON para download
+        res.json(backup);
+
+    } catch (error) {
+        console.error('❌ Erro ao gerar backup:', error);
+        res.status(500).json({
+            error: 'Erro ao gerar backup',
+            message: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/admin/restore
+ * Restaura backup completo do banco de dados
+ * ATENÇÃO: Esta operação substitui TODOS os dados existentes!
+ */
+router.post('/restore', async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+        const backupData = req.body;
+
+        // Validar estrutura do backup
+        if (!backupData.version || !backupData.data) {
+            return res.status(400).json({
+                error: 'Formato de backup inválido',
+                message: 'O arquivo de backup não possui a estrutura esperada'
+            });
+        }
+
+        console.log('📥 Iniciando restauração de backup...');
+        console.log('📊 Versão do backup:', backupData.version);
+        console.log('📅 Data do backup:', backupData.backup_date);
+
+        await client.query('BEGIN');
+
+        // Função helper para verificar se tabela existe
+        const tableExists = async (tableName) => {
+            const result = await client.query(`
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables
+                    WHERE table_name = $1
+                )
+            `, [tableName]);
+            return result.rows[0].exists;
+        };
+
+        // Limpar dados existentes (na ordem correta)
+        console.log('🗑️ Limpando dados existentes...');
+
+        if (await tableExists('exit_order_item_history')) {
+            await client.query('DELETE FROM exit_order_item_history');
+            console.log('✅ exit_order_item_history limpo');
+        }
+
+        if (await tableExists('exit_order_items')) {
+            await client.query('DELETE FROM exit_order_items');
+            console.log('✅ exit_order_items limpo');
+        }
+
+        if (await tableExists('exit_orders')) {
+            await client.query('DELETE FROM exit_orders');
+            console.log('✅ exit_orders limpo');
+        }
+
+        if (await tableExists('transactions')) {
+            await client.query('DELETE FROM transactions');
+            console.log('✅ transactions limpo');
+        }
+
+        if (await tableExists('equipment')) {
+            await client.query('DELETE FROM equipment');
+            console.log('✅ equipment limpo');
+        }
+
+        if (await tableExists('categories')) {
+            await client.query('DELETE FROM categories');
+            console.log('✅ categories limpo');
+        }
+
+        // Restaurar dados (na ordem correta)
+        console.log('📥 Restaurando dados...');
+
+        // 1. Categorias
+        if (backupData.data.categories && backupData.data.categories.length > 0) {
+            for (const category of backupData.data.categories) {
+                await client.query(`
+                    INSERT INTO categories (id, name, description, created_at, updated_at)
+                    VALUES ($1, $2, $3, $4, $5)
+                `, [category.id, category.name, category.description, category.created_at, category.updated_at]);
+            }
+            console.log(`✅ ${backupData.data.categories.length} categorias restauradas`);
+        }
+
+        // 2. Equipamentos
+        if (backupData.data.equipment && backupData.data.equipment.length > 0) {
+            for (const equip of backupData.data.equipment) {
+                await client.query(`
+                    INSERT INTO equipment (
+                        id, category_id, name, quantity, unit, min_stock,
+                        current_cost, total_value, location, notes,
+                        created_at, updated_at
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                `, [
+                    equip.id, equip.category_id, equip.name, equip.quantity,
+                    equip.unit, equip.min_stock, equip.current_cost, equip.total_value,
+                    equip.location, equip.notes, equip.created_at, equip.updated_at
+                ]);
+            }
+            console.log(`✅ ${backupData.data.equipment.length} equipamentos restaurados`);
+        }
+
+        // 3. Transações
+        if (backupData.data.transactions && backupData.data.transactions.length > 0) {
+            for (const trans of backupData.data.transactions) {
+                await client.query(`
+                    INSERT INTO transactions (
+                        id, type, equipment_id, equipment_name, category_name,
+                        quantity, unit, cost, total_cost, supplier, notes,
+                        created_by, user_name, created_at
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                `, [
+                    trans.id, trans.type, trans.equipment_id, trans.equipment_name,
+                    trans.category_name, trans.quantity, trans.unit, trans.cost,
+                    trans.total_cost, trans.supplier, trans.notes, trans.created_by,
+                    trans.user_name, trans.created_at
+                ]);
+            }
+            console.log(`✅ ${backupData.data.transactions.length} transações restauradas`);
+        }
+
+        // 4. Ordens de saída
+        if (backupData.data.exit_orders && backupData.data.exit_orders.length > 0) {
+            for (const order of backupData.data.exit_orders) {
+                await client.query(`
+                    INSERT INTO exit_orders (
+                        id, order_number, status, reason, destination,
+                        customer_name, customer_document, notes,
+                        created_by_id, created_at, cancelled_at,
+                        cancelled_by_id, cancellation_reason
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                `, [
+                    order.id, order.order_number, order.status, order.reason,
+                    order.destination, order.customer_name, order.customer_document,
+                    order.notes, order.created_by_id, order.created_at,
+                    order.cancelled_at, order.cancelled_by_id, order.cancellation_reason
+                ]);
+            }
+            console.log(`✅ ${backupData.data.exit_orders.length} ordens de saída restauradas`);
+        }
+
+        // 5. Itens de ordens de saída
+        if (backupData.data.exit_order_items && backupData.data.exit_order_items.length > 0) {
+            for (const item of backupData.data.exit_order_items) {
+                await client.query(`
+                    INSERT INTO exit_order_items (
+                        id, exit_order_id, equipment_id, equipment_name,
+                        quantity, unit, unit_cost, total_cost,
+                        is_conditional, is_modified, created_at
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                `, [
+                    item.id, item.exit_order_id, item.equipment_id,
+                    item.equipment_name, item.quantity, item.unit,
+                    item.unit_cost, item.total_cost, item.is_conditional,
+                    item.is_modified, item.created_at
+                ]);
+            }
+            console.log(`✅ ${backupData.data.exit_order_items.length} itens de ordens restaurados`);
+        }
+
+        // 6. Histórico de itens
+        if (backupData.data.exit_order_item_history && backupData.data.exit_order_item_history.length > 0) {
+            for (const history of backupData.data.exit_order_item_history) {
+                await client.query(`
+                    INSERT INTO exit_order_item_history (
+                        id, order_item_id, previous_quantity, new_quantity,
+                        quantity_difference, reason, changed_by_id,
+                        changed_at, created_at
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                `, [
+                    history.id, history.order_item_id, history.previous_quantity,
+                    history.new_quantity, history.quantity_difference,
+                    history.reason, history.changed_by_id, history.changed_at,
+                    history.created_at
+                ]);
+            }
+            console.log(`✅ ${backupData.data.exit_order_item_history.length} registros de histórico restaurados`);
+        }
+
+        await client.query('COMMIT');
+        console.log('✅ Backup restaurado com sucesso!');
+
+        res.json({
+            success: true,
+            message: 'Backup restaurado com sucesso',
+            restored: {
+                categories: backupData.data.categories?.length || 0,
+                equipment: backupData.data.equipment?.length || 0,
+                transactions: backupData.data.transactions?.length || 0,
+                exit_orders: backupData.data.exit_orders?.length || 0,
+                exit_order_items: backupData.data.exit_order_items?.length || 0,
+                history_entries: backupData.data.exit_order_item_history?.length || 0
+            },
+            backup_info: {
+                version: backupData.version,
+                backup_date: backupData.backup_date,
+                backup_by: backupData.backup_by
+            },
+            restored_by: {
+                id: req.user.id,
+                name: req.user.name
+            },
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('❌ Erro ao restaurar backup:', error);
+
+        res.status(500).json({
+            error: 'Erro ao restaurar backup',
+            message: error.message,
+            details: process.env.NODE_ENV === 'production' ? undefined : error.stack
+        });
+    } finally {
+        client.release();
+    }
+});
+
 module.exports = router;

@@ -1205,32 +1205,138 @@ function exportInventory() {
     URL.revokeObjectURL(url);
 }
 
-function exportAllData() {
-    exportInventory();
+// Backup completo do banco de dados PostgreSQL
+async function exportAllData() {
+    try {
+        window.notify.info('📦 Gerando backup completo do banco de dados...');
+
+        const response = await fetch(`${CONFIG.API_BASE_URL}/admin/backup`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${getAuthToken()}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Erro ao gerar backup');
+        }
+
+        const backupData = await response.json();
+
+        // Criar arquivo JSON para download
+        const dataStr = JSON.stringify(backupData, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `backup_estoque_${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+
+        URL.revokeObjectURL(url);
+
+        window.notify.success(`✅ Backup completo gerado!
+
+📊 Estatísticas:
+• Categorias: ${backupData.statistics.total_categories}
+• Equipamentos: ${backupData.statistics.total_equipment}
+• Transações: ${backupData.statistics.total_transactions}
+• Ordens de Saída: ${backupData.statistics.total_exit_orders}
+• Itens de Ordens: ${backupData.statistics.total_exit_order_items}
+• Histórico: ${backupData.statistics.total_history_entries}`);
+
+    } catch (error) {
+        console.error('Erro ao exportar backup:', error);
+        window.notify.error('❌ Erro ao gerar backup: ' + error.message);
+    }
 }
 
-function importAllData(event) {
+// Restaurar backup completo do banco de dados
+async function importAllData(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const importedData = JSON.parse(e.target.result);
+    // Confirmação de segurança
+    const confirmed = await window.notify.confirm({
+        title: '⚠️ RESTAURAR BACKUP COMPLETO',
+        message: `ATENÇÃO: Esta operação irá SUBSTITUIR TODOS os dados existentes!
 
-            if (importedData.items && importedData.transactions) {
-                photoInventory.items = importedData.items;
-                photoInventory.transactions = importedData.transactions;
-                photoInventory.saveData();
-                photoInventory.renderAllItems();
-                photoInventory.updateSummary();
-                photoInventory.populateModalSelects();
-                window.notify.success('Backup restaurado com sucesso!');
-            } else {
-                window.notify.error('Formato de arquivo inválido!');
+📋 Dados que serão substituídos:
+• Todas as categorias
+• Todos os equipamentos
+• Todas as transações
+• Todas as ordens de saída
+• Todo o histórico
+
+⚠️ ESTA AÇÃO É IRREVERSÍVEL!
+
+Deseja continuar?`,
+        type: 'warning',
+        confirmText: 'SIM, Restaurar Backup',
+        cancelText: 'Cancelar'
+    });
+
+    if (!confirmed) {
+        event.target.value = ''; // Limpar input
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            window.notify.info('📥 Restaurando backup...');
+
+            const backupData = JSON.parse(e.target.result);
+
+            // Validar estrutura do backup
+            if (!backupData.version || !backupData.data) {
+                throw new Error('Formato de backup inválido');
             }
+
+            // Enviar backup para o backend restaurar
+            const response = await fetch(`${CONFIG.API_BASE_URL}/admin/restore`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${getAuthToken()}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(backupData)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Erro ao restaurar backup');
+            }
+
+            const result = await response.json();
+
+            window.notify.success(`✅ Backup restaurado com sucesso!
+
+📊 Dados restaurados:
+• Categorias: ${result.restored.categories}
+• Equipamentos: ${result.restored.equipment}
+• Transações: ${result.restored.transactions}
+• Ordens de Saída: ${result.restored.exit_orders}
+• Itens de Ordens: ${result.restored.exit_order_items}
+• Histórico: ${result.restored.history_entries}
+
+📅 Backup de: ${new Date(result.backup_info.backup_date).toLocaleString('pt-BR')}
+👤 Criado por: ${result.backup_info.backup_by.name}
+
+🔄 Recarregando sistema...`);
+
+            // Recarregar dados do sistema
+            setTimeout(() => {
+                location.reload();
+            }, 3000);
+
         } catch (error) {
-            window.notify.error('Erro ao importar dados: ' + error.message);
+            console.error('Erro ao importar backup:', error);
+            window.notify.error('❌ Erro ao restaurar backup: ' + error.message);
+        } finally {
+            event.target.value = ''; // Limpar input
         }
     };
     reader.readAsText(file);
