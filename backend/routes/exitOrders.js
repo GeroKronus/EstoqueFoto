@@ -630,7 +630,19 @@ router.put('/:orderId/items/:itemId', authenticateToken, async (req, res) => {
             `, [newQty, newTotalCost, true, originalQty, itemId]);
 
             // Registrar no histórico
-            const changeType = quantityDifference > 0 ? 'quantity_increased' : 'quantity_decreased';
+            let changeType;
+            let changeReason;
+
+            if (newQty === 0) {
+                changeType = 'quantity_zeroed';
+                changeReason = `Quantidade zerada (era ${previousQuantity} ${equipment.unit})`;
+            } else if (quantityDifference > 0) {
+                changeType = 'quantity_increased';
+                changeReason = `Quantidade alterada de ${previousQuantity} para ${newQty} ${equipment.unit}`;
+            } else {
+                changeType = 'quantity_decreased';
+                changeReason = `Quantidade alterada de ${previousQuantity} para ${newQty} ${equipment.unit}`;
+            }
 
             await client.query(`
                 INSERT INTO exit_order_items_history (
@@ -648,7 +660,7 @@ router.put('/:orderId/items/:itemId', authenticateToken, async (req, res) => {
                 changeType,
                 quantityDifference,
                 req.user.id,
-                `Quantidade alterada de ${previousQuantity} para ${newQty} ${equipment.unit}`
+                changeReason
             ]);
 
             // Registrar transação apropriada
@@ -677,8 +689,12 @@ router.put('/:orderId/items/:itemId', authenticateToken, async (req, res) => {
                     req.user.id,
                     req.user.name
                 ]);
-            } else {
-                // Diminuiu: registrar entrada (devolução parcial)
+            } else if (quantityDifference < 0) {
+                // Diminuiu: registrar entrada (devolução parcial ou total se zerou)
+                const transactionNote = newQty === 0
+                    ? `Item zerado - OS #${order.order_number}`
+                    : `Redução de quantidade - OS #${order.order_number}`;
+
                 await client.query(`
                     INSERT INTO transactions (
                         type, equipment_id, equipment_name, category_name,
@@ -697,7 +713,7 @@ router.put('/:orderId/items/:itemId', authenticateToken, async (req, res) => {
                     equipment.id,
                     Math.abs(quantityDifference),
                     Math.abs(quantityDifference) * parseFloat(equipment.current_cost),
-                    `Redução de quantidade - OS #${order.order_number}`,
+                    transactionNote,
                     req.user.id,
                     req.user.name
                 ]);

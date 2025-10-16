@@ -353,7 +353,7 @@ class ExitOrdersManager {
                                 type="number"
                                 id="inline-qty-${item.id}"
                                 value="${item.quantity}"
-                                min="1"
+                                min="0"
                                 step="1"
                                 class="inline-edit-input"
                             />
