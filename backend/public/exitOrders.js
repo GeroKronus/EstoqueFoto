@@ -127,7 +127,7 @@ class ExitOrdersManager {
         this.currentOrders = this.allOrders.filter(order => {
             // Buscar em: motivo, cliente, destino e criado por
             const reason = this.translateReason(order.reason).toLowerCase();
-            const customer = (order.customerName || '').toLowerCase();
+            const customer = (order.customer?.razaoSocial || order.customerName || '').toLowerCase();
             const destination = (order.destination || '').toLowerCase();
             const createdBy = (order.createdBy?.name || '').toLowerCase();
 
@@ -187,7 +187,7 @@ class ExitOrdersManager {
                     <div class="exit-order-info">
                         <div><strong>Motivo:</strong> ${this.translateReason(order.reason)}</div>
                         ${order.destination ? `<div><strong>Destino:</strong> ${order.destination}</div>` : ''}
-                        ${order.customerName ? `<div><strong>Cliente:</strong> ${order.customerName}</div>` : ''}
+                        ${(order.customer?.razaoSocial || order.customerName) ? `<div><strong>Cliente:</strong> ${order.customer?.razaoSocial || order.customerName}</div>` : ''}
                         <div><strong>Itens:</strong> ${order.totalItems}</div>
                         <div><strong>Valor Total:</strong> R$ ${order.totalValue.toFixed(2)}</div>
                         <div><strong>Criado por:</strong> ${order.createdBy.name}</div>
@@ -249,7 +249,7 @@ class ExitOrdersManager {
                 <td>${this.formatDate(order.createdAt)}<br><small style="color: #666;">${this.formatTime(order.createdAt)}</small></td>
                 <td><span class="status-badge status-${order.status}">${order.status.toUpperCase()}</span></td>
                 <td>${this.translateReason(order.reason)}</td>
-                <td>${order.customerName || order.destination || '-'}</td>
+                <td>${order.customer?.razaoSocial || order.customerName || order.destination || '-'}</td>
                 <td style="text-align: center;">${order.totalItems}</td>
                 <td><strong>R$ ${order.totalValue.toFixed(2)}</strong></td>
                 <td>${order.createdBy.name}</td>
@@ -389,7 +389,7 @@ class ExitOrdersManager {
             <div class="expanded-order-details">
                 <div class="expanded-order-info">
                     ${order.destination ? `<div><strong>Destino:</strong> ${order.destination}</div>` : ''}
-                    ${order.customerName ? `<div><strong>Cliente:</strong> ${order.customerName}</div>` : ''}
+                    ${(order.customer?.razaoSocial || order.customerName) ? `<div><strong>Cliente:</strong> ${order.customer?.razaoSocial || order.customerName}</div>` : ''}
                     ${order.customerDocument ? `<div><strong>Doc:</strong> ${order.customerDocument}</div>` : ''}
                     ${order.notes ? `<div><strong>Obs:</strong> ${order.notes}</div>` : ''}
                 </div>
@@ -1116,7 +1116,7 @@ class ExitOrdersManager {
                                 <strong>Motivo:</strong> ${this.translateReason(order.reason)}
                             </div>
                             ${order.destination ? `<div class="detail-row"><strong>Destino:</strong> ${order.destination}</div>` : ''}
-                            ${order.customerName ? `<div class="detail-row"><strong>Cliente:</strong> ${order.customerName}</div>` : ''}
+                            ${(order.customer?.razaoSocial || order.customerName) ? `<div class="detail-row"><strong>Cliente:</strong> ${order.customer?.razaoSocial || order.customerName}</div>` : ''}
                             ${order.customerDocument ? `<div class="detail-row"><strong>Documento:</strong> ${order.customerDocument}</div>` : ''}
                             ${order.notes ? `<div class="detail-row"><strong>Observações:</strong> ${order.notes}</div>` : ''}
 

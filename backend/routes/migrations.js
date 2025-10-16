@@ -136,4 +136,41 @@ router.post('/import-customers', authenticateToken, requireAdmin, async (req, re
     }
 });
 
+// Endpoint para corrigir a sequence do order_number
+router.post('/fix-order-number-sequence', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        console.log('🔧 Corrigindo sequence do order_number...');
+
+        const { query } = require('../database/connection');
+
+        // Buscar o maior order_number existente
+        const maxResult = await query('SELECT COALESCE(MAX(order_number), 0) as max_order_number FROM exit_orders');
+        const maxOrderNumber = parseInt(maxResult.rows[0].max_order_number);
+
+        // Resetar a sequence para o próximo valor disponível
+        const nextValue = maxOrderNumber + 1;
+        await query("SELECT setval('exit_orders_order_number_seq', $1, false)", [nextValue]);
+
+        // Verificar o valor atual da sequence
+        const currentResult = await query("SELECT currval('exit_orders_order_number_seq') as current_value");
+        const currentValue = parseInt(currentResult.rows[0].current_value);
+
+        console.log(`✅ Sequence corrigida: próximo order_number será ${currentValue}`);
+
+        res.json({
+            message: 'Sequence do order_number corrigida com sucesso',
+            max_order_number: maxOrderNumber,
+            next_order_number: currentValue,
+            details: `A próxima ordem de saída terá o número ${currentValue}`
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao corrigir sequence:', error);
+        res.status(500).json({
+            error: 'Erro ao corrigir sequence do order_number',
+            details: error.message
+        });
+    }
+});
+
 module.exports = router;
