@@ -73,11 +73,14 @@ router.get('/', authenticateToken, async (req, res) => {
             SELECT ${joinConditionalItems ? 'DISTINCT' : ''}
                 eo.*,
                 u.name as created_by_name,
-                uc.name as cancelled_by_name
+                uc.name as cancelled_by_name,
+                cust.razao_social as customer_razao_social,
+                cust.nome_fantasia as customer_nome_fantasia
             FROM exit_orders eo
             ${joinConditionalItems ? 'INNER JOIN exit_order_items eoi ON eo.id = eoi.exit_order_id' : ''}
             LEFT JOIN users u ON eo.created_by = u.id
             LEFT JOIN users uc ON eo.cancelled_by = uc.id
+            LEFT JOIN customers cust ON eo.customer_id = cust.id
             ${whereClause}
             ORDER BY eo.${finalSortBy} ${finalSortOrder}
             LIMIT $${limitParam} OFFSET $${offsetParam}
@@ -116,7 +119,12 @@ router.get('/', authenticateToken, async (req, res) => {
                 id: row.cancelled_by,
                 name: row.cancelled_by_name
             } : null,
-            cancellationReason: row.cancellation_reason
+            cancellationReason: row.cancellation_reason,
+            customer: row.customer_id ? {
+                id: row.customer_id,
+                razaoSocial: row.customer_razao_social,
+                nomeFantasia: row.customer_nome_fantasia
+            } : null
         }));
 
         const total = parseInt(countResult.rows[0].total);
@@ -202,10 +210,13 @@ router.get('/:id', authenticateToken, async (req, res) => {
             SELECT
                 eo.*,
                 u.name as created_by_name,
-                uc.name as cancelled_by_name
+                uc.name as cancelled_by_name,
+                cust.razao_social as customer_razao_social,
+                cust.nome_fantasia as customer_nome_fantasia
             FROM exit_orders eo
             LEFT JOIN users u ON eo.created_by = u.id
             LEFT JOIN users uc ON eo.cancelled_by = uc.id
+            LEFT JOIN customers cust ON eo.customer_id = cust.id
             WHERE eo.id = $1
         `;
 
@@ -253,6 +264,11 @@ router.get('/:id', authenticateToken, async (req, res) => {
                 name: row.cancelled_by_name
             } : null,
             cancellationReason: row.cancellation_reason,
+            customer: row.customer_id ? {
+                id: row.customer_id,
+                razaoSocial: row.customer_razao_social,
+                nomeFantasia: row.customer_nome_fantasia
+            } : null,
             items: itemsResult.rows.map(item => ({
                 id: item.id,
                 equipmentId: item.equipment_id,
@@ -287,7 +303,8 @@ router.post('/', authenticateToken, async (req, res) => {
             customerName,
             customerDocument,
             notes,
-            items // Array de { equipmentId, quantity }
+            items, // Array de { equipmentId, quantity }
+            customerId // Novo campo
         } = req.body;
 
         // Validações
@@ -302,11 +319,11 @@ router.post('/', authenticateToken, async (req, res) => {
             const orderResult = await client.query(`
                 INSERT INTO exit_orders (
                     reason, destination, customer_name, customer_document,
-                    notes, created_by
+                    notes, created_by, customer_id
                 )
-                VALUES ($1, $2, $3, $4, $5, $6)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
                 RETURNING *
-            `, [reason, destination, customerName, customerDocument, notes, req.user.id]);
+            `, [reason, destination, customerName, customerDocument, notes, req.user.id, customerId || null]);
 
             const order = orderResult.rows[0];
 

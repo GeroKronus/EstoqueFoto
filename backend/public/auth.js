@@ -423,6 +423,11 @@ Carregando sistema...`);
                             </button>
                             <div id="migration012Status" style="margin-bottom: 15px; font-size: 0.85rem;"></div>
 
+                            <button id="runMigration013Btn" onclick="runMigration013()" class="btn-info" style="width: 100%; margin-bottom: 10px;">
+                                🔗 Adicionar Referências de Clientes (Migration 013)
+                            </button>
+                            <div id="migration013Status" style="margin-bottom: 15px; font-size: 0.85rem;"></div>
+
                             <button id="importCustomersBtn" onclick="importCustomers()" class="btn-success" style="width: 100%; margin-bottom: 10px;">
                                 📥 Importar Clientes do Arquivo
                             </button>
@@ -528,7 +533,12 @@ Carregando sistema...`);
                                 <option value="perda">Perda/Avaria</option>
                                 <option value="outros">Outros</option>
                             </select>
-                            <input type="text" id="exitDestination" placeholder="Cliente/Destino">
+                            <div style="position: relative;">
+                                <input type="text" id="exitCustomerSearch" placeholder="🔍 Buscar cliente..." autocomplete="off" oninput="searchExitCustomer(this.value)">
+                                <input type="hidden" id="exitCustomerId">
+                                <div id="exitCustomerResults" class="autocomplete-results" style="display: none;"></div>
+                            </div>
+                            <input type="text" id="exitDestination" placeholder="Cliente/Destino (texto livre)">
                             <textarea id="exitNotes" placeholder="Observações"></textarea>
                             <div class="modal-actions">
                                 <button type="button" onclick="closeModal('exitModal')">Cancelar</button>

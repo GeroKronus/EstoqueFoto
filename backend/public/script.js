@@ -90,7 +90,8 @@ class PhotoInventoryManager {
                     reason: t.reason || '',
                     destination: t.destination || '',
                     notes: t.notes || '',
-                    timestamp: t.createdAt
+                    timestamp: t.createdAt,
+                    customer: t.customer || null
                 }));
             }
             return [];
@@ -348,6 +349,7 @@ class PhotoInventoryManager {
         const reason = document.getElementById('exitReason').value;
         const destination = document.getElementById('exitDestination').value;
         const notes = document.getElementById('exitNotes').value;
+        const customerId = document.getElementById('exitCustomerId').value;
 
         if (!itemId || !quantity || quantity <= 0 || !reason) {
             window.notify.warning('Por favor, preencha todos os campos obrigatórios.');
@@ -366,14 +368,15 @@ class PhotoInventoryManager {
         }
 
         try {
-            console.log('Registrando saída no PostgreSQL...', { itemId, quantity, reason });
+            console.log('Registrando saída no PostgreSQL...', { itemId, quantity, reason, customerId });
 
             const response = await window.api.createExit({
                 equipmentId: itemId,
                 quantity,
                 reason,
                 destination,
-                notes
+                notes,
+                customerId: customerId || null
             });
 
             console.log('Saída registrada com sucesso:', response);
@@ -1270,6 +1273,7 @@ function renderTransactionsCards(transactions) {
                     <div>Valor total: R$ ${transaction.totalCost.toFixed(2)}</div>
                     ${transaction.supplier ? `<div>Fornecedor: ${transaction.supplier}</div>` : ''}
                     ${transaction.reason ? `<div>Motivo: ${transaction.reason}</div>` : ''}
+                    ${transaction.customer ? `<div>👤 Cliente: ${transaction.customer.nomeFantasia || transaction.customer.razaoSocial}</div>` : ''}
                     ${transaction.destination ? `<div>Destino: ${transaction.destination}</div>` : ''}
                     ${transaction.notes ? `<div>Observações: ${transaction.notes}</div>` : ''}
                 </div>
@@ -1306,6 +1310,7 @@ function renderTransactionsTable(transactions) {
                 let details = [];
                 if (transaction.supplier) details.push(`Fornecedor: ${transaction.supplier}`);
                 if (transaction.reason) details.push(`Motivo: ${transaction.reason}`);
+                if (transaction.customer) details.push(`👤 Cliente: ${transaction.customer.nomeFantasia || transaction.customer.razaoSocial}`);
                 if (transaction.destination) details.push(`Destino: ${transaction.destination}`);
                 if (transaction.notes) details.push(`Obs: ${transaction.notes}`);
                 const detailsText = details.join(' | ');
@@ -2133,6 +2138,104 @@ async function runMigration012() {
     }
 }
 
+async function runMigration013() {
+    const button = document.getElementById('runMigration013Btn');
+    const statusDiv = document.getElementById('migration013Status');
+
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Executando...';
+    }
+
+    if (statusDiv) {
+        statusDiv.innerHTML = '<span style="color: #ff9800;">⏳ Adicionando referências de clientes...</span>';
+    }
+
+    try {
+        console.log('🔧 Executando migration 013...');
+
+        const response = await window.api.runMigration('013');
+
+        console.log('✅ Migration 013 executada:', response);
+
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <div style="background: #d4edda; padding: 12px; border-radius: 6px; border-left: 4px solid #28a745; margin-top: 10px;">
+                    <strong style="color: #155724;">✅ ${response.message}</strong><br>
+                    <div style="margin-top: 8px; font-size: 0.85rem; color: #155724;">
+                        <strong>Colunas adicionadas:</strong><br>
+                        ${response.tablesCreated.map(t => `• ${t}`).join('<br>')}
+                    </div>
+                </div>
+            `;
+        }
+
+        if (button) {
+            button.textContent = '✓ Referências Adicionadas';
+            button.style.background = '#28a745';
+        }
+
+        window.notify.success('Referências de clientes adicionadas com sucesso!');
+
+        // Resetar botão após 3 segundos
+        setTimeout(() => {
+            if (button) {
+                button.disabled = false;
+                button.textContent = '🔗 Adicionar Referências de Clientes (Migration 013)';
+                button.style.background = '';
+            }
+        }, 3000);
+
+    } catch (error) {
+        console.error('❌ Erro ao executar migration 013:', error);
+
+        // Verificar se já foi executada
+        if (error.message.includes('already exists') || error.message.includes('duplicate column')) {
+            if (statusDiv) {
+                statusDiv.innerHTML = `
+                    <div style="background: #d4edda; padding: 12px; border-radius: 6px; border-left: 4px solid #28a745; margin-top: 10px;">
+                        <strong style="color: #155724;">✅ Referências já existem!</strong><br>
+                        <span style="color: #155724; font-size: 0.85rem;">A migration já foi executada anteriormente.</span>
+                    </div>
+                `;
+            }
+
+            if (button) {
+                button.textContent = '✓ Já Executada';
+                button.style.background = '#28a745';
+            }
+
+            window.notify.info('As referências de clientes já foram adicionadas anteriormente.');
+
+            // Resetar botão após 3 segundos
+            setTimeout(() => {
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = '🔗 Adicionar Referências de Clientes (Migration 013)';
+                    button.style.background = '';
+                }
+            }, 3000);
+            return;
+        }
+
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <div style="background: #f8d7da; padding: 12px; border-radius: 6px; border-left: 4px solid #dc3545; margin-top: 10px;">
+                    <strong style="color: #721c24;">❌ Erro ao adicionar referências:</strong><br>
+                    <span style="color: #721c24; font-size: 0.85rem;">${error.message}</span>
+                </div>
+            `;
+        }
+
+        if (button) {
+            button.disabled = false;
+            button.textContent = '🔗 Adicionar Referências de Clientes (Migration 013)';
+        }
+
+        window.notify.error('Erro ao adicionar referências: ' + error.message);
+    }
+}
+
 // Função para importar clientes do arquivo TXT
 async function importCustomers() {
     const button = document.getElementById('importCustomersBtn');
@@ -2569,6 +2672,104 @@ async function reactivateCustomer(customerId) {
         console.error('Erro ao reativar cliente:', error);
         window.notify.error('Erro ao reativar cliente: ' + error.message);
     }
+}
+
+// === FUNÇÕES DE AUTOCOMPLETE DE CLIENTE ===
+let searchExitCustomerTimeout;
+
+async function searchExitCustomer(query) {
+    clearTimeout(searchExitCustomerTimeout);
+
+    const resultsDiv = document.getElementById('exitCustomerResults');
+
+    if (!query || query.length < 2) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+
+    searchExitCustomerTimeout = setTimeout(async () => {
+        try {
+            const response = await window.api.searchCustomers(query, 10);
+
+            if (response.customers && response.customers.length > 0) {
+                resultsDiv.innerHTML = response.customers.map(customer => `
+                    <div class="autocomplete-item" onclick="selectExitCustomer('${customer.id}', '${customer.nome_fantasia || customer.razao_social}')">
+                        <strong>${customer.nome_fantasia || customer.razao_social}</strong>
+                        ${customer.cidade && customer.estado ? `<br><small>${customer.cidade} - ${customer.estado}</small>` : ''}
+                    </div>
+                `).join('');
+                resultsDiv.style.display = 'block';
+            } else {
+                resultsDiv.innerHTML = '<div class="autocomplete-item">Nenhum cliente encontrado</div>';
+                resultsDiv.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Erro ao buscar clientes:', error);
+        }
+    }, 300);
+}
+
+function selectExitCustomer(id, name) {
+    document.getElementById('exitCustomerId').value = id;
+    document.getElementById('exitCustomerSearch').value = name;
+    document.getElementById('exitCustomerResults').style.display = 'none';
+}
+
+// Fechar autocomplete ao clicar fora
+document.addEventListener('click', function(e) {
+    const exitResultsDiv = document.getElementById('exitCustomerResults');
+    const exitSearchInput = document.getElementById('exitCustomerSearch');
+    const orderResultsDiv = document.getElementById('orderCustomerResults');
+    const orderSearchInput = document.getElementById('newExitOrderCustomerSearch');
+
+    if (exitResultsDiv && exitSearchInput && e.target !== exitSearchInput && e.target !== exitResultsDiv) {
+        exitResultsDiv.style.display = 'none';
+    }
+
+    if (orderResultsDiv && orderSearchInput && e.target !== orderSearchInput && e.target !== orderResultsDiv) {
+        orderResultsDiv.style.display = 'none';
+    }
+});
+
+// === FUNÇÕES DE AUTOCOMPLETE PARA ORDEM DE SAÍDA ===
+let searchOrderCustomerTimeout;
+
+async function searchOrderCustomer(query) {
+    clearTimeout(searchOrderCustomerTimeout);
+
+    const resultsDiv = document.getElementById('orderCustomerResults');
+
+    if (!query || query.length < 2) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+
+    searchOrderCustomerTimeout = setTimeout(async () => {
+        try {
+            const response = await window.api.searchCustomers(query, 10);
+
+            if (response.customers && response.customers.length > 0) {
+                resultsDiv.innerHTML = response.customers.map(customer => `
+                    <div class="autocomplete-item" onclick="selectOrderCustomer('${customer.id}', '${customer.nome_fantasia || customer.razao_social}')">
+                        <strong>${customer.nome_fantasia || customer.razao_social}</strong>
+                        ${customer.cidade && customer.estado ? `<br><small>${customer.cidade} - ${customer.estado}</small>` : ''}
+                    </div>
+                `).join('');
+                resultsDiv.style.display = 'block';
+            } else {
+                resultsDiv.innerHTML = '<div class="autocomplete-item">Nenhum cliente encontrado</div>';
+                resultsDiv.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Erro ao buscar clientes:', error);
+        }
+    }, 300);
+}
+
+function selectOrderCustomer(id, name) {
+    document.getElementById('newExitOrderCustomerId').value = id;
+    document.getElementById('newExitOrderCustomerSearch').value = name;
+    document.getElementById('orderCustomerResults').style.display = 'none';
 }
 
 // Autenticação é inicializada pelo auth.js

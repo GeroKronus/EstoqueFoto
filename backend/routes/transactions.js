@@ -72,11 +72,14 @@ router.get('/', authenticateToken, async (req, res) => {
                 t.*,
                 u.name as created_by_name,
                 e.name as current_equipment_name,
-                c.name as current_category_name
+                c.name as current_category_name,
+                cust.razao_social as customer_razao_social,
+                cust.nome_fantasia as customer_nome_fantasia
             FROM transactions t
             LEFT JOIN users u ON t.created_by = u.id
             LEFT JOIN equipment e ON t.equipment_id = e.id
             LEFT JOIN categories c ON e.category_id = c.id
+            LEFT JOIN customers cust ON t.customer_id = cust.id
             ${whereClause}
             ORDER BY t.${finalSortBy} ${finalSortOrder}
             LIMIT $${limitParam} OFFSET $${offsetParam}
@@ -119,7 +122,12 @@ router.get('/', authenticateToken, async (req, res) => {
                 id: row.created_by,
                 name: row.created_by_name || row.user_name
             },
-            userName: row.user_name
+            userName: row.user_name,
+            customer: row.customer_id ? {
+                id: row.customer_id,
+                razaoSocial: row.customer_razao_social,
+                nomeFantasia: row.customer_nome_fantasia
+            } : null
         }));
 
         const total = parseInt(countResult.rows[0].total);
@@ -298,7 +306,8 @@ router.post('/exit', authenticateToken, async (req, res) => {
             quantity,
             reason,
             destination,
-            notes
+            notes,
+            customerId // Novo campo
         } = req.body;
 
         if (!equipmentId || !quantity || quantity <= 0 || !reason) {
@@ -349,9 +358,9 @@ router.post('/exit', authenticateToken, async (req, res) => {
                 INSERT INTO transactions (
                     type, equipment_id, equipment_name, category_name,
                     quantity, unit, cost, total_cost, reason, destination,
-                    notes, created_by, user_name
+                    notes, created_by, user_name, customer_id
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
                 RETURNING *
             `, [
                 'saida',
@@ -366,7 +375,8 @@ router.post('/exit', authenticateToken, async (req, res) => {
                 destination,
                 notes,
                 req.user.id,
-                req.user.name
+                req.user.name,
+                customerId || null
             ]);
 
             return {

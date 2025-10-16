@@ -688,8 +688,13 @@ class ExitOrdersManager {
                                 <option value="perda">Perda/Avaria</option>
                                 <option value="outros">Outros</option>
                             </select>
-                            <input type="text" id="newExitOrderDestination" placeholder="Destino/Local">
-                            <input type="text" id="newExitOrderCustomerName" placeholder="Nome do Cliente (opcional)">
+                            <div style="position: relative;">
+                                <input type="text" id="newExitOrderCustomerSearch" placeholder="🔍 Buscar cliente..." autocomplete="off" oninput="searchOrderCustomer(this.value)">
+                                <input type="hidden" id="newExitOrderCustomerId">
+                                <div id="orderCustomerResults" class="autocomplete-results" style="display: none;"></div>
+                            </div>
+                            <input type="text" id="newExitOrderDestination" placeholder="Destino/Local (texto livre)">
+                            <input type="text" id="newExitOrderCustomerName" placeholder="Nome do Cliente (opcional - texto livre)">
                             <input type="text" id="newExitOrderCustomerDoc" placeholder="CPF/CNPJ do Cliente (opcional)">
                             <textarea id="newExitOrderNotes" placeholder="Observações"></textarea>
                         </div>
@@ -958,6 +963,7 @@ class ExitOrdersManager {
         const customerName = document.getElementById('newExitOrderCustomerName').value.trim();
         const customerDocument = document.getElementById('newExitOrderCustomerDoc').value.trim();
         const notes = document.getElementById('newExitOrderNotes').value.trim();
+        const customerId = document.getElementById('newExitOrderCustomerId').value;
 
         // Validações
         if (!reason) {
@@ -977,6 +983,7 @@ class ExitOrdersManager {
                 customerName,
                 customerDocument,
                 notes,
+                customerId: customerId || null,
                 items: this.currentOrder.items.map(item => ({
                     equipmentId: item.equipmentId,
                     quantity: item.quantity

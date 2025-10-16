@@ -15,7 +15,8 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
             '008': '008_create_exit_order_history.sql',
             '009': '009_add_conditional_items.sql',
             '011': '011_allow_zero_quantity_exit_items.sql',
-            '012': '012_create_customers_table.sql'
+            '012': '012_create_customers_table.sql',
+            '013': '013_add_customer_references.sql'
         };
 
         const migrationFile = migrationFiles[String(migrationNumber).padStart(3, '0')];
@@ -57,6 +58,8 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
             tablesToCheck = ['exit_order_items']; // Verifica se a tabela existe (a migration altera constraint)
         } else if (migrationNumber == '012') {
             tablesToCheck = ['customers']; // Verifica se a tabela customers foi criada
+        } else if (migrationNumber == '013') {
+            tablesToCheck = ['transactions', 'exit_orders']; // Verifica se as tabelas existem (a migration adiciona colunas)
         }
 
         const result = await query(`
