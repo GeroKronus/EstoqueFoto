@@ -2105,6 +2105,101 @@ async function runMigration014() {
     }
 }
 
+// Função para executar migration 015 (adicionar categoria Insumos)
+async function runMigration015() {
+    if (!photoAuthManager.isAdmin()) {
+        window.notify.warning('Apenas administradores podem executar esta ação!');
+        return;
+    }
+
+    const button = document.getElementById('addInsumosBtn');
+    const statusDiv = document.getElementById('addInsumosStatus');
+
+    if (button) {
+        button.disabled = true;
+        button.textContent = '⏳ Adicionando categoria...';
+    }
+
+    if (statusDiv) {
+        statusDiv.innerHTML = '<span style="color: #ff9800;">⏳ Executando migration 015...</span>';
+    }
+
+    try {
+        console.log('📦 Executando migration 015 (adicionar categoria Insumos)...');
+
+        const response = await fetch(`${CONFIG.API_BASE_URL}/migrations/run/015`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${getAuthToken()}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Erro ao executar migration');
+        }
+
+        console.log('✅ Migration 015 executada:', data);
+
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <div style="background: #d4edda; padding: 12px; border-radius: 6px; border-left: 4px solid #28a745;">
+                    <strong style="color: #155724;">✅ Categoria Insumos adicionada com sucesso!</strong><br>
+                    <div style="margin-top: 8px; font-size: 0.85rem; color: #155724;">
+                        Agora você pode cadastrar insumos (cabos, conectores, etc.) no sistema!
+                    </div>
+                </div>
+            `;
+        }
+
+        if (button) {
+            button.textContent = '✓ Categoria Adicionada';
+            button.style.background = '#28a745';
+        }
+
+        window.notify.success('Categoria Insumos adicionada com sucesso!');
+
+        // Recarregar categorias no sistema
+        if (typeof window.photoInventory !== 'undefined' && typeof window.photoInventory.loadCategories === 'function') {
+            setTimeout(() => {
+                window.photoInventory.loadCategories();
+            }, 1000);
+        }
+
+        // Resetar botão após 5 segundos
+        setTimeout(() => {
+            if (button) {
+                button.disabled = false;
+                button.textContent = '➕ Adicionar Categoria Insumos';
+                button.style.background = '';
+            }
+        }, 5000);
+
+    } catch (error) {
+        console.error('❌ Erro ao executar migration 015:', error);
+
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <div style="background: #f8d7da; padding: 12px; border-radius: 6px; border-left: 4px solid #f44336;">
+                    <strong style="color: #721c24;">❌ Erro ao adicionar categoria</strong><br>
+                    <div style="margin-top: 8px; font-size: 0.85rem; color: #721c24;">
+                        ${error.message}
+                    </div>
+                </div>
+            `;
+        }
+
+        if (button) {
+            button.disabled = false;
+            button.textContent = '➕ Adicionar Categoria Insumos';
+        }
+
+        window.notify.error('Erro ao adicionar categoria: ' + error.message);
+    }
+}
+
 // Função para excluir todas as movimentações (entradas, saídas e ordens) mantendo estoque
 async function deleteAllExitOrders() {
     if (!photoAuthManager.isAdmin()) {

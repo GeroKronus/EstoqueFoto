@@ -414,6 +414,24 @@ Carregando sistema...`);
                             <label for="importFile" class="file-label">Restaurar Backup</label>
                         </div>
                         <div class="setting-card ${adminClass}" style="${adminStyle}">
+                            <h3>📦 Adicionar Categoria Insumos (Admin)</h3>
+                            <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
+                                Adiciona a categoria <strong>Insumos</strong> ao sistema para cadastrar cabos, conectores e materiais diversos.
+                            </p>
+                            <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #2196F3;">
+                                <strong>ℹ️ O que será adicionado:</strong>
+                                <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.85rem;">
+                                    <li>Nova categoria: <strong>Insumos 📦</strong></li>
+                                    <li>Para cadastrar: cabos, conectores, etc.</li>
+                                    <li>Se já existe, nenhuma alteração será feita</li>
+                                </ul>
+                            </div>
+                            <button id="addInsumosBtn" onclick="runMigration015()" class="btn-primary" style="width: 100%; padding: 12px; font-size: 15px; margin-bottom: 10px;">
+                                ➕ Adicionar Categoria Insumos
+                            </button>
+                            <div id="addInsumosStatus" style="margin-top: 10px; font-size: 0.85rem;"></div>
+                        </div>
+                        <div class="setting-card ${adminClass}" style="${adminStyle}">
                             <h3>⚠️ Administração Avançada (Admin)</h3>
                             <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
                                 <strong>ATENÇÃO:</strong> Operações avançadas de administração do sistema.

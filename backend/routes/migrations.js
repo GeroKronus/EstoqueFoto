@@ -17,7 +17,8 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
             '011': '011_allow_zero_quantity_exit_items.sql',
             '012': '012_create_customers_table.sql',
             '013': '013_add_customer_references.sql',
-            '014': '014_add_informatica_category.sql'
+            '014': '014_add_informatica_category.sql',
+            '015': '015_add_insumos_category.sql'
         };
 
         const migrationFile = migrationFiles[String(migrationNumber).padStart(3, '0')];
@@ -62,6 +63,8 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
         } else if (migrationNumber == '013') {
             tablesToCheck = ['transactions', 'exit_orders']; // Verifica se as tabelas existem (a migration adiciona colunas)
         } else if (migrationNumber == '014') {
+            tablesToCheck = ['categories']; // Verifica se a tabela categories existe (a migration adiciona categoria)
+        } else if (migrationNumber == '015') {
             tablesToCheck = ['categories']; // Verifica se a tabela categories existe (a migration adiciona categoria)
         }
 

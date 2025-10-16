@@ -120,5 +120,6 @@ INSERT INTO categories (name, slug, icon, description) VALUES
     ('Lentes', 'lentes', '🔍', 'Lentes e objetivas para câmeras'),
     ('Iluminação', 'iluminacao', '💡', 'Equipamentos de iluminação para fotografia'),
     ('Acessórios', 'acessorios', '🎯', 'Acessórios diversos para fotografia'),
-    ('Informática', 'informatica', '💻', 'Equipamentos de informática e tecnologia')
+    ('Informática', 'informatica', '💻', 'Equipamentos de informática e tecnologia'),
+    ('Insumos', 'insumos', '📦', 'Cabos, conectores, etc.')
 ON CONFLICT (slug) DO NOTHING;
