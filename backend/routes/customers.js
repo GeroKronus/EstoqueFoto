@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { query, pool } = require('../database/connection');
-const { authMiddleware } = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 
 // Aplicar autenticação em todas as rotas
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // GET /customers - Listar clientes com paginação e filtros
 router.get('/', async (req, res) => {
