@@ -541,10 +541,19 @@ router.post('/restore', async (req, res) => {
         // 1. Categorias
         if (backupData.data.categories && backupData.data.categories.length > 0) {
             for (const category of backupData.data.categories) {
+                // Gerar slug se não existir (compatibilidade com backups antigos)
+                const slug = category.slug || category.name.toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+                    .replace(/[^a-z0-9]+/g, '-') // Substitui caracteres especiais por hífen
+                    .replace(/^-+|-+$/g, ''); // Remove hífens no início e fim
+
+                const icon = category.icon || '📦'; // Ícone padrão se não existir
+
                 await client.query(`
-                    INSERT INTO categories (id, name, description, created_at, updated_at)
-                    VALUES ($1, $2, $3, $4, $5)
-                `, [category.id, category.name, category.description, category.created_at, category.updated_at]);
+                    INSERT INTO categories (id, name, slug, icon, description, created_at, updated_at)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                `, [category.id, category.name, slug, icon, category.description, category.created_at, category.updated_at]);
             }
             console.log(`✅ ${backupData.data.categories.length} categorias restauradas`);
         }
