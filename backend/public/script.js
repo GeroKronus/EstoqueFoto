@@ -1394,6 +1394,74 @@ async function runMigration009() {
     }
 }
 
+async function runMigration011() {
+    const button = document.getElementById('runMigration011Btn');
+    const statusDiv = document.getElementById('migration011Status');
+
+    button.disabled = true;
+    button.textContent = 'Executando...';
+    statusDiv.innerHTML = '<span style="color: #ff9800;">⏳ Executando migration...</span>';
+
+    try {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/migrations/run/011`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${getAuthToken()}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        let data;
+        try {
+            data = await response.json();
+        } catch (e) {
+            throw new Error(`Erro ao processar resposta: ${response.status} ${response.statusText}`);
+        }
+
+        console.log('Response status:', response.status);
+        console.log('Response data:', data);
+
+        if (!response.ok) {
+            // Verificar se já foi executada (constraint já permite >= 0)
+            if (data.details && data.details.includes('does not exist')) {
+                statusDiv.innerHTML = `
+                    <span style="color: #4CAF50; font-weight: 600;">✅ Migration já está ativa!</span><br>
+                    <span style="color: #666;">A constraint já permite quantidade zero. Você pode zerar itens nas ordens.</span>
+                `;
+                button.textContent = '✓ Já Executada';
+                button.style.background = '#4CAF50';
+                window.notify.success('Migration 011 já está ativa! Pode zerar itens nas ordens.');
+                return;
+            }
+
+            throw new Error(data.details || data.error || `HTTP ${response.status}`);
+        }
+
+        statusDiv.innerHTML = `
+            <span style="color: #4CAF50; font-weight: 600;">✅ ${data.message}</span><br>
+            <span style="color: #666;">Agora você pode zerar a quantidade de itens em ordens de saída!</span>
+        `;
+
+        button.textContent = '✓ Migration Concluída';
+        button.style.background = '#4CAF50';
+
+        window.notify.success('Migration 011 executada! Agora pode zerar quantidades.');
+
+    } catch (error) {
+        console.error('Erro completo ao executar migration:', error);
+        statusDiv.innerHTML = `
+            <span style="color: #f44336; font-weight: 600;">❌ Erro: ${error.message}</span><br>
+            <details style="margin-top: 10px; color: #666; font-size: 0.8rem;">
+                <summary style="cursor: pointer;">Ver detalhes técnicos</summary>
+                <pre style="margin-top: 5px; background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">${error.stack || 'Sem stack trace'}</pre>
+            </details>
+        `;
+        button.disabled = false;
+        button.textContent = 'Tentar Novamente';
+        window.notify.error('Erro: ' + error.message);
+    }
+}
+
 // Função para verificar e mostrar alerta de itens condicionais
 async function checkConditionalItems() {
     try {

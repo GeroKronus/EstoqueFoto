@@ -413,6 +413,12 @@ Carregando sistema...`);
                             <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">Executar migration 009 para ativar itens condicionais em ordens de saída</p>
                             <button id="runMigration009Btn" onclick="runMigration009()" class="btn-warning">Executar Migration 009</button>
                             <div id="migration009Status" style="margin-top: 10px; font-size: 0.85rem;"></div>
+
+                            <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
+
+                            <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">Executar migration 011 para permitir quantidade zero em itens de ordens de saída</p>
+                            <button id="runMigration011Btn" onclick="runMigration011()" class="btn-warning">Executar Migration 011</button>
+                            <div id="migration011Status" style="margin-top: 10px; font-size: 0.85rem;"></div>
                         </div>
                         <div class="setting-card ${adminClass}" style="${adminStyle}">
                             <h3>🔧 Manutenção do Banco de Dados (Admin)</h3>
