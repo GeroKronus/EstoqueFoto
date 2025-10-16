@@ -243,6 +243,12 @@ class ApiService {
         });
     }
 
+    async deleteExitOrderItem(orderId, itemId) {
+        return this.request(`${CONFIG.ENDPOINTS.EXIT_ORDERS}/${orderId}/items/${itemId}`, {
+            method: 'DELETE'
+        });
+    }
+
     async getExitOrderItemHistory(orderId, itemId) {
         return this.request(`${CONFIG.ENDPOINTS.EXIT_ORDERS}/${orderId}/items/${itemId}/history`);
     }

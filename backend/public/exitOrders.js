@@ -380,6 +380,12 @@ class ExitOrdersManager {
                                 title="Salvar alteração">
                                 💾
                             </button>
+                            <button
+                                class="btn-delete-inline"
+                                onclick="exitOrdersManager.deleteOrderItem('${order.id}', '${item.id}')"
+                                title="Excluir item">
+                                🗑️
+                            </button>
                             ${isModified ? `
                                 <button
                                     class="btn-history-inline"
@@ -428,11 +434,28 @@ class ExitOrdersManager {
             const response = await window.api.updateExitOrderItem(orderId, itemId, newQuantity);
             window.notify.success(response.message);
 
-            // Recarregar detalhes da ordem
+            // Recarregar detalhes da ordem (mantém expandida)
             await this.loadOrderDetails(orderId);
 
-            // Recarregar lista de ordens (para atualizar totais)
-            await this.loadOrders();
+            // Atualizar a ordem na lista em memória (para atualizar totais sem re-renderizar)
+            if (this.currentOrders) {
+                const orderIndex = this.currentOrders.findIndex(o => o.id === orderId);
+                if (orderIndex !== -1) {
+                    const updatedOrderResponse = await window.api.getExitOrder(orderId);
+                    const updatedOrder = updatedOrderResponse.order;
+                    this.currentOrders[orderIndex].totalItems = updatedOrder.totalItems;
+                    this.currentOrders[orderIndex].totalValue = updatedOrder.totalValue;
+
+                    // Atualizar apenas os valores na tabela sem re-renderizar
+                    const orderRow = document.querySelector(`[data-order-id="${orderId}"]`);
+                    if (orderRow) {
+                        const itemsCell = orderRow.querySelector('td:nth-child(7)');
+                        const valueCell = orderRow.querySelector('td:nth-child(8)');
+                        if (itemsCell) itemsCell.textContent = updatedOrder.totalItems;
+                        if (valueCell) valueCell.innerHTML = `<strong>R$ ${updatedOrder.totalValue.toFixed(2)}</strong>`;
+                    }
+                }
+            }
 
             // Recarregar estoque
             this.photoInventory.items = await this.photoInventory.loadItems();
@@ -517,6 +540,57 @@ class ExitOrdersManager {
             if (checkbox) {
                 checkbox.checked = !isConditional;
             }
+        }
+    }
+
+    // Excluir item da ordem
+    async deleteOrderItem(orderId, itemId) {
+        const confirmed = await window.notify.confirm({
+            title: 'Excluir Item da Ordem',
+            message: 'Tem certeza que deseja excluir este item da ordem?\n\nO item será devolvido ao estoque.',
+            type: 'warning',
+            confirmText: 'Excluir',
+            cancelText: 'Cancelar'
+        });
+
+        if (!confirmed) return;
+
+        try {
+            const response = await window.api.deleteExitOrderItem(orderId, itemId);
+            window.notify.success(response.message);
+
+            // Recarregar detalhes da ordem
+            await this.loadOrderDetails(orderId);
+
+            // Atualizar a ordem na lista em memória
+            if (this.currentOrders) {
+                const orderIndex = this.currentOrders.findIndex(o => o.id === orderId);
+                if (orderIndex !== -1) {
+                    const updatedOrderResponse = await window.api.getExitOrder(orderId);
+                    const updatedOrder = updatedOrderResponse.order;
+                    this.currentOrders[orderIndex].totalItems = updatedOrder.totalItems;
+                    this.currentOrders[orderIndex].totalValue = updatedOrder.totalValue;
+
+                    // Atualizar apenas os valores na tabela
+                    const orderRow = document.querySelector(`[data-order-id="${orderId}"]`);
+                    if (orderRow) {
+                        const itemsCell = orderRow.querySelector('td:nth-child(7)');
+                        const valueCell = orderRow.querySelector('td:nth-child(8)');
+                        if (itemsCell) itemsCell.textContent = updatedOrder.totalItems;
+                        if (valueCell) valueCell.innerHTML = `<strong>R$ ${updatedOrder.totalValue.toFixed(2)}</strong>`;
+                    }
+                }
+            }
+
+            // Recarregar estoque
+            this.photoInventory.items = await this.photoInventory.loadItems();
+            this.photoInventory.renderAllItems();
+            this.photoInventory.updateSummary();
+            this.photoInventory.populateModalSelects();
+
+        } catch (error) {
+            console.error('Erro ao excluir item:', error);
+            window.notify.error('Erro: ' + error.message);
         }
     }
 

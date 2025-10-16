@@ -844,4 +844,104 @@ router.get('/:orderId/items/:itemId/history', authenticateToken, async (req, res
     }
 });
 
+// DELETE /api/exit-orders/:orderId/items/:itemId - Excluir item da ordem
+router.delete('/:orderId/items/:itemId', authenticateToken, async (req, res) => {
+    try {
+        const { orderId, itemId } = req.params;
+
+        const result = await transaction(async (client) => {
+            // Buscar ordem
+            const orderResult = await client.query(
+                'SELECT * FROM exit_orders WHERE id = $1',
+                [orderId]
+            );
+
+            if (orderResult.rows.length === 0) {
+                throw new Error('Ordem de saída não encontrada');
+            }
+
+            const order = orderResult.rows[0];
+
+            if (order.status !== 'ativa') {
+                throw new Error('Apenas ordens ativas podem ser editadas');
+            }
+
+            // Buscar item da ordem
+            const itemResult = await client.query(
+                'SELECT * FROM exit_order_items WHERE id = $1 AND exit_order_id = $2',
+                [itemId, orderId]
+            );
+
+            if (itemResult.rows.length === 0) {
+                throw new Error('Item não encontrado nesta ordem');
+            }
+
+            const orderItem = itemResult.rows[0];
+
+            // Buscar equipamento
+            const equipmentResult = await client.query(
+                'SELECT * FROM equipment WHERE id = $1',
+                [orderItem.equipment_id]
+            );
+
+            if (equipmentResult.rows.length === 0) {
+                throw new Error('Equipamento não encontrado');
+            }
+
+            const equipment = equipmentResult.rows[0];
+
+            // Devolver quantidade ao estoque
+            const currentStockQuantity = parseFloat(equipment.quantity);
+            const returnQuantity = parseFloat(orderItem.quantity);
+            const newStockQuantity = currentStockQuantity + returnQuantity;
+            const newTotalValue = newStockQuantity * parseFloat(equipment.current_cost);
+
+            await client.query(`
+                UPDATE equipment
+                SET quantity = $1, total_value = $2, updated_at = NOW()
+                WHERE id = $3
+            `, [newStockQuantity, newTotalValue, equipment.id]);
+
+            // Excluir item da ordem
+            await client.query('DELETE FROM exit_order_items WHERE id = $1', [itemId]);
+
+            // Registrar transação de devolução
+            await client.query(`
+                INSERT INTO transactions (
+                    type, equipment_id, equipment_name, category_name,
+                    quantity, unit, cost, total_cost, supplier,
+                    notes, created_by, user_name
+                )
+                SELECT
+                    'entrada', $1, e.name, c.name,
+                    $2, e.unit, e.current_cost, $3,
+                    'Devolução - Item Removido',
+                    $4, $5, $6
+                FROM equipment e
+                LEFT JOIN categories c ON e.category_id = c.id
+                WHERE e.id = $1
+            `, [
+                equipment.id,
+                returnQuantity,
+                returnQuantity * parseFloat(equipment.current_cost),
+                `Item removido da OS #${order.order_number}`,
+                req.user.id,
+                req.user.name
+            ]);
+
+            return { orderItem, equipment };
+        });
+
+        res.json({
+            message: `Item ${result.orderItem.equipment_name} excluído da ordem e devolvido ao estoque`,
+            returnedQuantity: parseFloat(result.orderItem.quantity),
+            unit: result.orderItem.unit
+        });
+
+    } catch (error) {
+        console.error('Erro ao excluir item da ordem:', error);
+        res.status(400).json({ error: error.message || 'Erro ao excluir item' });
+    }
+});
+
 module.exports = router;
