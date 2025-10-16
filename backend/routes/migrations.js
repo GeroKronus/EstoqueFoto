@@ -149,11 +149,8 @@ router.post('/fix-order-number-sequence', authenticateToken, requireAdmin, async
 
         // Resetar a sequence para o próximo valor disponível
         const nextValue = maxOrderNumber + 1;
-        await query("SELECT setval('exit_orders_order_number_seq', $1, false)", [nextValue]);
-
-        // Verificar o valor atual da sequence
-        const currentResult = await query("SELECT currval('exit_orders_order_number_seq') as current_value");
-        const currentValue = parseInt(currentResult.rows[0].current_value);
+        const setvalResult = await query("SELECT setval('exit_orders_order_number_seq', $1, false) as new_value", [nextValue]);
+        const currentValue = parseInt(setvalResult.rows[0].new_value);
 
         console.log(`✅ Sequence corrigida: próximo order_number será ${currentValue}`);
 
