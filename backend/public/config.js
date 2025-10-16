@@ -1,9 +1,9 @@
 // Configuração da API
 const CONFIG = {
-    // URL base da API
+    // URL base da API - usa o mesmo domínio do frontend automaticamente
     API_BASE_URL: window.location.hostname === 'localhost'
         ? 'http://localhost:3001/api'
-        : 'https://estoquefoto-production.up.railway.app/api', // URL real de produção
+        : `${window.location.protocol}//${window.location.hostname}/api`,
 
     // Configurações de requests
     REQUEST_TIMEOUT: 30000, // 30 segundos
