@@ -34,11 +34,11 @@ class ExitOrdersManager {
                     <input
                         type="text"
                         id="exitOrderSearchFilter"
-                        placeholder="🔍 Buscar por motivo, cliente ou criado por..."
+                        placeholder="🔍 Buscar..."
                         oninput="exitOrdersManager.applyFilters()"
-                        style="flex: 1; max-width: 400px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;"
+                        style="width: 200px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;"
                     >
-                    <select id="exitOrderStatusFilter" onchange="exitOrdersManager.loadOrders()">
+                    <select id="exitOrderStatusFilter" onchange="exitOrdersManager.loadOrders()" style="flex: 1; min-width: 300px;">
                         <option value="">Todos os Status</option>
                         <option value="ativa">Ativas</option>
                         <option value="cancelada">Canceladas</option>
