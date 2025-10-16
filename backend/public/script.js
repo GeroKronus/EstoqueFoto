@@ -290,6 +290,8 @@ class PhotoInventoryManager {
                 window.exitOrdersManager = new ExitOrdersManager(this);
             }
             window.exitOrdersManager.renderSection();
+        } else if (sectionName === 'customers') {
+            loadCustomers();
         }
     }
 
@@ -2036,6 +2038,536 @@ async function resetAllMovements() {
         }
 
         window.notify.error('Erro ao resetar movimentos: ' + error.message);
+    }
+}
+
+// === FUNÇÕES DE GERENCIAMENTO DE CLIENTES ===
+
+// Função para executar migration 012 (criar tabela de clientes)
+async function runMigration012() {
+    const button = document.getElementById('runMigration012Btn');
+    const statusDiv = document.getElementById('migration012Status');
+
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Executando...';
+    }
+
+    if (statusDiv) {
+        statusDiv.innerHTML = '<span style="color: #ff9800;">⏳ Criando tabela de clientes...</span>';
+    }
+
+    try {
+        console.log('🔧 Executando migration 012...');
+
+        const response = await window.api.runMigration('012');
+
+        console.log('✅ Migration 012 executada:', response);
+
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <div style="background: #d4edda; padding: 12px; border-radius: 6px; border-left: 4px solid #28a745; margin-top: 10px;">
+                    <strong style="color: #155724;">✅ ${response.message}</strong><br>
+                    <div style="margin-top: 8px; font-size: 0.85rem; color: #155724;">
+                        <strong>Tabelas criadas:</strong><br>
+                        ${response.tablesCreated.map(t => `• ${t}`).join('<br>')}
+                    </div>
+                </div>
+            `;
+        }
+
+        if (button) {
+            button.textContent = '✓ Tabela Criada';
+            button.style.background = '#28a745';
+        }
+
+        window.notify.success('Tabela de clientes criada com sucesso!');
+
+        // Resetar botão após 3 segundos
+        setTimeout(() => {
+            if (button) {
+                button.disabled = false;
+                button.textContent = '🔧 Criar Tabela de Clientes (Migration 012)';
+                button.style.background = '';
+            }
+        }, 3000);
+
+    } catch (error) {
+        console.error('❌ Erro ao executar migration 012:', error);
+
+        // Verificar se já foi executada
+        if (error.message.includes('already exists')) {
+            if (statusDiv) {
+                statusDiv.innerHTML = `
+                    <div style="background: #d4edda; padding: 12px; border-radius: 6px; border-left: 4px solid #28a745; margin-top: 10px;">
+                        <strong style="color: #155724;">✅ Tabela já existe!</strong><br>
+                        <span style="color: #155724; font-size: 0.85rem;">A migration já foi executada anteriormente.</span>
+                    </div>
+                `;
+            }
+
+            if (button) {
+                button.textContent = '✓ Já Executada';
+                button.style.background = '#28a745';
+                button.disabled = false;
+            }
+
+            window.notify.success('Tabela de clientes já existe!');
+            return;
+        }
+
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <div style="background: #f8d7da; padding: 12px; border-radius: 6px; border-left: 4px solid #dc3545; margin-top: 10px;">
+                    <strong style="color: #721c24;">❌ Erro: ${error.message}</strong>
+                </div>
+            `;
+        }
+
+        if (button) {
+            button.disabled = false;
+            button.textContent = '🔧 Criar Tabela de Clientes (Migration 012)';
+        }
+
+        window.notify.error('Erro ao criar tabela: ' + error.message);
+    }
+}
+
+// Função para importar clientes do arquivo TXT
+async function importCustomers() {
+    const button = document.getElementById('importCustomersBtn');
+    const statusDiv = document.getElementById('importCustomersStatus');
+
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Importando...';
+    }
+
+    if (statusDiv) {
+        statusDiv.innerHTML = '<span style="color: #ff9800;">⏳ Importando clientes do arquivo...</span>';
+    }
+
+    try {
+        console.log('📦 Iniciando importação de clientes...');
+
+        const response = await window.api.importCustomersFromFile();
+
+        console.log('✅ Clientes importados:', response);
+
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <div style="background: #d4edda; padding: 12px; border-radius: 6px; border-left: 4px solid #28a745; margin-top: 10px;">
+                    <strong style="color: #155724;">✅ ${response.message}</strong><br>
+                    <div style="margin-top: 8px; font-size: 0.85rem; color: #155724;">
+                        <strong>Total de clientes importados:</strong> ${response.total_imported}
+                    </div>
+                </div>
+            `;
+        }
+
+        if (button) {
+            button.textContent = '✓ Importação Concluída';
+            button.style.background = '#28a745';
+        }
+
+        window.notify.success(`${response.total_imported} clientes importados com sucesso!`);
+
+        // Resetar botão após 5 segundos
+        setTimeout(() => {
+            if (button) {
+                button.disabled = false;
+                button.textContent = '📥 Importar Clientes do Arquivo';
+                button.style.background = '';
+            }
+        }, 5000);
+
+    } catch (error) {
+        console.error('❌ Erro ao importar clientes:', error);
+
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <div style="background: #f8d7da; padding: 12px; border-radius: 6px; border-left: 4px solid #dc3545; margin-top: 10px;">
+                    <strong style="color: #721c24;">❌ Erro: ${error.message}</strong>
+                </div>
+            `;
+        }
+
+        if (button) {
+            button.disabled = false;
+            button.textContent = '📥 Importar Clientes do Arquivo';
+        }
+
+        window.notify.error('Erro ao importar clientes: ' + error.message);
+    }
+}
+
+// Variáveis globais para gerenciamento de clientes
+let currentCustomerPage = 1;
+const customersPerPage = 50;
+let customersSearchTimeout = null;
+
+// Função para carregar lista de clientes
+async function loadCustomers() {
+    const container = document.getElementById('customersList');
+    if (!container) {
+        console.log('Container customersList não encontrado');
+        return;
+    }
+
+    try {
+        const search = document.getElementById('searchCustomer')?.value || '';
+        const cidade = document.getElementById('customerCityFilter')?.value || '';
+        const ativo = document.getElementById('customerStatusFilter')?.value || '';
+
+        console.log('Carregando clientes...', { page: currentCustomerPage, search, cidade, ativo });
+
+        container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">⏳ Carregando...</div>';
+
+        const params = {
+            page: currentCustomerPage,
+            limit: customersPerPage
+        };
+
+        if (search) params.search = search;
+        if (cidade) params.cidade = cidade;
+        if (ativo) params.ativo = ativo;
+
+        const response = await window.api.getCustomers(params);
+        const customers = response.customers || [];
+        const pagination = response.pagination || {};
+
+        console.log('Clientes carregados:', customers.length);
+
+        if (customers.length === 0) {
+            container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">Nenhum cliente encontrado.</div>';
+            renderCustomersPagination(pagination);
+            return;
+        }
+
+        container.innerHTML = customers.map(customer => {
+            const statusClass = customer.ativo ? 'active' : 'inactive';
+            const statusBadge = customer.ativo ?
+                '<span class="badge badge-success">✓ Ativo</span>' :
+                '<span class="badge badge-danger">✗ Inativo</span>';
+
+            return `
+                <div class="customer-item ${statusClass}">
+                    <div class="customer-info">
+                        <div class="customer-name">
+                            ${customer.razao_social}
+                            ${statusBadge}
+                        </div>
+                        <div class="customer-details">
+                            ${customer.nome_fantasia ? `<div><strong>Nome Fantasia:</strong> ${customer.nome_fantasia}</div>` : ''}
+                            ${customer.cnpj ? `<div><strong>CNPJ:</strong> ${customer.cnpj}</div>` : ''}
+                            ${customer.cidade && customer.estado ? `<div><strong>Cidade:</strong> ${customer.cidade} - ${customer.estado}</div>` : ''}
+                            ${customer.telefone ? `<div><strong>Telefone:</strong> ${customer.telefone}</div>` : ''}
+                            ${customer.email ? `<div><strong>Email:</strong> ${customer.email}</div>` : ''}
+                        </div>
+                    </div>
+                    <div class="customer-actions">
+                        <button class="btn-customer-action btn-edit" onclick="editCustomer('${customer.id}')" title="Editar">
+                            ✏️ Editar
+                        </button>
+                        ${customer.ativo ? `
+                            <button class="btn-customer-action btn-deactivate" onclick="deactivateCustomer('${customer.id}')" title="Desativar">
+                                ⏸️ Desativar
+                            </button>
+                        ` : `
+                            <button class="btn-customer-action btn-reactivate" onclick="reactivateCustomer('${customer.id}')" title="Reativar">
+                                ▶️ Reativar
+                            </button>
+                        `}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        renderCustomersPagination(pagination);
+        await loadCityFilter();
+
+    } catch (error) {
+        console.error('Erro ao carregar clientes:', error);
+        container.innerHTML = '<div style="padding: 20px; text-align: center; color: #f44336;">Erro ao carregar clientes: ' + error.message + '</div>';
+    }
+}
+
+// Função para renderizar paginação de clientes
+function renderCustomersPagination(pagination) {
+    const container = document.getElementById('customersPagination');
+    if (!container || !pagination.total) {
+        if (container) container.innerHTML = '';
+        return;
+    }
+
+    const { page, totalPages, total } = pagination;
+
+    if (totalPages <= 1) {
+        container.innerHTML = `<div style="text-align: center; color: #666; margin-top: 15px;">Total: ${total} cliente(s)</div>`;
+        return;
+    }
+
+    let html = '<div class="pagination">';
+
+    // Botão anterior
+    if (page > 1) {
+        html += `<button onclick="currentCustomerPage = ${page - 1}; loadCustomers()">← Anterior</button>`;
+    }
+
+    // Páginas
+    html += `<span style="margin: 0 15px;">Página ${page} de ${totalPages} (${total} clientes)</span>`;
+
+    // Botão próximo
+    if (page < totalPages) {
+        html += `<button onclick="currentCustomerPage = ${page + 1}; loadCustomers()">Próxima →</button>`;
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Função para buscar clientes (com debounce)
+function searchCustomers() {
+    clearTimeout(customersSearchTimeout);
+    customersSearchTimeout = setTimeout(() => {
+        currentCustomerPage = 1; // Resetar para primeira página ao buscar
+        loadCustomers();
+    }, 500); // 500ms de debounce
+}
+
+// Função para carregar filtro de cidades
+async function loadCityFilter() {
+    const select = document.getElementById('customerCityFilter');
+    if (!select) return;
+
+    try {
+        // Carregar todas as cidades únicas
+        const response = await window.api.getCustomers({ limit: 1000 });
+        const customers = response.customers || [];
+
+        const cities = [...new Set(customers
+            .map(c => c.cidade)
+            .filter(c => c)
+        )].sort();
+
+        const currentValue = select.value;
+
+        select.innerHTML = '<option value="">Todas as cidades</option>';
+        cities.forEach(city => {
+            const option = new Option(city, city);
+            select.add(option);
+        });
+
+        select.value = currentValue;
+
+    } catch (error) {
+        console.error('Erro ao carregar filtro de cidades:', error);
+    }
+}
+
+// Função para abrir modal de adicionar cliente
+function showAddCustomerModal() {
+    document.getElementById('addCustomerForm').reset();
+    showModal('addCustomerModal');
+}
+
+// Função para adicionar novo cliente
+async function addCustomer(event) {
+    event.preventDefault();
+
+    const formData = {
+        razao_social: document.getElementById('newCustomerRazaoSocial').value.trim(),
+        nome_fantasia: document.getElementById('newCustomerNomeFantasia').value.trim(),
+        cnpj: document.getElementById('newCustomerCNPJ').value.trim(),
+        endereco: document.getElementById('newCustomerEndereco').value.trim(),
+        bairro: document.getElementById('newCustomerBairro').value.trim(),
+        cidade: document.getElementById('newCustomerCidade').value.trim(),
+        cep: document.getElementById('newCustomerCEP').value.trim(),
+        estado: document.getElementById('newCustomerEstado').value.trim(),
+        inscricao_estadual: document.getElementById('newCustomerInscricaoEstadual').value.trim(),
+        telefone: document.getElementById('newCustomerTelefone').value.trim(),
+        email: document.getElementById('newCustomerEmail').value.trim()
+    };
+
+    if (!formData.razao_social) {
+        window.notify.warning('Razão Social é obrigatória!');
+        return;
+    }
+
+    try {
+        console.log('Criando cliente...', formData);
+
+        await window.api.createCustomer(formData);
+
+        console.log('Cliente criado com sucesso');
+
+        closeModal('addCustomerModal');
+        window.notify.success(`Cliente "${formData.razao_social}" cadastrado com sucesso!`);
+
+        // Recarregar lista
+        await loadCustomers();
+
+    } catch (error) {
+        console.error('Erro ao criar cliente:', error);
+        window.notify.error('Erro ao cadastrar cliente: ' + error.message);
+    }
+}
+
+// Função para editar cliente
+async function editCustomer(customerId) {
+    try {
+        console.log('Carregando dados do cliente...', customerId);
+
+        const response = await window.api.getCustomer(customerId);
+        const customer = response.customer;
+
+        if (!customer) {
+            window.notify.error('Cliente não encontrado!');
+            return;
+        }
+
+        // Preencher formulário
+        document.getElementById('editCustomerId').value = customer.id;
+        document.getElementById('editCustomerRazaoSocial').value = customer.razao_social || '';
+        document.getElementById('editCustomerNomeFantasia').value = customer.nome_fantasia || '';
+        document.getElementById('editCustomerCNPJ').value = customer.cnpj || '';
+        document.getElementById('editCustomerEndereco').value = customer.endereco || '';
+        document.getElementById('editCustomerBairro').value = customer.bairro || '';
+        document.getElementById('editCustomerCidade').value = customer.cidade || '';
+        document.getElementById('editCustomerCEP').value = customer.cep || '';
+        document.getElementById('editCustomerEstado').value = customer.estado || '';
+        document.getElementById('editCustomerInscricaoEstadual').value = customer.inscricao_estadual || '';
+        document.getElementById('editCustomerTelefone').value = customer.telefone || '';
+        document.getElementById('editCustomerEmail').value = customer.email || '';
+        document.getElementById('editCustomerAtivo').checked = customer.ativo;
+
+        showModal('editCustomerModal');
+
+    } catch (error) {
+        console.error('Erro ao carregar cliente:', error);
+        window.notify.error('Erro ao carregar dados do cliente: ' + error.message);
+    }
+}
+
+// Função para salvar edição de cliente
+async function updateCustomer(event) {
+    event.preventDefault();
+
+    const customerId = document.getElementById('editCustomerId').value;
+    const formData = {
+        razao_social: document.getElementById('editCustomerRazaoSocial').value.trim(),
+        nome_fantasia: document.getElementById('editCustomerNomeFantasia').value.trim(),
+        cnpj: document.getElementById('editCustomerCNPJ').value.trim(),
+        endereco: document.getElementById('editCustomerEndereco').value.trim(),
+        bairro: document.getElementById('editCustomerBairro').value.trim(),
+        cidade: document.getElementById('editCustomerCidade').value.trim(),
+        cep: document.getElementById('editCustomerCEP').value.trim(),
+        estado: document.getElementById('editCustomerEstado').value.trim(),
+        inscricao_estadual: document.getElementById('editCustomerInscricaoEstadual').value.trim(),
+        telefone: document.getElementById('editCustomerTelefone').value.trim(),
+        email: document.getElementById('editCustomerEmail').value.trim(),
+        ativo: document.getElementById('editCustomerAtivo').checked
+    };
+
+    if (!formData.razao_social) {
+        window.notify.warning('Razão Social é obrigatória!');
+        return;
+    }
+
+    try {
+        console.log('Atualizando cliente...', customerId, formData);
+
+        await window.api.updateCustomer(customerId, formData);
+
+        console.log('Cliente atualizado com sucesso');
+
+        closeModal('editCustomerModal');
+        window.notify.success(`Cliente "${formData.razao_social}" atualizado com sucesso!`);
+
+        // Recarregar lista
+        await loadCustomers();
+
+    } catch (error) {
+        console.error('Erro ao atualizar cliente:', error);
+        window.notify.error('Erro ao atualizar cliente: ' + error.message);
+    }
+}
+
+// Função para desativar cliente
+async function deactivateCustomer(customerId) {
+    try {
+        // Buscar informações do cliente
+        const response = await window.api.getCustomer(customerId);
+        const customer = response.customer;
+
+        if (!customer) {
+            window.notify.error('Cliente não encontrado!');
+            return;
+        }
+
+        const confirmed = await window.notify.confirm({
+            title: 'Desativar Cliente',
+            message: `Tem certeza que deseja desativar o cliente "${customer.razao_social}"?`,
+            type: 'warning',
+            confirmText: 'Desativar',
+            cancelText: 'Cancelar'
+        });
+
+        if (!confirmed) return;
+
+        console.log('Desativando cliente...', customerId);
+
+        await window.api.deleteCustomer(customerId);
+
+        console.log('Cliente desativado com sucesso');
+
+        window.notify.success(`Cliente "${customer.razao_social}" foi desativado com sucesso!`);
+
+        // Recarregar lista
+        await loadCustomers();
+
+    } catch (error) {
+        console.error('Erro ao desativar cliente:', error);
+        window.notify.error('Erro ao desativar cliente: ' + error.message);
+    }
+}
+
+// Função para reativar cliente
+async function reactivateCustomer(customerId) {
+    try {
+        // Buscar informações do cliente
+        const response = await window.api.getCustomer(customerId);
+        const customer = response.customer;
+
+        if (!customer) {
+            window.notify.error('Cliente não encontrado!');
+            return;
+        }
+
+        const confirmed = await window.notify.confirm({
+            title: 'Reativar Cliente',
+            message: `Tem certeza que deseja reativar o cliente "${customer.razao_social}"?`,
+            type: 'question',
+            confirmText: 'Reativar',
+            cancelText: 'Cancelar'
+        });
+
+        if (!confirmed) return;
+
+        console.log('Reativando cliente...', customerId);
+
+        await window.api.activateCustomer(customerId);
+
+        console.log('Cliente reativado com sucesso');
+
+        window.notify.success(`Cliente "${customer.razao_social}" foi reativado com sucesso!`);
+
+        // Recarregar lista
+        await loadCustomers();
+
+    } catch (error) {
+        console.error('Erro ao reativar cliente:', error);
+        window.notify.error('Erro ao reativar cliente: ' + error.message);
     }
 }
 

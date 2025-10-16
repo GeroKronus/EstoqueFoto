@@ -14,7 +14,8 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
             '007': '007_create_exit_orders.sql',
             '008': '008_create_exit_order_history.sql',
             '009': '009_add_conditional_items.sql',
-            '011': '011_allow_zero_quantity_exit_items.sql'
+            '011': '011_allow_zero_quantity_exit_items.sql',
+            '012': '012_create_customers_table.sql'
         };
 
         const migrationFile = migrationFiles[String(migrationNumber).padStart(3, '0')];
@@ -54,6 +55,8 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
             tablesToCheck = ['exit_order_items']; // Verifica se a tabela existe (a migration adiciona coluna)
         } else if (migrationNumber == '011') {
             tablesToCheck = ['exit_order_items']; // Verifica se a tabela existe (a migration altera constraint)
+        } else if (migrationNumber == '012') {
+            tablesToCheck = ['customers']; // Verifica se a tabela customers foi criada
         }
 
         const result = await query(`
@@ -97,6 +100,34 @@ router.get('/tables', authenticateToken, requireAdmin, async (req, res) => {
         console.error('❌ Erro ao listar tabelas:', error);
         res.status(500).json({
             error: 'Erro ao listar tabelas',
+            details: error.message
+        });
+    }
+});
+
+// Endpoint para importar clientes do arquivo TXT
+router.post('/import-customers', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        console.log('📦 Iniciando importação de clientes via API...');
+
+        const { importCustomers } = require('../database/importCustomers');
+
+        await importCustomers();
+
+        // Contar total de clientes importados
+        const { query } = require('../database/connection');
+        const result = await query('SELECT COUNT(*) as total FROM customers');
+        const total = parseInt(result.rows[0].total);
+
+        res.json({
+            message: 'Clientes importados com sucesso',
+            total_imported: total
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao importar clientes:', error);
+        res.status(500).json({
+            error: 'Erro ao importar clientes',
             details: error.message
         });
     }

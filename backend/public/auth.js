@@ -291,9 +291,10 @@ Carregando sistema...`);
                     <button class="nav-btn active" data-section="inventory">Estoque</button>
                     <button class="nav-btn" data-section="exit-orders">📋 Ordens de Saída</button>
                     <button class="nav-btn" data-section="transactions">Movimentações</button>
+                    <button class="nav-btn" data-section="customers">👥 Clientes</button>
                     <button class="nav-btn" data-section="reports">Relatórios</button>
                     <button class="nav-btn" data-section="settings">Configurações</button>
-                    <button class="nav-btn ${adminClass}" data-section="users" style="${adminStyle}">👥 Usuários</button>
+                    <button class="nav-btn ${adminClass}" data-section="users" style="${adminStyle}">👑 Usuários</button>
                 </nav>
 
                 <div id="inventory-section" class="section active">
@@ -413,6 +414,25 @@ Carregando sistema...`);
                             <label for="importFile" class="file-label">Restaurar Backup</label>
                         </div>
                         <div class="setting-card ${adminClass}" style="${adminStyle}">
+                            <h3>👥 Cadastro de Clientes (Admin)</h3>
+                            <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
+                                Gerenciar cadastro de clientes do sistema
+                            </p>
+                            <button id="runMigration012Btn" onclick="runMigration012()" class="btn-info" style="width: 100%; margin-bottom: 10px;">
+                                🔧 Criar Tabela de Clientes (Migration 012)
+                            </button>
+                            <div id="migration012Status" style="margin-bottom: 15px; font-size: 0.85rem;"></div>
+
+                            <button id="importCustomersBtn" onclick="importCustomers()" class="btn-success" style="width: 100%; margin-bottom: 10px;">
+                                📥 Importar Clientes do Arquivo
+                            </button>
+                            <div id="importCustomersStatus" style="margin-bottom: 15px; font-size: 0.85rem;"></div>
+
+                            <button onclick="showSection('customers')" class="btn-primary" style="width: 100%;">
+                                👥 Gerenciar Clientes
+                            </button>
+                        </div>
+                        <div class="setting-card ${adminClass}" style="${adminStyle}">
                             <h3>⚠️ Administração Avançada (Admin)</h3>
                             <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
                                 <strong>ATENÇÃO:</strong> Esta ação irá zerar TODOS os movimentos do sistema mantendo apenas os itens cadastrados.
@@ -432,6 +452,26 @@ Carregando sistema...`);
                             </button>
                             <div id="resetMovementsStatus" style="margin-top: 10px; font-size: 0.85rem;"></div>
                         </div>
+                    </div>
+                </div>
+
+                <div id="customers-section" class="section">
+                    <div class="user-management">
+                        <h2>👥 Gerenciamento de Clientes</h2>
+                        <div class="user-controls" style="display: flex; gap: 15px; align-items: center; margin-bottom: 20px;">
+                            <button class="btn-primary" onclick="showModal('addCustomerModal')">➕ Cadastrar Cliente</button>
+                            <input type="text" id="searchCustomer" placeholder="🔍 Buscar cliente..." style="flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 5px; font-size: 14px;" oninput="searchCustomers()">
+                            <select id="customerCityFilter" onchange="loadCustomers()" style="padding: 10px; border: 2px solid #ddd; border-radius: 5px;">
+                                <option value="">Todas as cidades</option>
+                            </select>
+                            <select id="customerStatusFilter" onchange="loadCustomers()" style="padding: 10px; border: 2px solid #ddd; border-radius: 5px;">
+                                <option value="">Todos os status</option>
+                                <option value="true">Ativos</option>
+                                <option value="false">Inativos</option>
+                            </select>
+                        </div>
+                        <div id="customersList" class="users-list"></div>
+                        <div id="customersPagination" style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;"></div>
                     </div>
                 </div>
 
@@ -535,6 +575,65 @@ Carregando sistema...`);
                             <div class="modal-actions">
                                 <button type="button" onclick="closeModal('addUserModal')">Cancelar</button>
                                 <button type="submit">Cadastrar Usuário</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Modal Adicionar Cliente -->
+                <div id="addCustomerModal" class="modal">
+                    <div class="modal-content" style="max-width: 700px;">
+                        <h2>➕ Cadastrar Novo Cliente</h2>
+                        <form id="addCustomerForm" onsubmit="addCustomer(event); return false;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <input type="text" id="newCustomerRazaoSocial" placeholder="Razão Social *" required style="grid-column: 1 / -1;">
+                                <input type="text" id="newCustomerNomeFantasia" placeholder="Nome Fantasia">
+                                <input type="text" id="newCustomerCNPJ" placeholder="CNPJ" maxlength="18">
+                                <input type="text" id="newCustomerEndereco" placeholder="Endereço">
+                                <input type="text" id="newCustomerBairro" placeholder="Bairro">
+                                <input type="text" id="newCustomerCidade" placeholder="Cidade">
+                                <input type="text" id="newCustomerCEP" placeholder="CEP" maxlength="10">
+                                <input type="text" id="newCustomerEstado" placeholder="Estado (UF)" maxlength="2" pattern="[A-Z]{2}" title="Digite o UF em maiúsculas (ex: ES)">
+                                <input type="text" id="newCustomerInscricaoEstadual" placeholder="Inscrição Estadual">
+                                <input type="tel" id="newCustomerTelefone" placeholder="Telefone">
+                                <input type="email" id="newCustomerEmail" placeholder="E-mail" style="grid-column: 1 / -1;">
+                            </div>
+                            <div class="modal-actions" style="margin-top: 20px;">
+                                <button type="button" onclick="closeModal('addCustomerModal')">Cancelar</button>
+                                <button type="submit">Cadastrar Cliente</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Modal Editar Cliente -->
+                <div id="editCustomerModal" class="modal">
+                    <div class="modal-content" style="max-width: 700px;">
+                        <h2>✏️ Editar Cliente</h2>
+                        <form id="editCustomerForm" onsubmit="updateCustomer(event); return false;">
+                            <input type="hidden" id="editCustomerId">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <input type="text" id="editCustomerRazaoSocial" placeholder="Razão Social *" required style="grid-column: 1 / -1;">
+                                <input type="text" id="editCustomerNomeFantasia" placeholder="Nome Fantasia">
+                                <input type="text" id="editCustomerCNPJ" placeholder="CNPJ" maxlength="18">
+                                <input type="text" id="editCustomerEndereco" placeholder="Endereço">
+                                <input type="text" id="editCustomerBairro" placeholder="Bairro">
+                                <input type="text" id="editCustomerCidade" placeholder="Cidade">
+                                <input type="text" id="editCustomerCEP" placeholder="CEP" maxlength="10">
+                                <input type="text" id="editCustomerEstado" placeholder="Estado (UF)" maxlength="2" pattern="[A-Z]{2}" title="Digite o UF em maiúsculas (ex: ES)">
+                                <input type="text" id="editCustomerInscricaoEstadual" placeholder="Inscrição Estadual">
+                                <input type="tel" id="editCustomerTelefone" placeholder="Telefone">
+                                <input type="email" id="editCustomerEmail" placeholder="E-mail" style="grid-column: 1 / -1;">
+                                <div style="grid-column: 1 / -1;">
+                                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                        <input type="checkbox" id="editCustomerAtivo" style="width: auto;">
+                                        <span>Cliente ativo</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="modal-actions" style="margin-top: 20px;">
+                                <button type="button" onclick="closeModal('editCustomerModal')">Cancelar</button>
+                                <button type="submit">Salvar Alterações</button>
                             </div>
                         </form>
                     </div>
