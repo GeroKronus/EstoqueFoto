@@ -351,6 +351,17 @@ Carregando sistema...`);
                                 <option value="saida">Saídas</option>
                             </select>
                             <button onclick="filterTransactions()">Filtrar</button>
+                            <div class="view-mode-toggle" style="margin-left: 20px;">
+                                <label>Visualização:</label>
+                                <div class="toggle-buttons">
+                                    <button id="transactionViewCards" class="toggle-btn active" onclick="toggleTransactionViewMode()" title="Visualização em Cards">
+                                        🔲 Cards
+                                    </button>
+                                    <button id="transactionViewTable" class="toggle-btn" onclick="toggleTransactionViewMode()" title="Visualização em Tabela">
+                                        📋 Tabela
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div id="transactionsList" class="transactions-list"></div>

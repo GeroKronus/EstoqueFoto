@@ -6,6 +6,7 @@ class PhotoInventoryManager {
         this.categories = [];
         this.initialized = false;
         this.viewMode = localStorage.getItem('viewMode') || 'table'; // 'cards' ou 'table' (padrão: table)
+        this.transactionViewMode = localStorage.getItem('transactionViewMode') || 'cards'; // 'cards' ou 'table' (padrão: cards)
     }
 
     initialize() {
@@ -972,35 +973,30 @@ class PhotoInventoryManager {
     }
 
     renderTransactions() {
-        const container = document.getElementById('transactionsList');
+        // Atualizar botões de visualização
+        const cardsBtn = document.getElementById('transactionViewCards');
+        const tableBtn = document.getElementById('transactionViewTable');
+
+        if (cardsBtn && tableBtn) {
+            if (this.transactionViewMode === 'cards') {
+                cardsBtn.classList.add('active');
+                tableBtn.classList.remove('active');
+            } else {
+                cardsBtn.classList.remove('active');
+                tableBtn.classList.add('active');
+            }
+        }
+
+        // Renderizar transações conforme modo de visualização
         const sortedTransactions = this.transactions.sort((a, b) =>
             new Date(b.timestamp) - new Date(a.timestamp)
         );
 
-        container.innerHTML = sortedTransactions.map(transaction => {
-            const typeClass = transaction.type === 'entrada' ? 'transaction-entry' : 'transaction-exit';
-            const icon = transaction.type === 'entrada' ? '📥' : '📤';
-
-            return `
-                <div class="transaction-item ${typeClass}">
-                    <div class="transaction-header">
-                        <span class="transaction-icon">${icon}</span>
-                        <span class="transaction-type">${transaction.type.toUpperCase()}</span>
-                        <span class="transaction-date">${this.formatDateTime(transaction.timestamp)}</span>
-                    </div>
-                    <div class="transaction-details">
-                        <div><strong>${transaction.itemName}</strong> (${this.getCategoryName(transaction.category)})</div>
-                        <div>Quantidade: ${transaction.quantity} ${transaction.unit}</div>
-                        <div>Valor unitário: R$ ${transaction.cost.toFixed(2)}</div>
-                        <div>Valor total: R$ ${transaction.totalCost.toFixed(2)}</div>
-                        ${transaction.supplier ? `<div>Fornecedor: ${transaction.supplier}</div>` : ''}
-                        ${transaction.reason ? `<div>Motivo: ${transaction.reason}</div>` : ''}
-                        ${transaction.destination ? `<div>Destino: ${transaction.destination}</div>` : ''}
-                        ${transaction.notes ? `<div>Observações: ${transaction.notes}</div>` : ''}
-                    </div>
-                </div>
-            `;
-        }).join('');
+        if (this.transactionViewMode === 'table') {
+            renderTransactionsTable(sortedTransactions);
+        } else {
+            renderTransactionsCards(sortedTransactions);
+        }
     }
 
     updateSummary() {
@@ -1166,6 +1162,30 @@ function selectItemForExit(itemId) {
     showModal('exitModal');
 }
 
+function toggleTransactionViewMode() {
+    if (!window.photoInventory) return;
+
+    window.photoInventory.transactionViewMode = window.photoInventory.transactionViewMode === 'cards' ? 'table' : 'cards';
+    localStorage.setItem('transactionViewMode', window.photoInventory.transactionViewMode);
+
+    // Atualizar botões
+    const cardsBtn = document.getElementById('transactionViewCards');
+    const tableBtn = document.getElementById('transactionViewTable');
+
+    if (cardsBtn && tableBtn) {
+        if (window.photoInventory.transactionViewMode === 'cards') {
+            cardsBtn.classList.add('active');
+            tableBtn.classList.remove('active');
+        } else {
+            cardsBtn.classList.remove('active');
+            tableBtn.classList.add('active');
+        }
+    }
+
+    // Re-renderizar transações
+    filterTransactions();
+}
+
 function filterTransactions() {
     if (!window.photoInventory) return;
 
@@ -1219,7 +1239,18 @@ function filterTransactions() {
         new Date(b.timestamp) - new Date(a.timestamp)
     );
 
-    container.innerHTML = sortedTransactions.map(transaction => {
+    // Renderizar conforme modo de visualização
+    if (window.photoInventory.transactionViewMode === 'table') {
+        renderTransactionsTable(sortedTransactions);
+    } else {
+        renderTransactionsCards(sortedTransactions);
+    }
+}
+
+function renderTransactionsCards(transactions) {
+    const container = document.getElementById('transactionsList');
+
+    container.innerHTML = transactions.map(transaction => {
         const typeClass = transaction.type === 'entrada' ? 'transaction-entry' : 'transaction-exit';
         const icon = transaction.type === 'entrada' ? '📥' : '📤';
 
@@ -1243,6 +1274,61 @@ function filterTransactions() {
             </div>
         `;
     }).join('');
+}
+
+function renderTransactionsTable(transactions) {
+    const container = document.getElementById('transactionsList');
+
+    const table = document.createElement('table');
+    table.className = 'transactions-table';
+
+    table.innerHTML = `
+        <thead>
+            <tr>
+                <th>Tipo</th>
+                <th>Data/Hora</th>
+                <th>Equipamento</th>
+                <th>Categoria</th>
+                <th>Quantidade</th>
+                <th>Valor Unit.</th>
+                <th>Valor Total</th>
+                <th>Detalhes</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${transactions.map(transaction => {
+                const typeClass = transaction.type === 'entrada' ? 'transaction-entry' : 'transaction-exit';
+                const icon = transaction.type === 'entrada' ? '📥' : '📤';
+                const typeLabel = transaction.type === 'entrada' ? 'ENTRADA' : 'SAÍDA';
+
+                let details = [];
+                if (transaction.supplier) details.push(`Fornecedor: ${transaction.supplier}`);
+                if (transaction.reason) details.push(`Motivo: ${transaction.reason}`);
+                if (transaction.destination) details.push(`Destino: ${transaction.destination}`);
+                if (transaction.notes) details.push(`Obs: ${transaction.notes}`);
+                const detailsText = details.join(' | ');
+
+                return `
+                    <tr class="${typeClass}">
+                        <td class="transaction-type-cell">
+                            <span class="transaction-icon">${icon}</span>
+                            <span>${typeLabel}</span>
+                        </td>
+                        <td class="transaction-date-cell">${window.photoInventory.formatDateTime(transaction.timestamp)}</td>
+                        <td class="transaction-item-cell"><strong>${transaction.itemName}</strong></td>
+                        <td class="transaction-category-cell">${window.photoInventory.getCategoryName(transaction.category)}</td>
+                        <td class="transaction-quantity-cell">${transaction.quantity} ${transaction.unit}</td>
+                        <td class="transaction-cost-cell">R$ ${transaction.cost.toFixed(2)}</td>
+                        <td class="transaction-total-cell"><strong>R$ ${transaction.totalCost.toFixed(2)}</strong></td>
+                        <td class="transaction-details-cell" title="${detailsText}">${detailsText || '-'}</td>
+                    </tr>
+                `;
+            }).join('')}
+        </tbody>
+    `;
+
+    container.innerHTML = '';
+    container.appendChild(table);
 }
 
 function generateMovementReport() {
