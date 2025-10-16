@@ -1919,6 +1919,97 @@ async function ensureDatabaseTables() {
     }
 }
 
+// Função para corrigir a sequence do order_number
+async function fixOrderSequence() {
+    if (!photoAuthManager.isAdmin()) {
+        window.notify.warning('Apenas administradores podem executar esta ação!');
+        return;
+    }
+
+    const button = document.getElementById('fixOrderSequenceBtn');
+    const statusDiv = document.getElementById('fixOrderSequenceStatus');
+
+    if (button) {
+        button.disabled = true;
+        button.textContent = '⏳ Corrigindo sequence...';
+    }
+
+    if (statusDiv) {
+        statusDiv.innerHTML = '<span style="color: #ff9800;">⏳ Corrigindo sequence da numeração de ordens...</span>';
+    }
+
+    try {
+        console.log('🔧 Corrigindo sequence do order_number...');
+
+        const response = await fetch(`${CONFIG.API_BASE_URL}/migrations/fix-order-number-sequence`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${getAuthToken()}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Erro ao corrigir sequence');
+        }
+
+        console.log('✅ Sequence corrigida:', data);
+
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <div style="background: #d4edda; padding: 12px; border-radius: 6px; border-left: 4px solid #28a745;">
+                    <strong style="color: #155724;">✅ Sequence corrigida com sucesso!</strong><br>
+                    <div style="margin-top: 8px; font-size: 0.85rem; color: #155724;">
+                        • Maior order_number existente: <strong>${data.max_order_number}</strong><br>
+                        • Próximo order_number será: <strong>${data.next_order_number}</strong><br>
+                        <br>
+                        <span style="color: #28a745;">🎉 Você já pode criar novas ordens de saída normalmente!</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (button) {
+            button.textContent = '✓ Sequence Corrigida';
+            button.style.background = '#28a745';
+        }
+
+        window.notify.success(data.message || 'Sequence corrigida com sucesso!');
+
+        // Resetar botão após 5 segundos
+        setTimeout(() => {
+            if (button) {
+                button.disabled = false;
+                button.textContent = '🔧 Corrigir Sequence de Ordens';
+                button.style.background = '';
+            }
+        }, 5000);
+
+    } catch (error) {
+        console.error('❌ Erro ao corrigir sequence:', error);
+
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <div style="background: #f8d7da; padding: 12px; border-radius: 6px; border-left: 4px solid #f44336;">
+                    <strong style="color: #721c24;">❌ Erro ao corrigir sequence</strong><br>
+                    <div style="margin-top: 8px; font-size: 0.85rem; color: #721c24;">
+                        ${error.message}
+                    </div>
+                </div>
+            `;
+        }
+
+        if (button) {
+            button.disabled = false;
+            button.textContent = '🔧 Corrigir Sequence de Ordens';
+        }
+
+        window.notify.error('Erro ao corrigir sequence: ' + error.message);
+    }
+}
+
 // Função para resetar todos os movimentos do sistema
 async function resetAllMovements() {
     if (!photoAuthManager.isAdmin()) {
