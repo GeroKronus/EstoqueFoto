@@ -688,12 +688,11 @@ class ExitOrdersManager {
                                 <option value="perda">Perda/Avaria</option>
                                 <option value="outros">Outros</option>
                             </select>
-                            <select id="newExitOrderCustomerId">
+                            <select id="newExitOrderCustomerId" onchange="exitOrdersManager.onCustomerSelect(this.value)">
                                 <option value="">👤 Selecione um cliente (opcional)</option>
                             </select>
-                            <input type="text" id="newExitOrderDestination" placeholder="Destino/Local (texto livre)">
-                            <input type="text" id="newExitOrderCustomerName" placeholder="Nome do Cliente (opcional - texto livre)">
-                            <input type="text" id="newExitOrderCustomerDoc" placeholder="CPF/CNPJ do Cliente (opcional)">
+                            <input type="text" id="newExitOrderDestination" placeholder="Destino/Local (opcional)">
+                            <input type="text" id="newExitOrderCustomerDoc" placeholder="CNPJ do Cliente" readonly style="background: #f5f5f5;">
                             <textarea id="newExitOrderNotes" placeholder="Observações"></textarea>
                         </div>
 
@@ -788,17 +787,23 @@ class ExitOrdersManager {
                 const activeCustomers = response.customers
                     .filter(c => c.ativo !== false)
                     .sort((a, b) => {
-                        const nameA = (a.nome_fantasia || a.razao_social).toLowerCase();
-                        const nameB = (b.nome_fantasia || b.razao_social).toLowerCase();
+                        const nameA = (a.razao_social).toLowerCase();
+                        const nameB = (b.razao_social).toLowerCase();
                         return nameA.localeCompare(nameB, 'pt-BR');
                     });
 
                 console.log(`✔️ ${activeCustomers.length} clientes ativos filtrados`);
 
+                // Armazenar clientes para uso posterior
+                this.customersData = {};
+                activeCustomers.forEach(customer => {
+                    this.customersData[customer.id] = customer;
+                });
+
                 select.innerHTML = '<option value="">👤 Selecione um cliente (opcional)</option>' +
                     activeCustomers.map(customer =>
                         `<option value="${customer.id}">
-                            ${customer.nome_fantasia || customer.razao_social}${customer.cidade ? ` - ${customer.cidade}` : ''}
+                            ${customer.razao_social}${customer.cidade ? ` - ${customer.cidade}` : ''}
                         </option>`
                     ).join('');
 
@@ -810,6 +815,24 @@ class ExitOrdersManager {
         } catch (error) {
             console.error('❌ Erro ao carregar clientes:', error);
             select.innerHTML = '<option value="">👤 Erro ao carregar clientes</option>';
+        }
+    }
+
+    // Callback quando cliente é selecionado
+    onCustomerSelect(customerId) {
+        const docInput = document.getElementById('newExitOrderCustomerDoc');
+
+        if (!customerId || !this.customersData || !this.customersData[customerId]) {
+            // Limpar CNPJ se nenhum cliente selecionado
+            if (docInput) docInput.value = '';
+            return;
+        }
+
+        const customer = this.customersData[customerId];
+
+        // Preencher CNPJ automaticamente
+        if (docInput && customer.cnpj) {
+            docInput.value = customer.cnpj;
         }
     }
 
@@ -1006,7 +1029,6 @@ class ExitOrdersManager {
     async createOrder() {
         const reason = document.getElementById('newExitOrderReason').value;
         const destination = document.getElementById('newExitOrderDestination').value.trim();
-        const customerName = document.getElementById('newExitOrderCustomerName').value.trim();
         const customerDocument = document.getElementById('newExitOrderCustomerDoc').value.trim();
         const notes = document.getElementById('newExitOrderNotes').value.trim();
         const customerId = document.getElementById('newExitOrderCustomerId').value;
@@ -1026,7 +1048,6 @@ class ExitOrdersManager {
             const orderData = {
                 reason,
                 destination,
-                customerName,
                 customerDocument,
                 notes,
                 customerId: customerId || null,
