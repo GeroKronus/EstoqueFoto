@@ -44,7 +44,8 @@ app.use(helmet({
 const allowedOrigins = [
     'http://localhost:3000',
     'https://estoquefoto-production.up.railway.app',
-    'https://estoque.stonecoin.com.br'
+    'https://estoque.stonecoin.com.br',
+    'https://estoque.picstone.com.br'
 ];
 
 app.use(cors({
