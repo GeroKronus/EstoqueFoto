@@ -819,14 +819,11 @@ class PhotoInventoryManager {
         items.forEach(item => {
             const tr = document.createElement('tr');
 
-            const isExpired = this.isExpired(item.expiryDate);
             const isLowStock = item.quantity <= (item.minStock || this.settings.lowStockLimit);
             const isZeroStock = item.quantity === 0;
 
             // Adicionar classes de status
-            if (isExpired) {
-                tr.classList.add('expired');
-            } else if (isZeroStock) {
+            if (isZeroStock) {
                 tr.classList.add('zero-stock');
             } else if (isLowStock) {
                 tr.classList.add('low-stock');
@@ -834,7 +831,6 @@ class PhotoInventoryManager {
 
             const stockStatus = isZeroStock ? '<span class="badge badge-danger">SEM ESTOQUE</span>' :
                               isLowStock ? '<span class="badge badge-warning">ESTOQUE BAIXO</span>' :
-                              isExpired ? '<span class="badge badge-expired">VENCIDO</span>' :
                               '<span class="badge badge-success">OK</span>';
 
             tr.innerHTML = `
@@ -868,13 +864,10 @@ class PhotoInventoryManager {
         const itemDiv = document.createElement('div');
         itemDiv.className = 'item-card';
 
-        const isExpired = this.isExpired(item.expiryDate);
         const isLowStock = item.quantity <= (item.minStock || this.settings.lowStockLimit);
         const isZeroStock = item.quantity === 0;
 
-        if (isExpired) {
-            itemDiv.classList.add('expired');
-        } else if (isZeroStock) {
+        if (isZeroStock) {
             itemDiv.classList.add('zero-stock');
         } else if (isLowStock) {
             itemDiv.classList.add('low-stock');
@@ -884,8 +877,7 @@ class PhotoInventoryManager {
             `<div class="item-value">Valor: R$ ${item.totalValue.toFixed(2)}</div>` : '';
 
         const stockStatus = isZeroStock ? 'SEM ESTOQUE' :
-                          isLowStock ? 'ESTOQUE BAIXO' :
-                          isExpired ? 'VENCIDO' : '';
+                          isLowStock ? 'ESTOQUE BAIXO' : '';
 
         itemDiv.innerHTML = `
             <div class="item-name">${item.name}</div>
@@ -1133,12 +1125,6 @@ class PhotoInventoryManager {
         }
     }
 
-    isExpired(expiryDate) {
-        if (!expiryDate) return false;
-        const today = new Date();
-        const expiry = new Date(expiryDate);
-        return expiry < today;
-    }
 
     formatDate(dateString) {
         const date = new Date(dateString);
@@ -1492,13 +1478,44 @@ function goToExitOrder(orderId) {
         window.exitOrdersManager = new ExitOrdersManager(window.photoInventory);
     }
 
-    // Renderizar a seção e depois carregar a ordem
+    // Renderizar a seção
     window.exitOrdersManager.renderSection();
 
-    // Aguardar um pouco para garantir que a seção foi renderizada
-    setTimeout(() => {
-        window.exitOrdersManager.loadOrderDetails(orderId);
-    }, 300);
+    // Aguardar um pouco para garantir que a seção foi renderizada e depois expandir a ordem
+    setTimeout(async () => {
+        // Garantir que a ordem está marcada como expandida
+        if (!window.exitOrdersManager.expandedOrders) {
+            window.exitOrdersManager.expandedOrders = [];
+        }
+
+        if (!window.exitOrdersManager.expandedOrders.includes(orderId)) {
+            window.exitOrdersManager.expandedOrders.push(orderId);
+        }
+
+        // Expandir a linha da ordem na tabela
+        const detailsRow = document.getElementById(`order-details-${orderId}`);
+        const expandBtn = document.querySelector(`[onclick*="toggleOrderDetails('${orderId}')"]`);
+
+        if (detailsRow && expandBtn) {
+            detailsRow.style.display = 'table-row';
+            expandBtn.classList.add('expanded');
+
+            // Carregar os detalhes da ordem
+            await window.exitOrdersManager.loadOrderDetails(orderId);
+
+            // Fazer scroll suave até a ordem
+            const orderRow = document.querySelector(`[data-order-id="${orderId}"]`);
+            if (orderRow) {
+                orderRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Adicionar destaque temporário
+                orderRow.style.backgroundColor = '#e3f2fd';
+                setTimeout(() => {
+                    orderRow.style.backgroundColor = '';
+                }, 2000);
+            }
+        }
+    }, 500);
 }
 
 // Função para garantir que todas as tabelas existam

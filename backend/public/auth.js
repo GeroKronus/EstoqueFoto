@@ -374,7 +374,7 @@ Carregando sistema...`);
                         </div>
                         <div class="report-card">
                             <h3>⚠️ Relatório de Alertas</h3>
-                            <p>Itens vencidos e estoque baixo</p>
+                            <p>Estoque baixo e sem estoque</p>
                             <button onclick="generateAlertsReport()">Gerar Relatório</button>
                         </div>
                         <div class="report-card">
