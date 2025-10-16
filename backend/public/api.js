@@ -267,42 +267,42 @@ class ApiService {
     // === CLIENTES ===
     async getCustomers(params = {}) {
         const queryString = new URLSearchParams(params).toString();
-        const endpoint = queryString ? `/api/customers?${queryString}` : '/api/customers';
+        const endpoint = queryString ? `/customers?${queryString}` : '/customers';
         return this.request(endpoint);
     }
 
     async getCustomer(id) {
-        return this.request(`/api/customers/${id}`);
+        return this.request(`/customers/${id}`);
     }
 
     async createCustomer(customerData) {
-        return this.request('/api/customers', {
+        return this.request('/customers', {
             method: 'POST',
             body: JSON.stringify(customerData)
         });
     }
 
     async updateCustomer(id, customerData) {
-        return this.request(`/api/customers/${id}`, {
+        return this.request(`/customers/${id}`, {
             method: 'PUT',
             body: JSON.stringify(customerData)
         });
     }
 
     async deleteCustomer(id) {
-        return this.request(`/api/customers/${id}`, {
+        return this.request(`/customers/${id}`, {
             method: 'DELETE'
         });
     }
 
     async activateCustomer(id) {
-        return this.request(`/api/customers/${id}/activate`, {
+        return this.request(`/customers/${id}/activate`, {
             method: 'POST'
         });
     }
 
     async searchCustomers(query, limit = 10) {
-        return this.request(`/api/customers/search/autocomplete?q=${encodeURIComponent(query)}&limit=${limit}`);
+        return this.request(`/customers/search/autocomplete?q=${encodeURIComponent(query)}&limit=${limit}`);
     }
 
     // === ADMINISTRAÇÃO ===
@@ -323,13 +323,13 @@ class ApiService {
     }
 
     async runMigration(migrationNumber) {
-        return this.request(`/api/migrations/run/${migrationNumber}`, {
+        return this.request(`/migrations/run/${migrationNumber}`, {
             method: 'POST'
         });
     }
 
     async importCustomersFromFile() {
-        return this.request('/api/migrations/import-customers', {
+        return this.request('/migrations/import-customers', {
             method: 'POST'
         });
     }
