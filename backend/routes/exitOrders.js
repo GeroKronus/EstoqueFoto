@@ -347,12 +347,15 @@ router.post('/', authenticateToken, async (req, res) => {
                 `, [newQuantity, newTotalValue, equipmentId]);
 
                 // Adicionar item à ordem
+                // Se o motivo for 'condicional', marcar todos os itens como condicionais automaticamente
+                const isConditional = reason === 'condicional';
+
                 const itemResult = await client.query(`
                     INSERT INTO exit_order_items (
                         exit_order_id, equipment_id, equipment_name,
-                        quantity, unit, unit_cost, total_cost
+                        quantity, unit, unit_cost, total_cost, is_conditional
                     )
-                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                     RETURNING *
                 `, [
                     order.id,
@@ -361,7 +364,8 @@ router.post('/', authenticateToken, async (req, res) => {
                     quantity,
                     equipment.unit,
                     equipment.current_cost,
-                    parseFloat(quantity) * parseFloat(equipment.current_cost)
+                    parseFloat(quantity) * parseFloat(equipment.current_cost),
+                    isConditional
                 ]);
 
                 // Registrar na tabela de transações
