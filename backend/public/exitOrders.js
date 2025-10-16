@@ -31,6 +31,13 @@ class ExitOrdersManager {
                 </div>
 
                 <div class="exit-orders-filters">
+                    <input
+                        type="text"
+                        id="exitOrderSearchFilter"
+                        placeholder="🔍 Buscar por motivo, cliente ou criado por..."
+                        oninput="exitOrdersManager.applyFilters()"
+                        style="flex: 1; max-width: 400px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;"
+                    >
                     <select id="exitOrderStatusFilter" onchange="exitOrdersManager.loadOrders()">
                         <option value="">Todos os Status</option>
                         <option value="ativa">Ativas</option>
@@ -93,12 +100,44 @@ class ExitOrdersManager {
             if (dateTo) params.dateTo = dateTo;
 
             const response = await window.api.getExitOrders(params);
-            this.currentOrders = response.orders || [];
-            this.renderOrdersList(this.currentOrders);
+            this.allOrders = response.orders || []; // Guardar todas as ordens
+            this.applyFilters(); // Aplicar filtro de texto
         } catch (error) {
             console.error('Erro ao carregar ordens:', error);
             window.notify.error('Erro ao carregar ordens de saída');
         }
+    }
+
+    // Aplicar filtros de texto
+    applyFilters() {
+        const searchText = document.getElementById('exitOrderSearchFilter')?.value.toLowerCase().trim() || '';
+
+        if (!this.allOrders) {
+            return;
+        }
+
+        // Se não há texto de busca, mostrar todas as ordens
+        if (!searchText) {
+            this.currentOrders = this.allOrders;
+            this.renderOrdersList(this.currentOrders);
+            return;
+        }
+
+        // Filtrar ordens baseado no texto de busca
+        this.currentOrders = this.allOrders.filter(order => {
+            // Buscar em: motivo, cliente, destino e criado por
+            const reason = this.translateReason(order.reason).toLowerCase();
+            const customer = (order.customerName || '').toLowerCase();
+            const destination = (order.destination || '').toLowerCase();
+            const createdBy = (order.createdBy?.name || '').toLowerCase();
+
+            return reason.includes(searchText) ||
+                   customer.includes(searchText) ||
+                   destination.includes(searchText) ||
+                   createdBy.includes(searchText);
+        });
+
+        this.renderOrdersList(this.currentOrders);
     }
 
     // Renderizar lista de ordens
