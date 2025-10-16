@@ -434,10 +434,27 @@ Carregando sistema...`);
                         <div class="setting-card ${adminClass}" style="${adminStyle}">
                             <h3>⚠️ Administração Avançada (Admin)</h3>
                             <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
-                                <strong>ATENÇÃO:</strong> Esta ação irá zerar TODOS os movimentos do sistema mantendo apenas os itens cadastrados.
+                                <strong>ATENÇÃO:</strong> Operações avançadas de administração do sistema.
                             </p>
+
+                            <!-- Excluir apenas ordens de saída -->
+                            <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #2196F3;">
+                                <strong>🗑️ Excluir Ordens de Saída:</strong>
+                                <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.85rem;">
+                                    <li>Exclui TODAS as ordens de saída</li>
+                                    <li>Exclui TODOS os itens das ordens</li>
+                                    <li>Exclui TODO o histórico de alterações</li>
+                                    <li><strong style="color: #2196F3;">MANTÉM o estoque intacto (quantidades não são afetadas)</strong></li>
+                                </ul>
+                            </div>
+                            <button id="deleteExitOrdersBtn" onclick="deleteAllExitOrders()" class="btn-danger" style="background: #ff6b6b; width: 100%; margin-bottom: 20px;">
+                                🗑️ EXCLUIR TODAS AS ORDENS DE SAÍDA
+                            </button>
+                            <div id="deleteExitOrdersStatus" style="margin-top: 10px; margin-bottom: 20px; font-size: 0.85rem;"></div>
+
+                            <!-- Zerar todos os movimentos -->
                             <div style="background: #fff3cd; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #ff9800;">
-                                <strong>⚠️ Esta operação irá:</strong>
+                                <strong>⚠️ Zerar Todos os Movimentos:</strong>
                                 <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.85rem;">
                                     <li>Excluir todas as transações (entradas e saídas)</li>
                                     <li>Excluir todas as ordens de saída</li>

@@ -2010,6 +2010,129 @@ async function fixOrderSequence() {
     }
 }
 
+// Função para excluir todas as ordens de saída (mantém estoque)
+async function deleteAllExitOrders() {
+    if (!photoAuthManager.isAdmin()) {
+        window.notify.warning('Apenas administradores podem executar esta ação!');
+        return;
+    }
+
+    // Primeira confirmação
+    const firstConfirm = await window.notify.confirm({
+        title: '⚠️ ATENÇÃO: Excluir Todas as Ordens de Saída',
+        message: 'Esta operação irá:\n\n• Excluir TODAS as ordens de saída\n• Excluir TODOS os itens das ordens\n• Excluir TODO o histórico de alterações\n• MANTER o estoque intacto (não afeta quantidades)\n\n⚠️ ESTA AÇÃO É IRREVERSÍVEL!\n\nDeseja continuar?',
+        type: 'danger',
+        confirmText: 'Continuar',
+        cancelText: 'Cancelar'
+    });
+
+    if (!firstConfirm) return;
+
+    // Segunda confirmação - digitação manual
+    const confirmText = prompt('Para confirmar, digite: EXCLUIR\n\n(em letras maiúsculas)');
+    if (confirmText !== 'EXCLUIR') {
+        window.notify.info('Operação cancelada.');
+        return;
+    }
+
+    // Terceira confirmação - confirmação final
+    const finalConfirm = await window.notify.confirm({
+        title: '🚨 ÚLTIMA CONFIRMAÇÃO',
+        message: 'Todas as ordens de saída serão EXCLUÍDAS PERMANENTEMENTE.\n\nO estoque NÃO será afetado.\n\nTem CERTEZA ABSOLUTA?',
+        type: 'danger',
+        confirmText: 'SIM, EXCLUIR TUDO',
+        cancelText: 'NÃO, CANCELAR'
+    });
+
+    if (!finalConfirm) return;
+
+    const button = document.getElementById('deleteExitOrdersBtn');
+    const statusDiv = document.getElementById('deleteExitOrdersStatus');
+
+    if (button) {
+        button.disabled = true;
+        button.textContent = '⏳ Excluindo...';
+    }
+
+    if (statusDiv) {
+        statusDiv.innerHTML = '<span style="color: #ff9800;">⏳ Excluindo todas as ordens de saída...</span>';
+    }
+
+    try {
+        console.log('🗑️ Excluindo todas as ordens de saída...');
+
+        const response = await fetch(`${CONFIG.API_BASE_URL}/migrations/delete-all-exit-orders`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${getAuthToken()}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Erro ao excluir ordens');
+        }
+
+        console.log('✅ Ordens excluídas:', data);
+
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <div style="background: #d4edda; padding: 12px; border-radius: 6px; border-left: 4px solid #28a745;">
+                    <strong style="color: #155724;">✅ Ordens excluídas com sucesso!</strong><br>
+                    <div style="margin-top: 8px; font-size: 0.85rem; color: #155724;">
+                        • Total de ordens excluídas: <strong>${data.total_deleted}</strong><br>
+                        • ${data.details}
+                    </div>
+                </div>
+            `;
+        }
+
+        if (button) {
+            button.textContent = '✓ Excluídas';
+            button.style.background = '#28a745';
+        }
+
+        window.notify.success(data.message || 'Ordens de saída excluídas com sucesso!');
+
+        // Resetar botão após 5 segundos
+        setTimeout(() => {
+            if (button) {
+                button.disabled = false;
+                button.textContent = '🗑️ EXCLUIR TODAS AS ORDENS DE SAÍDA';
+                button.style.background = '';
+            }
+        }, 5000);
+
+        // Recarregar a lista de ordens de saída se estiver na aba
+        if (typeof loadExitOrders === 'function') {
+            loadExitOrders();
+        }
+
+    } catch (error) {
+        console.error('❌ Erro ao excluir ordens:', error);
+
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <div style="background: #f8d7da; padding: 12px; border-radius: 6px; border-left: 4px solid #f44336;">
+                    <strong style="color: #721c24;">❌ Erro ao excluir ordens</strong><br>
+                    <div style="margin-top: 8px; font-size: 0.85rem; color: #721c24;">
+                        ${error.message}
+                    </div>
+                </div>
+            `;
+        }
+
+        if (button) {
+            button.disabled = false;
+            button.textContent = '🗑️ EXCLUIR TODAS AS ORDENS DE SAÍDA';
+        }
+
+        window.notify.error('Erro ao excluir ordens: ' + error.message);
+    }
+}
+
 // Função para resetar todos os movimentos do sistema
 async function resetAllMovements() {
     if (!photoAuthManager.isAdmin()) {

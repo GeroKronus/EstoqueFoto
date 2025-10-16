@@ -170,4 +170,44 @@ router.post('/fix-order-number-sequence', authenticateToken, requireAdmin, async
     }
 });
 
+// Endpoint para excluir todas as ordens de saída (mantém estoque)
+router.post('/delete-all-exit-orders', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        console.log('🗑️ Excluindo todas as ordens de saída...');
+
+        const { query } = require('../database/connection');
+
+        // Contar ordens antes de excluir
+        const countResult = await query('SELECT COUNT(*) as total FROM exit_orders');
+        const totalOrders = parseInt(countResult.rows[0].total);
+
+        // Excluir histórico de itens (referência em exit_order_items_history)
+        await query('DELETE FROM exit_order_items_history');
+
+        // Excluir itens das ordens (CASCADE vai excluir automaticamente, mas fazemos explícito)
+        await query('DELETE FROM exit_order_items');
+
+        // Excluir ordens de saída
+        await query('DELETE FROM exit_orders');
+
+        // Resetar a sequence para começar do 1 novamente
+        await query("SELECT setval('exit_orders_order_number_seq', 1, false)");
+
+        console.log(`✅ ${totalOrders} ordens de saída excluídas com sucesso`);
+
+        res.json({
+            message: 'Todas as ordens de saída foram excluídas com sucesso',
+            total_deleted: totalOrders,
+            details: 'O estoque foi mantido intacto. Apenas as ordens de saída foram removidas.'
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao excluir ordens de saída:', error);
+        res.status(500).json({
+            error: 'Erro ao excluir ordens de saída',
+            details: error.message
+        });
+    }
+});
+
 module.exports = router;
