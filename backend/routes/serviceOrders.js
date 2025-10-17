@@ -591,26 +591,129 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
             console.log('Resultado:', JSON.stringify(updateResult.rows[0], null, 2));
             console.log('=====================================');
 
-            // Registrar no histórico
-            await client.query(`
-                INSERT INTO service_order_history (
-                    service_order_id,
-                    user_id,
-                    user_name,
-                    action,
-                    old_value,
-                    new_value,
-                    details
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-            `, [
-                id,
-                req.user.id,
-                req.user.name,
-                'Status alterado',
-                oldStatus,
-                status,
-                `Status alterado de "${oldStatus}" para "${status}" por ${req.user.name}`
-            ]);
+            // Registrar TODAS as mudanças no histórico de forma detalhada
+
+            // 1. Mudança de status (sempre)
+            if (oldStatus !== status) {
+                const statusLabels = {
+                    'aguardando_orcamento': 'Aguardando Orçamento',
+                    'orcamento_pendente': 'Orçamento Pendente',
+                    'aprovado': 'Aprovado',
+                    'em_reparo': 'Em Reparo',
+                    'concluido': 'Concluído',
+                    'aguardando_retirada': 'Aguardando Retirada',
+                    'entregue': 'Entregue',
+                    'cancelado': 'Cancelado'
+                };
+
+                await client.query(`
+                    INSERT INTO service_order_history (
+                        service_order_id, user_id, user_name, action, old_value, new_value, details
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                `, [
+                    id, req.user.id, req.user.name,
+                    'Status alterado',
+                    oldStatus,
+                    status,
+                    `Status alterado de "${statusLabels[oldStatus] || oldStatus}" para "${statusLabels[status] || status}"`
+                ]);
+            }
+
+            // 2. Mudança de defeito constatado
+            if (defeito_constatado !== undefined && defeito_constatado !== currentOS.defeito_constatado) {
+                await client.query(`
+                    INSERT INTO service_order_history (
+                        service_order_id, user_id, user_name, action, old_value, new_value, details
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                `, [
+                    id, req.user.id, req.user.name,
+                    'Defeito constatado atualizado',
+                    currentOS.defeito_constatado || '(vazio)',
+                    defeito_constatado || '(vazio)',
+                    `Defeito constatado atualizado: "${defeito_constatado}"`
+                ]);
+            }
+
+            // 3. Mudança de valor orçado
+            if (valor_orcado !== undefined && parseFloat(valor_orcado) !== parseFloat(currentOS.valor_orcado)) {
+                await client.query(`
+                    INSERT INTO service_order_history (
+                        service_order_id, user_id, user_name, action, old_value, new_value, details
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                `, [
+                    id, req.user.id, req.user.name,
+                    'Valor orçado alterado',
+                    `R$ ${parseFloat(currentOS.valor_orcado || 0).toFixed(2)}`,
+                    `R$ ${parseFloat(valor_orcado).toFixed(2)}`,
+                    `Valor orçado alterado de R$ ${parseFloat(currentOS.valor_orcado || 0).toFixed(2)} para R$ ${parseFloat(valor_orcado).toFixed(2)}`
+                ]);
+            }
+
+            // 4. Mudança de valor final
+            if (valor_final !== undefined && parseFloat(valor_final) !== parseFloat(currentOS.valor_final)) {
+                await client.query(`
+                    INSERT INTO service_order_history (
+                        service_order_id, user_id, user_name, action, old_value, new_value, details
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                `, [
+                    id, req.user.id, req.user.name,
+                    'Valor final alterado',
+                    `R$ ${parseFloat(currentOS.valor_final || 0).toFixed(2)}`,
+                    `R$ ${parseFloat(valor_final).toFixed(2)}`,
+                    `Valor final alterado de R$ ${parseFloat(currentOS.valor_final || 0).toFixed(2)} para R$ ${parseFloat(valor_final).toFixed(2)}`
+                ]);
+            }
+
+            // 5. Mudança de prazo estimado
+            if (prazo_estimado !== undefined && prazo_estimado !== currentOS.prazo_estimado) {
+                const oldPrazo = currentOS.prazo_estimado ? new Date(currentOS.prazo_estimado).toLocaleDateString('pt-BR') : '(não definido)';
+                const newPrazo = new Date(prazo_estimado).toLocaleDateString('pt-BR');
+
+                await client.query(`
+                    INSERT INTO service_order_history (
+                        service_order_id, user_id, user_name, action, old_value, new_value, details
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                `, [
+                    id, req.user.id, req.user.name,
+                    'Prazo estimado alterado',
+                    oldPrazo,
+                    newPrazo,
+                    `Prazo estimado alterado de ${oldPrazo} para ${newPrazo}`
+                ]);
+            }
+
+            // 6. Mudança de técnico responsável
+            if (tecnico_responsavel_id !== undefined && tecnico_responsavel_id !== currentOS.tecnico_responsavel_id) {
+                // Buscar nome do novo técnico
+                let newTecnicoName = '(nenhum)';
+                if (tecnico_responsavel_id) {
+                    const tecResult = await client.query('SELECT name FROM users WHERE id = $1', [tecnico_responsavel_id]);
+                    if (tecResult.rows.length > 0) {
+                        newTecnicoName = tecResult.rows[0].name;
+                    }
+                }
+
+                // Buscar nome do técnico antigo
+                let oldTecnicoName = '(nenhum)';
+                if (currentOS.tecnico_responsavel_id) {
+                    const tecResult = await client.query('SELECT name FROM users WHERE id = $1', [currentOS.tecnico_responsavel_id]);
+                    if (tecResult.rows.length > 0) {
+                        oldTecnicoName = tecResult.rows[0].name;
+                    }
+                }
+
+                await client.query(`
+                    INSERT INTO service_order_history (
+                        service_order_id, user_id, user_name, action, old_value, new_value, details
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                `, [
+                    id, req.user.id, req.user.name,
+                    'Técnico responsável alterado',
+                    oldTecnicoName,
+                    newTecnicoName,
+                    `Técnico responsável alterado de "${oldTecnicoName}" para "${newTecnicoName}"`
+                ]);
+            }
 
             return updateResult.rows[0];
         });
