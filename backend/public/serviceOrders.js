@@ -485,149 +485,172 @@ class ServiceOrderManager {
 
                 <div class="os-details-grid">
                     <!-- Cliente -->
-                    <div class="os-details-section">
+                    <div class="os-details-section" style="grid-column: 1 / -1;">
                         <h3>🏢 Cliente</h3>
                         ${order.customer ? `
-                            <div class="os-info-row">
-                                <div class="os-info-label">Razão Social:</div>
-                                <div class="os-info-value">${order.customer.razaoSocial}</div>
-                            </div>
-                            ${order.customer.nomeFantasia ? `
-                                <div class="os-info-row">
-                                    <div class="os-info-label">Nome Fantasia:</div>
-                                    <div class="os-info-value">${order.customer.nomeFantasia}</div>
-                                </div>
-                            ` : ''}
-                            ${order.customer.telefone ? `
-                                <div class="os-info-row">
-                                    <div class="os-info-label">Telefone:</div>
-                                    <div class="os-info-value">${order.customer.telefone}</div>
-                                </div>
-                            ` : ''}
+                            <table class="os-items-table">
+                                <tbody>
+                                    <tr>
+                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Razão Social</td>
+                                        <td>${order.customer.razaoSocial}</td>
+                                    </tr>
+                                    ${order.customer.nomeFantasia ? `
+                                        <tr>
+                                            <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Nome Fantasia</td>
+                                            <td>${order.customer.nomeFantasia}</td>
+                                        </tr>
+                                    ` : ''}
+                                    ${order.customer.telefone ? `
+                                        <tr>
+                                            <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Telefone</td>
+                                            <td>${order.customer.telefone}</td>
+                                        </tr>
+                                    ` : ''}
+                                </tbody>
+                            </table>
                         ` : '<p>Cliente não informado</p>'}
                     </div>
 
                     <!-- Equipamento -->
-                    <div class="os-details-section">
+                    <div class="os-details-section" style="grid-column: 1 / -1;">
                         <h3>📱 Equipamento</h3>
-                        ${order.equipamento?.marca ? `
-                            <div class="os-info-row">
-                                <div class="os-info-label">Marca:</div>
-                                <div class="os-info-value">${order.equipamento.marca}</div>
-                            </div>
-                        ` : ''}
-                        ${order.equipamento?.modelo ? `
-                            <div class="os-info-row">
-                                <div class="os-info-label">Modelo:</div>
-                                <div class="os-info-value">${order.equipamento.modelo}</div>
-                            </div>
-                        ` : ''}
-                        ${order.equipamento?.serial ? `
-                            <div class="os-info-row">
-                                <div class="os-info-label">Serial:</div>
-                                <div class="os-info-value">${order.equipamento.serial}</div>
-                            </div>
-                        ` : ''}
-                        ${order.acessorios ? `
-                            <div class="os-info-row">
-                                <div class="os-info-label">Acessórios:</div>
-                                <div class="os-info-value">${order.acessorios}</div>
-                            </div>
-                        ` : ''}
+                        <table class="os-items-table">
+                            <tbody>
+                                ${order.equipamento?.marca ? `
+                                    <tr>
+                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Marca</td>
+                                        <td>${order.equipamento.marca}</td>
+                                    </tr>
+                                ` : ''}
+                                ${order.equipamento?.modelo ? `
+                                    <tr>
+                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Modelo</td>
+                                        <td>${order.equipamento.modelo}</td>
+                                    </tr>
+                                ` : ''}
+                                ${order.equipamento?.serial ? `
+                                    <tr>
+                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Serial/IMEI</td>
+                                        <td>${order.equipamento.serial}</td>
+                                    </tr>
+                                ` : ''}
+                                ${order.acessorios ? `
+                                    <tr>
+                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Acessórios</td>
+                                        <td>${order.acessorios}</td>
+                                    </tr>
+                                ` : ''}
+                                ${!order.equipamento?.marca && !order.equipamento?.modelo && !order.equipamento?.serial && !order.acessorios ? `
+                                    <tr>
+                                        <td colspan="2" style="text-align: center; color: #666;">Nenhuma informação de equipamento</td>
+                                    </tr>
+                                ` : ''}
+                            </tbody>
+                        </table>
                     </div>
 
                     <!-- Defeitos -->
                     <div class="os-details-section" style="grid-column: 1 / -1;">
                         <h3>⚠️ Defeitos</h3>
-                        <div class="os-info-row">
-                            <div class="os-info-label">Relatado:</div>
-                            <div class="os-info-value">${order.defeitoRelatado}</div>
-                        </div>
-                        ${order.defeitoConstatado ? `
-                            <div class="os-info-row">
-                                <div class="os-info-label">Constatado:</div>
-                                <div class="os-info-value">${order.defeitoConstatado}</div>
-                            </div>
-                        ` : ''}
+                        <table class="os-items-table">
+                            <tbody>
+                                <tr>
+                                    <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Relatado</td>
+                                    <td>${order.defeitoRelatado}</td>
+                                </tr>
+                                ${order.defeitoConstatado ? `
+                                    <tr>
+                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Constatado</td>
+                                        <td>${order.defeitoConstatado}</td>
+                                    </tr>
+                                ` : ''}
+                            </tbody>
+                        </table>
                     </div>
 
-                    <!-- Valores -->
-                    <div class="os-details-section">
-                        <h3>💰 Valores e Prazos</h3>
-                        ${order.valorOrcado > 0 ? `
-                            <div class="os-info-row">
-                                <div class="os-info-label">Valor Orçado:</div>
-                                <div class="os-info-value">R$ ${order.valorOrcado.toFixed(2)}</div>
-                            </div>
-                        ` : ''}
-                        ${order.valorFinal > 0 ? `
-                            <div class="os-info-row">
-                                <div class="os-info-label">Valor Final:</div>
-                                <div class="os-info-value">R$ ${order.valorFinal.toFixed(2)}</div>
-                            </div>
-                        ` : ''}
-                        ${order.prazoEstimado ? `
-                            <div class="os-info-row">
-                                <div class="os-info-label">Prazo Estimado:</div>
-                                <div class="os-info-value">${new Date(order.prazoEstimado).toLocaleDateString('pt-BR')}</div>
-                            </div>
-                        ` : ''}
-                        <div class="os-info-row">
-                            <div class="os-info-label">Garantia:</div>
-                            <div class="os-info-value">${order.garantiaDias} dias</div>
-                        </div>
+                    <!-- Valores e Datas -->
+                    <div class="os-details-section" style="grid-column: 1 / -1;">
+                        <h3>💰 Valores, Prazos e Datas</h3>
+                        <table class="os-items-table">
+                            <tbody>
+                                ${order.valorOrcado > 0 ? `
+                                    <tr>
+                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Valor Orçado</td>
+                                        <td><strong>R$ ${order.valorOrcado.toFixed(2)}</strong></td>
+                                    </tr>
+                                ` : ''}
+                                ${order.valorFinal > 0 ? `
+                                    <tr>
+                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Valor Final</td>
+                                        <td><strong>R$ ${order.valorFinal.toFixed(2)}</strong></td>
+                                    </tr>
+                                ` : ''}
+                                <tr>
+                                    <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Garantia</td>
+                                    <td>${order.garantiaDias} dias</td>
+                                </tr>
+                                ${order.prazoEstimado ? `
+                                    <tr>
+                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Prazo Estimado</td>
+                                        <td>${new Date(order.prazoEstimado).toLocaleDateString('pt-BR')}</td>
+                                    </tr>
+                                ` : ''}
+                                <tr>
+                                    <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Data Entrada</td>
+                                    <td>${new Date(order.dataEntrada).toLocaleString('pt-BR')}</td>
+                                </tr>
+                                ${order.dataOrcamento ? `
+                                    <tr>
+                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Data Orçamento</td>
+                                        <td>${new Date(order.dataOrcamento).toLocaleString('pt-BR')}</td>
+                                    </tr>
+                                ` : ''}
+                                ${order.dataAprovacao ? `
+                                    <tr>
+                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Data Aprovação</td>
+                                        <td>${new Date(order.dataAprovacao).toLocaleString('pt-BR')}</td>
+                                    </tr>
+                                ` : ''}
+                                ${order.dataConclusao ? `
+                                    <tr>
+                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Data Conclusão</td>
+                                        <td>${new Date(order.dataConclusao).toLocaleString('pt-BR')}</td>
+                                    </tr>
+                                ` : ''}
+                                ${order.dataEntrega ? `
+                                    <tr>
+                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Data Entrega</td>
+                                        <td>${new Date(order.dataEntrega).toLocaleString('pt-BR')}</td>
+                                    </tr>
+                                ` : ''}
+                            </tbody>
+                        </table>
                     </div>
 
                     <!-- Responsáveis -->
-                    <div class="os-details-section">
-                        <h3>👥 Responsáveis</h3>
-                        ${order.tecnicoResponsavel ? `
-                            <div class="os-info-row">
-                                <div class="os-info-label">Técnico:</div>
-                                <div class="os-info-value">${order.tecnicoResponsavel.name}</div>
-                            </div>
-                        ` : ''}
-                        ${order.recebidoPor ? `
-                            <div class="os-info-row">
-                                <div class="os-info-label">Recebido por:</div>
-                                <div class="os-info-value">${order.recebidoPor.name}</div>
-                            </div>
-                        ` : ''}
-                    </div>
-
-                    <!-- Datas -->
                     <div class="os-details-section" style="grid-column: 1 / -1;">
-                        <h3>📅 Datas</h3>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                            <div class="os-info-row">
-                                <div class="os-info-label">Entrada:</div>
-                                <div class="os-info-value">${new Date(order.dataEntrada).toLocaleString('pt-BR')}</div>
-                            </div>
-                            ${order.dataOrcamento ? `
-                                <div class="os-info-row">
-                                    <div class="os-info-label">Orçamento:</div>
-                                    <div class="os-info-value">${new Date(order.dataOrcamento).toLocaleString('pt-BR')}</div>
-                                </div>
-                            ` : ''}
-                            ${order.dataAprovacao ? `
-                                <div class="os-info-row">
-                                    <div class="os-info-label">Aprovação:</div>
-                                    <div class="os-info-value">${new Date(order.dataAprovacao).toLocaleString('pt-BR')}</div>
-                                </div>
-                            ` : ''}
-                            ${order.dataConclusao ? `
-                                <div class="os-info-row">
-                                    <div class="os-info-label">Conclusão:</div>
-                                    <div class="os-info-value">${new Date(order.dataConclusao).toLocaleString('pt-BR')}</div>
-                                </div>
-                            ` : ''}
-                            ${order.dataEntrega ? `
-                                <div class="os-info-row">
-                                    <div class="os-info-label">Entrega:</div>
-                                    <div class="os-info-value">${new Date(order.dataEntrega).toLocaleString('pt-BR')}</div>
-                                </div>
-                            ` : ''}
-                        </div>
+                        <h3>👥 Responsáveis</h3>
+                        <table class="os-items-table">
+                            <tbody>
+                                ${order.tecnicoResponsavel ? `
+                                    <tr>
+                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Técnico Responsável</td>
+                                        <td>${order.tecnicoResponsavel.name}</td>
+                                    </tr>
+                                ` : ''}
+                                ${order.recebidoPor ? `
+                                    <tr>
+                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Recebido por</td>
+                                        <td>${order.recebidoPor.name}</td>
+                                    </tr>
+                                ` : ''}
+                                ${!order.tecnicoResponsavel && !order.recebidoPor ? `
+                                    <tr>
+                                        <td colspan="2" style="text-align: center; color: #666;">Nenhum responsável atribuído</td>
+                                    </tr>
+                                ` : ''}
+                            </tbody>
+                        </table>
                     </div>
 
                     <!-- Peças -->
@@ -848,6 +871,15 @@ class ServiceOrderManager {
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
+        // Prevenir fechamento ao clicar fora do modal
+        const modal = document.getElementById('newOSModal');
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        });
+
         document.getElementById('newOSForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             await this.handleCreateOS();
@@ -935,6 +967,15 @@ class ServiceOrderManager {
         `;
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Prevenir fechamento ao clicar fora do modal
+        const modal = document.getElementById('updateStatusModal');
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        });
 
         // Mostrar campos adicionais baseado no status
         document.getElementById('osNewStatus').addEventListener('change', (e) => {
@@ -1082,6 +1123,15 @@ class ServiceOrderManager {
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
+        // Prevenir fechamento ao clicar fora do modal
+        const modal = document.getElementById('addItemModal');
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        });
+
         document.getElementById('addItemForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             await this.handleAddItem(orderId);
@@ -1181,6 +1231,15 @@ class ServiceOrderManager {
         `;
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Prevenir fechamento ao clicar fora do modal
+        const modal = document.getElementById('addPaymentModal');
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        });
 
         document.getElementById('addPaymentForm').addEventListener('submit', async (e) => {
             e.preventDefault();
