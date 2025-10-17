@@ -748,18 +748,21 @@ class ServiceOrderManager {
         const newStatus = document.getElementById('osNewStatus').value;
         const data = { status: newStatus };
 
-        // Campos opcionais baseados no status
+        // Campos opcionais baseados no status (backend espera snake_case)
         const valorOrcado = document.getElementById('osValorOrcado')?.value;
-        if (valorOrcado) data.valorOrcado = parseFloat(valorOrcado);
+        if (valorOrcado) data.valor_orcado = parseFloat(valorOrcado);
 
         const prazoEstimado = document.getElementById('osPrazoEstimado')?.value;
-        if (prazoEstimado) data.prazoEstimado = prazoEstimado;
+        if (prazoEstimado) data.prazo_estimado = prazoEstimado;
 
         const defeitoConstatado = document.getElementById('osDefeitoConstatado')?.value;
-        if (defeitoConstatado) data.defeitoConstatado = defeitoConstatado;
+        if (defeitoConstatado) data.defeito_constatado = defeitoConstatado;
 
         const valorFinal = document.getElementById('osValorFinal')?.value;
-        if (valorFinal) data.valorFinal = parseFloat(valorFinal);
+        if (valorFinal) data.valor_final = parseFloat(valorFinal);
+
+        const tecnicoId = document.getElementById('osTecnicoId')?.value;
+        if (tecnicoId) data.tecnico_responsavel_id = parseInt(tecnicoId);
 
         try {
             await window.api.request(`/service-orders/${orderId}/status`, {
