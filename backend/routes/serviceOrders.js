@@ -114,6 +114,7 @@ router.get('/', authenticateToken, async (req, res) => {
         const countQuery = `
             SELECT COUNT(*) as total
             FROM service_orders so
+            LEFT JOIN customers c ON so.customer_id = c.id
             ${whereClause}
         `;
 
