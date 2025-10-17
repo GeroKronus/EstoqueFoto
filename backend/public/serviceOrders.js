@@ -512,10 +512,14 @@ class ServiceOrderManager {
 
         console.log('Clientes carregados:', this.customers.length);
         console.log('Usuários carregados:', this.users.length);
+        console.log('Dados dos clientes:', this.customers);
 
         const customerOptions = this.customers
             .filter(c => c.ativo)
-            .map(c => `<option value="${c.id}">${c.nomeFantasia || c.razaoSocial}</option>`)
+            .map(c => {
+                console.log('Cliente:', c.id, c.nomeFantasia, c.razaoSocial);
+                return `<option value="${c.id}">${c.nomeFantasia || c.razaoSocial}</option>`;
+            })
             .join('');
 
         const techOptions = this.users
