@@ -196,6 +196,12 @@ class ExitOrdersManager {
                         <div><strong>Itens:</strong> ${order.totalItems}</div>
                         <div><strong>Valor Total:</strong> R$ ${order.totalValue.toFixed(2)}</div>
                         <div><strong>Criado por:</strong> ${order.createdBy.name}</div>
+                        ${order.status === 'finalizada' && order.documentNumber ? `
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+                                <div><strong>📄 Documento Saída:</strong> ${order.documentNumber}</div>
+                                <div><strong>Finalizada em:</strong> ${this.formatDateTime(order.finalizedAt)}</div>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
                 <div class="exit-order-actions">
@@ -400,6 +406,12 @@ class ExitOrdersManager {
                     ${(order.customer?.razaoSocial || order.customerName) ? `<div><strong>Cliente:</strong> ${order.customer?.razaoSocial || order.customerName}</div>` : ''}
                     ${order.customerDocument ? `<div><strong>Doc:</strong> ${order.customerDocument}</div>` : ''}
                     ${order.notes ? `<div><strong>Obs:</strong> ${order.notes}</div>` : ''}
+                    ${order.status === 'finalizada' && order.documentNumber ? `
+                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+                            <div><strong>📄 Documento Saída:</strong> ${order.documentNumber}</div>
+                            <div><strong>Finalizada em:</strong> ${this.formatDateTime(order.finalizedAt)}</div>
+                        </div>
+                    ` : ''}
                 </div>
 
                 <table class="order-items-table">
@@ -1140,6 +1152,13 @@ class ExitOrdersManager {
                                     <strong>Cancelado em:</strong> ${this.formatDateTime(order.cancelledAt)}<br>
                                     <strong>Cancelado por:</strong> ${order.cancelledBy.name}<br>
                                     ${order.cancellationReason ? `<strong>Motivo:</strong> ${order.cancellationReason}` : ''}
+                                </div>
+                            ` : ''}
+
+                            ${order.status === 'finalizada' && order.documentNumber ? `
+                                <div class="finalization-info" style="margin-top: 15px; padding: 10px; background: #e8f5e9; border-left: 4px solid #4CAF50; border-radius: 4px;">
+                                    <strong>📄 Documento Saída:</strong> ${order.documentNumber}<br>
+                                    <strong>Finalizada em:</strong> ${this.formatDateTime(order.finalizedAt)}
                                 </div>
                             ` : ''}
 
