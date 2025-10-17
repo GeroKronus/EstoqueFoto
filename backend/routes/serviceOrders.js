@@ -23,6 +23,7 @@ router.get('/', authenticateToken, async (req, res) => {
             tecnico_id,
             date_from,
             date_to,
+            search,
             page = 1,
             limit = 50
         } = req.query;
@@ -59,6 +60,23 @@ router.get('/', authenticateToken, async (req, res) => {
             paramCount++;
             whereConditions.push(`so.data_entrada <= $${paramCount}`);
             queryParams.push(new Date(date_to + ' 23:59:59'));
+        }
+
+        // Busca por texto livre em múltiplos campos
+        if (search && search.trim()) {
+            paramCount++;
+            const searchPattern = `%${search.trim()}%`;
+            whereConditions.push(`(
+                so.numero_os ILIKE $${paramCount} OR
+                c.razao_social ILIKE $${paramCount} OR
+                c.nome_fantasia ILIKE $${paramCount} OR
+                so.defeito_relatado ILIKE $${paramCount} OR
+                so.defeito_constatado ILIKE $${paramCount} OR
+                so.equipamento_marca ILIKE $${paramCount} OR
+                so.equipamento_modelo ILIKE $${paramCount} OR
+                so.equipamento_serial ILIKE $${paramCount}
+            )`);
+            queryParams.push(searchPattern);
         }
 
         const whereClause = whereConditions.length > 0

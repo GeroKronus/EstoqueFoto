@@ -88,6 +88,11 @@ class ServiceOrderManager {
                                 </button>
                             </div>
                         </div>
+                        ${window.currentUser?.role === 'admin' ? `
+                            <button class="btn-new-os" style="background: #f44336; margin-left: 20px;" onclick="serviceOrderManager.showClearTestDataModal()" title="Limpar dados de teste">
+                                🗑️ Limpar Testes
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
                 <div id="serviceOrdersContent"></div>
