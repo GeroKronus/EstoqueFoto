@@ -533,6 +533,13 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
                 params.splice(-1, 0, valor_orcado);
             }
 
+            // Adicionar valor final se fornecido
+            if (valor_final !== undefined) {
+                paramCount++;
+                updateFields.push(`valor_final = $${paramCount}`);
+                params.splice(-1, 0, valor_final);
+            }
+
             // Adicionar prazo estimado se fornecido
             if (prazo_estimado !== undefined) {
                 paramCount++;
