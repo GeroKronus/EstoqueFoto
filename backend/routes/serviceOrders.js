@@ -564,10 +564,11 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
             }
 
             // Atualizar OS
+            // O id sempre é o último elemento do array params
             const updateQuery = `
                 UPDATE service_orders
                 SET ${updateFields.join(', ')}
-                WHERE id = $${paramCount + 1}
+                WHERE id = $${params.length}
                 RETURNING *
             `;
 
