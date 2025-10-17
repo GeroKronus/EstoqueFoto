@@ -491,84 +491,87 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
             const currentOS = currentResult.rows[0];
             const oldStatus = currentOS.status;
 
-            // Preparar campos para atualizar
+            // Preparar campos para atualizar - nova abordagem sem splice
             let updateFields = ['status = $1', 'updated_at = NOW()'];
-            let params = [status, id];
-            let paramCount = 2;
+            let params = [status];
+            let paramIndex = 1;
 
             // Adicionar data de orçamento se mudou para orcamento_pendente
             if (status === 'orcamento_pendente' && oldStatus !== 'orcamento_pendente') {
-                paramCount++;
-                updateFields.push(`data_orcamento = $${paramCount}`);
-                params.splice(-1, 0, new Date());
+                paramIndex++;
+                updateFields.push(`data_orcamento = $${paramIndex}`);
+                params.push(new Date());
             }
 
             // Adicionar data de aprovação se mudou para aprovado
             if (status === 'aprovado' && oldStatus !== 'aprovado') {
-                paramCount++;
-                updateFields.push(`data_aprovacao = $${paramCount}`);
-                params.splice(-1, 0, new Date());
+                paramIndex++;
+                updateFields.push(`data_aprovacao = $${paramIndex}`);
+                params.push(new Date());
             }
 
             // Adicionar data de conclusão se mudou para concluido
             if (status === 'concluido' && oldStatus !== 'concluido') {
-                paramCount++;
-                updateFields.push(`data_conclusao = $${paramCount}`);
-                params.splice(-1, 0, new Date());
+                paramIndex++;
+                updateFields.push(`data_conclusao = $${paramIndex}`);
+                params.push(new Date());
             }
 
             // Adicionar data de entrega se mudou para entregue
             if (status === 'entregue' && oldStatus !== 'entregue') {
-                paramCount++;
-                updateFields.push(`data_entrega = $${paramCount}`);
-                params.splice(-1, 0, new Date());
+                paramIndex++;
+                updateFields.push(`data_entrega = $${paramIndex}`);
+                params.push(new Date());
 
-                paramCount++;
-                updateFields.push(`entregue_por_id = $${paramCount}`);
-                params.splice(-1, 0, req.user.id);
+                paramIndex++;
+                updateFields.push(`entregue_por_id = $${paramIndex}`);
+                params.push(req.user.id);
             }
 
             // Adicionar defeito constatado se fornecido
             if (defeito_constatado !== undefined) {
-                paramCount++;
-                updateFields.push(`defeito_constatado = $${paramCount}`);
-                params.splice(-1, 0, defeito_constatado);
+                paramIndex++;
+                updateFields.push(`defeito_constatado = $${paramIndex}`);
+                params.push(defeito_constatado);
             }
 
             // Adicionar valor orçado se fornecido
             if (valor_orcado !== undefined) {
-                paramCount++;
-                updateFields.push(`valor_orcado = $${paramCount}`);
-                params.splice(-1, 0, valor_orcado);
+                paramIndex++;
+                updateFields.push(`valor_orcado = $${paramIndex}`);
+                params.push(valor_orcado);
             }
 
             // Adicionar valor final se fornecido
             if (valor_final !== undefined) {
-                paramCount++;
-                updateFields.push(`valor_final = $${paramCount}`);
-                params.splice(-1, 0, valor_final);
+                paramIndex++;
+                updateFields.push(`valor_final = $${paramIndex}`);
+                params.push(valor_final);
             }
 
             // Adicionar prazo estimado se fornecido
             if (prazo_estimado !== undefined) {
-                paramCount++;
-                updateFields.push(`prazo_estimado = $${paramCount}`);
-                params.splice(-1, 0, prazo_estimado);
+                paramIndex++;
+                updateFields.push(`prazo_estimado = $${paramIndex}`);
+                params.push(prazo_estimado);
             }
 
             // Adicionar técnico responsável se fornecido
             if (tecnico_responsavel_id !== undefined) {
-                paramCount++;
-                updateFields.push(`tecnico_responsavel_id = $${paramCount}`);
-                params.splice(-1, 0, tecnico_responsavel_id);
+                paramIndex++;
+                updateFields.push(`tecnico_responsavel_id = $${paramIndex}`);
+                params.push(tecnico_responsavel_id);
             }
 
+            // Adicionar o id por último
+            paramIndex++;
+            params.push(id);
+
             // Atualizar OS
-            // O id sempre é o último elemento do array params
             const updateQuery = `
                 UPDATE service_orders
                 SET ${updateFields.join(', ')}
-                WHERE id = $${params.length}
+                WHERE id = $${paramIndex}
                 RETURNING *
             `;
 
