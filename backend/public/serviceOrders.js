@@ -84,6 +84,12 @@ class ServiceOrderManager {
             const params = new URLSearchParams(filters);
             const response = await window.api.request(`/service-orders?${params}`);
             this.currentOrders = response.orders || [];
+            console.log('🔍 Debug - Ordens carregadas:', this.currentOrders);
+            if (this.currentOrders.length > 0) {
+                console.log('🔍 Debug - Primeira ordem:', this.currentOrders[0]);
+                console.log('🔍 Debug - Customer da primeira ordem:', this.currentOrders[0].customer);
+                console.log('🔍 Debug - Equipamento da primeira ordem:', this.currentOrders[0].equipamento);
+            }
             return this.currentOrders;
         } catch (error) {
             console.error('Erro ao carregar ordens de serviço:', error);
