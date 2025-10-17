@@ -41,6 +41,7 @@ class ExitOrdersManager {
                     <select id="exitOrderStatusFilter" onchange="exitOrdersManager.loadOrders()" style="flex: 1; min-width: 300px;">
                         <option value="">Todos os Status</option>
                         <option value="ativa">Ativas</option>
+                        <option value="finalizada">Finalizadas</option>
                         <option value="cancelada">Canceladas</option>
                         <option value="condicional">Condicionais (c/ itens para devolução)</option>
                     </select>
@@ -125,18 +126,20 @@ class ExitOrdersManager {
 
         // Filtrar ordens baseado no texto de busca
         this.currentOrders = this.allOrders.filter(order => {
-            // Buscar em: motivo, cliente, destino, criado por e equipamentos
+            // Buscar em: motivo, cliente, destino, criado por, equipamentos e número do documento
             const reason = this.translateReason(order.reason).toLowerCase();
             const customer = (order.customer?.razaoSocial || order.customerName || '').toLowerCase();
             const destination = (order.destination || '').toLowerCase();
             const createdBy = (order.createdBy?.name || '').toLowerCase();
             const equipmentNames = (order.equipmentNames || '').toLowerCase();
+            const documentNumber = (order.documentNumber || '').toLowerCase();
 
             return reason.includes(searchText) ||
                    customer.includes(searchText) ||
                    destination.includes(searchText) ||
                    createdBy.includes(searchText) ||
-                   equipmentNames.includes(searchText);
+                   equipmentNames.includes(searchText) ||
+                   documentNumber.includes(searchText);
         });
 
         this.renderOrdersList(this.currentOrders);
@@ -257,6 +260,9 @@ class ExitOrdersManager {
                 <td>${order.createdBy.name}</td>
                 <td class="actions-cell-compact">
                     ${order.status === 'ativa' ? `
+                        <button class="btn-icon" onclick="exitOrdersManager.finalizeOrder('${order.id}')" title="Finalizar ordem">
+                            ✅
+                        </button>
                         <button class="btn-icon" onclick="exitOrdersManager.cancelOrder('${order.id}')" title="Cancelar ordem">
                             ❌
                         </button>
@@ -401,6 +407,7 @@ class ExitOrdersManager {
                         <tr>
                             <th>Equipamento</th>
                             <th style="width: 200px;">Quantidade</th>
+                            <th style="width: 180px;">Documento</th>
                             <th>Custo Unit.</th>
                             <th>Total</th>
                             ${isEditable ? '<th style="width: 100px;">Condicional</th>' : ''}
@@ -434,6 +441,18 @@ class ExitOrdersManager {
                             />
                             <span class="item-unit">${item.unit}</span>
                         ` : `${item.quantity} ${item.unit}`}
+                    </td>
+                    <td>
+                        ${isEditable ? `
+                            <input
+                                type="text"
+                                id="inline-doc-${item.id}"
+                                value="${item.document || ''}"
+                                placeholder="NF, Doc..."
+                                class="inline-edit-input"
+                                style="width: 160px;"
+                            />
+                        ` : `${item.document || '-'}`}
                     </td>
                     <td>R$ ${item.unitCost.toFixed(2)}</td>
                     <td><strong>R$ ${item.totalCost.toFixed(2)}</strong></td>
@@ -484,6 +503,7 @@ class ExitOrdersManager {
                             <td><strong>TOTAL</strong></td>
                             <td><strong>${order.items.length} itens</strong></td>
                             <td></td>
+                            <td></td>
                             <td><strong>R$ ${totalValue.toFixed(2)}</strong></td>
                             ${isEditable ? '<td></td><td></td>' : ''}
                         </tr>
@@ -497,8 +517,11 @@ class ExitOrdersManager {
 
     // Salvar edição inline
     async saveInlineEdit(orderId, itemId) {
-        const input = document.getElementById(`inline-qty-${itemId}`);
-        const newQuantity = parseFloat(input.value);
+        const qtyInput = document.getElementById(`inline-qty-${itemId}`);
+        const docInput = document.getElementById(`inline-doc-${itemId}`);
+
+        const newQuantity = parseFloat(qtyInput.value);
+        const newDocument = docInput ? docInput.value.trim() : '';
 
         if (isNaN(newQuantity) || newQuantity < 0) {
             window.notify.warning('Quantidade inválida');
@@ -506,8 +529,15 @@ class ExitOrdersManager {
         }
 
         try {
-            const response = await window.api.updateExitOrderItem(orderId, itemId, newQuantity);
-            window.notify.success(response.message);
+            // Atualizar quantidade
+            const qtyResponse = await window.api.updateExitOrderItem(orderId, itemId, newQuantity);
+
+            // Atualizar documento (se o campo existir)
+            if (docInput) {
+                await window.api.updateExitOrderItemDocument(orderId, itemId, newDocument);
+            }
+
+            window.notify.success(qtyResponse.message);
 
             // Recarregar detalhes da ordem (mantém expandida)
             await this.loadOrderDetails(orderId);
@@ -1388,6 +1418,40 @@ class ExitOrdersManager {
     async cancelOrderFromView(orderId) {
         this.closeViewOrderModal();
         await this.cancelOrder(orderId);
+    }
+
+    // Finalizar ordem
+    async finalizeOrder(orderId) {
+        const confirmed = await window.notify.confirm({
+            title: 'Finalizar Ordem de Saída',
+            message: 'Tem certeza que deseja finalizar esta ordem?\n\nApós finalizar, a ordem não poderá mais ser editada.',
+            type: 'info',
+            confirmText: 'Finalizar',
+            cancelText: 'Cancelar'
+        });
+
+        if (!confirmed) return;
+
+        // Pedir número do documento
+        const documentNumber = prompt('Número do documento fiscal (NF, etc):');
+
+        if (!documentNumber || !documentNumber.trim()) {
+            window.notify.warning('Número do documento é obrigatório para finalizar a ordem');
+            return;
+        }
+
+        try {
+            await window.api.finalizeExitOrder(orderId, documentNumber.trim());
+
+            // Recarregar ordens
+            this.loadOrders();
+
+            window.notify.success('Ordem finalizada com sucesso!');
+
+        } catch (error) {
+            console.error('Erro ao finalizar ordem:', error);
+            window.notify.error('Erro ao finalizar ordem: ' + error.message);
+        }
     }
 
     // Helpers

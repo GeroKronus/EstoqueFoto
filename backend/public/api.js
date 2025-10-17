@@ -264,6 +264,20 @@ class ApiService {
         return this.request(`${CONFIG.ENDPOINTS.EXIT_ORDERS}/conditional/summary`);
     }
 
+    async updateExitOrderItemDocument(orderId, itemId, document) {
+        return this.request(`${CONFIG.ENDPOINTS.EXIT_ORDERS}/${orderId}/items/${itemId}/document`, {
+            method: 'PATCH',
+            body: JSON.stringify({ document })
+        });
+    }
+
+    async finalizeExitOrder(id, documentNumber) {
+        return this.request(`${CONFIG.ENDPOINTS.EXIT_ORDERS}/${id}/finalize`, {
+            method: 'POST',
+            body: JSON.stringify({ documentNumber })
+        });
+    }
+
     // === CLIENTES ===
     async getCustomers(params = {}) {
         const queryString = new URLSearchParams(params).toString();

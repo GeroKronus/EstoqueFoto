@@ -2419,6 +2419,11 @@ header {
     color: #4CAF50;
 }
 
+.status-badge.status-finalizada {
+    background: #e3f2fd;
+    color: #2196F3;
+}
+
 .status-badge.status-cancelada {
     background: #ffebee;
     color: #f44336;

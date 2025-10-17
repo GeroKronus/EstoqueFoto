@@ -115,6 +115,7 @@ router.get('/', authenticateToken, async (req, res) => {
             totalItems: parseInt(row.total_items),
             totalValue: parseFloat(row.total_value) || 0,
             equipmentNames: row.equipment_names || '',
+            documentNumber: row.document_number,
             createdBy: {
                 id: row.created_by,
                 name: row.created_by_name
@@ -126,6 +127,8 @@ router.get('/', authenticateToken, async (req, res) => {
                 name: row.cancelled_by_name
             } : null,
             cancellationReason: row.cancellation_reason,
+            finalizedAt: row.finalized_at,
+            finalizedBy: row.finalized_by,
             customer: row.customer_id ? {
                 id: row.customer_id,
                 razaoSocial: row.customer_razao_social,
@@ -269,6 +272,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
             status: row.status,
             totalItems: parseInt(row.total_items),
             totalValue: parseFloat(row.total_value) || 0,
+            documentNumber: row.document_number,
             createdBy: {
                 id: row.created_by,
                 name: row.created_by_name
@@ -280,6 +284,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
                 name: row.cancelled_by_name
             } : null,
             cancellationReason: row.cancellation_reason,
+            finalizedAt: row.finalized_at,
+            finalizedBy: row.finalized_by,
             customer: row.customer_id ? {
                 id: row.customer_id,
                 razaoSocial: row.customer_razao_social,
@@ -298,6 +304,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
                 isModified: item.is_modified || false,
                 isConditional: item.is_conditional || false,
                 originalQuantity: item.original_quantity ? parseFloat(item.original_quantity) : null,
+                document: item.document,
                 createdAt: item.created_at
             }))
         };
@@ -1042,6 +1049,133 @@ router.delete('/:orderId/items/:itemId', authenticateToken, async (req, res) => 
     } catch (error) {
         console.error('Erro ao excluir item da ordem:', error);
         res.status(400).json({ error: error.message || 'Erro ao excluir item' });
+    }
+});
+
+// PATCH /api/exit-orders/:orderId/items/:itemId/document - Atualizar documento de um item
+router.patch('/:orderId/items/:itemId/document', authenticateToken, async (req, res) => {
+    try {
+        const { orderId, itemId } = req.params;
+        const { document } = req.body;
+
+        const result = await transaction(async (client) => {
+            // Buscar ordem
+            const orderResult = await client.query(
+                'SELECT * FROM exit_orders WHERE id = $1',
+                [orderId]
+            );
+
+            if (orderResult.rows.length === 0) {
+                throw new Error('Ordem de saída não encontrada');
+            }
+
+            const order = orderResult.rows[0];
+
+            if (order.status !== 'ativa') {
+                throw new Error('Apenas ordens ativas podem ser editadas');
+            }
+
+            // Buscar item da ordem
+            const itemResult = await client.query(
+                'SELECT * FROM exit_order_items WHERE id = $1 AND exit_order_id = $2',
+                [itemId, orderId]
+            );
+
+            if (itemResult.rows.length === 0) {
+                throw new Error('Item não encontrado nesta ordem');
+            }
+
+            // Atualizar documento do item
+            await client.query(`
+                UPDATE exit_order_items
+                SET document = $1
+                WHERE id = $2
+            `, [document || null, itemId]);
+
+            // Buscar item atualizado
+            const updatedItemResult = await client.query(
+                'SELECT * FROM exit_order_items WHERE id = $1',
+                [itemId]
+            );
+
+            return updatedItemResult.rows[0];
+        });
+
+        res.json({
+            message: 'Documento do item atualizado com sucesso',
+            item: {
+                id: result.id,
+                equipmentName: result.equipment_name,
+                document: result.document
+            }
+        });
+
+    } catch (error) {
+        console.error('Erro ao atualizar documento do item:', error);
+        res.status(400).json({ error: error.message || 'Erro ao atualizar documento' });
+    }
+});
+
+// POST /api/exit-orders/:id/finalize - Finalizar ordem de saída
+router.post('/:id/finalize', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { documentNumber } = req.body;
+
+        if (!documentNumber || !documentNumber.trim()) {
+            return res.status(400).json({ error: 'Número do documento é obrigatório' });
+        }
+
+        const result = await transaction(async (client) => {
+            // Buscar ordem
+            const orderResult = await client.query(
+                'SELECT * FROM exit_orders WHERE id = $1',
+                [id]
+            );
+
+            if (orderResult.rows.length === 0) {
+                throw new Error('Ordem de saída não encontrada');
+            }
+
+            const order = orderResult.rows[0];
+
+            if (order.status === 'finalizada') {
+                throw new Error('Ordem já está finalizada');
+            }
+
+            if (order.status === 'cancelada') {
+                throw new Error('Ordem cancelada não pode ser finalizada');
+            }
+
+            // Marcar ordem como finalizada
+            const finalizeResult = await client.query(`
+                UPDATE exit_orders
+                SET
+                    status = 'finalizada',
+                    finalized_at = NOW(),
+                    finalized_by = $1,
+                    document_number = $2
+                WHERE id = $3
+                RETURNING *
+            `, [req.user.id, documentNumber.trim(), id]);
+
+            return finalizeResult.rows[0];
+        });
+
+        res.json({
+            message: `Ordem de saída #${result.order_number} finalizada com sucesso`,
+            order: {
+                id: result.id,
+                orderNumber: result.order_number,
+                status: result.status,
+                finalizedAt: result.finalized_at,
+                documentNumber: result.document_number
+            }
+        });
+
+    } catch (error) {
+        console.error('Erro ao finalizar ordem de saída:', error);
+        res.status(400).json({ error: error.message || 'Erro ao finalizar ordem de saída' });
     }
 });
 
