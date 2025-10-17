@@ -447,7 +447,7 @@ router.post('/', authenticateToken, async (req, res) => {
 router.patch('/:id/status', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, defeito_constatado, valor_orcado, prazo_estimado, tecnico_responsavel_id } = req.body;
+        const { status, defeito_constatado, valor_orcado, valor_final, prazo_estimado, tecnico_responsavel_id } = req.body;
 
         if (!status) {
             return res.status(400).json({ error: 'Status é obrigatório' });
