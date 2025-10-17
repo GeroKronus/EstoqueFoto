@@ -989,6 +989,37 @@ Carregando sistema...`);
             await this.handleChangePassword();
         });
 
+        // Configurar navegação entre seções
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const section = e.target.getAttribute('data-section');
+
+                // Remover active de todos os botões e seções
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+
+                // Adicionar active ao botão clicado e seção correspondente
+                e.target.classList.add('active');
+                const sectionEl = document.getElementById(`${section}-section`);
+                if (sectionEl) {
+                    sectionEl.classList.add('active');
+                }
+
+                // Se for seção de ordens de serviço, reinicializar
+                if (section === 'service-orders' && window.serviceOrderManager) {
+                    console.log('Recarregando ordens de serviço...');
+                    window.serviceOrderManager.loadOrders().then(() => {
+                        window.serviceOrderManager.renderOrdersList();
+                    });
+                }
+
+                // Se for seção de clientes, carregar clientes
+                if (section === 'customers' && typeof loadCustomers === 'function') {
+                    loadCustomers();
+                }
+            });
+        });
+
         // Inicializar Service Orders Manager
         setTimeout(() => {
             console.log('🔧 Inicializando ServiceOrderManager...');

@@ -703,10 +703,10 @@ class ServiceOrderManager {
 
         const activeCustomers = this.customers.filter(c => c.ativo);
         console.log('[showNewOSModal] Clientes ativos:', activeCustomers.length);
-        console.log('[showNewOSModal] Primeiros 3 clientes:', activeCustomers.slice(0, 3).map(c => ({ id: c.id, nome: c.nome_fantasia || c.razao_social })));
+        console.log('[showNewOSModal] Primeiros 3 clientes:', activeCustomers.slice(0, 3).map(c => ({ id: c.id, nome: c.razao_social })));
 
         const customerOptions = activeCustomers
-            .map(c => `<option value="${c.id}">${c.nome_fantasia || c.razao_social}</option>`)
+            .map(c => `<option value="${c.id}">${c.razao_social}</option>`)
             .join('');
 
         console.log('[showNewOSModal] customerOptions length:', customerOptions.length);
