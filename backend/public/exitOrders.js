@@ -407,7 +407,6 @@ class ExitOrdersManager {
                         <tr>
                             <th>Equipamento</th>
                             <th style="width: 200px;">Quantidade</th>
-                            <th style="width: 180px;">Documento</th>
                             <th>Custo Unit.</th>
                             <th>Total</th>
                             ${isEditable ? '<th style="width: 100px;">Condicional</th>' : ''}
@@ -441,18 +440,6 @@ class ExitOrdersManager {
                             />
                             <span class="item-unit">${item.unit}</span>
                         ` : `${item.quantity} ${item.unit}`}
-                    </td>
-                    <td>
-                        ${isEditable ? `
-                            <input
-                                type="text"
-                                id="inline-doc-${item.id}"
-                                value="${item.document || ''}"
-                                placeholder="NF, Doc..."
-                                class="inline-edit-input"
-                                style="width: 160px;"
-                            />
-                        ` : `${item.document || '-'}`}
                     </td>
                     <td>R$ ${item.unitCost.toFixed(2)}</td>
                     <td><strong>R$ ${item.totalCost.toFixed(2)}</strong></td>
@@ -503,7 +490,6 @@ class ExitOrdersManager {
                             <td><strong>TOTAL</strong></td>
                             <td><strong>${order.items.length} itens</strong></td>
                             <td></td>
-                            <td></td>
                             <td><strong>R$ ${totalValue.toFixed(2)}</strong></td>
                             ${isEditable ? '<td></td><td></td>' : ''}
                         </tr>
@@ -518,10 +504,8 @@ class ExitOrdersManager {
     // Salvar edição inline
     async saveInlineEdit(orderId, itemId) {
         const qtyInput = document.getElementById(`inline-qty-${itemId}`);
-        const docInput = document.getElementById(`inline-doc-${itemId}`);
 
         const newQuantity = parseFloat(qtyInput.value);
-        const newDocument = docInput ? docInput.value.trim() : '';
 
         if (isNaN(newQuantity) || newQuantity < 0) {
             window.notify.warning('Quantidade inválida');
@@ -531,11 +515,6 @@ class ExitOrdersManager {
         try {
             // Atualizar quantidade
             const qtyResponse = await window.api.updateExitOrderItem(orderId, itemId, newQuantity);
-
-            // Atualizar documento (se o campo existir)
-            if (docInput) {
-                await window.api.updateExitOrderItemDocument(orderId, itemId, newDocument);
-            }
 
             window.notify.success(qtyResponse.message);
 

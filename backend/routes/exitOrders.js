@@ -304,7 +304,6 @@ router.get('/:id', authenticateToken, async (req, res) => {
                 isModified: item.is_modified || false,
                 isConditional: item.is_conditional || false,
                 originalQuantity: item.original_quantity ? parseFloat(item.original_quantity) : null,
-                document: item.document,
                 createdAt: item.created_at
             }))
         };
@@ -1049,70 +1048,6 @@ router.delete('/:orderId/items/:itemId', authenticateToken, async (req, res) => 
     } catch (error) {
         console.error('Erro ao excluir item da ordem:', error);
         res.status(400).json({ error: error.message || 'Erro ao excluir item' });
-    }
-});
-
-// PATCH /api/exit-orders/:orderId/items/:itemId/document - Atualizar documento de um item
-router.patch('/:orderId/items/:itemId/document', authenticateToken, async (req, res) => {
-    try {
-        const { orderId, itemId } = req.params;
-        const { document } = req.body;
-
-        const result = await transaction(async (client) => {
-            // Buscar ordem
-            const orderResult = await client.query(
-                'SELECT * FROM exit_orders WHERE id = $1',
-                [orderId]
-            );
-
-            if (orderResult.rows.length === 0) {
-                throw new Error('Ordem de saída não encontrada');
-            }
-
-            const order = orderResult.rows[0];
-
-            if (order.status !== 'ativa') {
-                throw new Error('Apenas ordens ativas podem ser editadas');
-            }
-
-            // Buscar item da ordem
-            const itemResult = await client.query(
-                'SELECT * FROM exit_order_items WHERE id = $1 AND exit_order_id = $2',
-                [itemId, orderId]
-            );
-
-            if (itemResult.rows.length === 0) {
-                throw new Error('Item não encontrado nesta ordem');
-            }
-
-            // Atualizar documento do item
-            await client.query(`
-                UPDATE exit_order_items
-                SET document = $1
-                WHERE id = $2
-            `, [document || null, itemId]);
-
-            // Buscar item atualizado
-            const updatedItemResult = await client.query(
-                'SELECT * FROM exit_order_items WHERE id = $1',
-                [itemId]
-            );
-
-            return updatedItemResult.rows[0];
-        });
-
-        res.json({
-            message: 'Documento do item atualizado com sucesso',
-            item: {
-                id: result.id,
-                equipmentName: result.equipment_name,
-                document: result.document
-            }
-        });
-
-    } catch (error) {
-        console.error('Erro ao atualizar documento do item:', error);
-        res.status(400).json({ error: error.message || 'Erro ao atualizar documento' });
     }
 });
 
