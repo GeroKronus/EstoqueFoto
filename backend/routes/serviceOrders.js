@@ -579,7 +579,7 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
             console.log('========== DEBUG QUERY ==========');
             console.log('Update Fields:', updateFields);
             console.log('Params:', params);
-            console.log('ParamCount:', paramCount);
+            console.log('ParamIndex:', paramIndex);
             console.log('Query:', updateQuery);
             console.log('=================================');
 
