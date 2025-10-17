@@ -384,6 +384,7 @@ Carregando sistema...`);
                     <div class="transaction-controls">
                         <h2>Histórico de Movimentações</h2>
                         <div class="date-filters">
+                            <input type="text" id="searchTransaction" placeholder="🔍 Buscar por usuário ou produto..." oninput="filterTransactions()">
                             <input type="date" id="dateFrom" placeholder="Data inicial" onchange="filterTransactions()">
                             <input type="date" id="dateTo" placeholder="Data final" onchange="filterTransactions()">
                             <select id="transactionType" onchange="filterTransactions()">

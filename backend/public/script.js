@@ -91,7 +91,8 @@ class PhotoInventoryManager {
                     destination: t.destination || '',
                     notes: t.notes || '',
                     timestamp: t.createdAt,
-                    customer: t.customer || null
+                    customer: t.customer || null,
+                    createdBy: t.createdBy || null
                 }));
             }
             return [];
@@ -1194,12 +1195,22 @@ function toggleTransactionViewMode() {
 function filterTransactions() {
     if (!window.photoInventory) return;
 
+    const searchText = document.getElementById('searchTransaction')?.value?.toLowerCase() || '';
     const dateFrom = document.getElementById('dateFrom')?.value;
     const dateTo = document.getElementById('dateTo')?.value;
     const transactionType = document.getElementById('transactionType')?.value;
 
     // Filtrar transações
     let filteredTransactions = [...window.photoInventory.transactions];
+
+    // Filtro por busca (usuário ou produto)
+    if (searchText) {
+        filteredTransactions = filteredTransactions.filter(t => {
+            const itemName = (t.itemName || '').toLowerCase();
+            const userName = (t.createdBy?.name || '').toLowerCase();
+            return itemName.includes(searchText) || userName.includes(searchText);
+        });
+    }
 
     // Filtro por tipo
     if (transactionType) {
@@ -1284,9 +1295,10 @@ function renderTransactionsCards(transactions) {
                     <div>Quantidade: ${transaction.quantity} ${transaction.unit}</div>
                     <div>Valor unitário: R$ ${transaction.cost.toFixed(2)}</div>
                     <div>Valor total: R$ ${transaction.totalCost.toFixed(2)}</div>
+                    ${transaction.createdBy ? `<div>👤 Usuário: ${transaction.createdBy.name}</div>` : ''}
                     ${transaction.supplier ? `<div>Fornecedor: ${transaction.supplier}</div>` : ''}
                     ${transaction.reason ? `<div>Motivo: ${transaction.reason}</div>` : ''}
-                    ${transaction.customer ? `<div>👤 Cliente: ${transaction.customer.nomeFantasia || transaction.customer.razaoSocial}</div>` : ''}
+                    ${transaction.customer ? `<div>🏢 Cliente: ${transaction.customer.nomeFantasia || transaction.customer.razaoSocial}</div>` : ''}
                     ${transaction.destination ? `<div>Destino: ${transaction.destination}</div>` : ''}
                     ${transaction.notes ? `<div>Observações: ${transaction.notes}</div>` : ''}
                 </div>
@@ -1333,9 +1345,10 @@ function renderTransactionsTable(transactions) {
                 }
 
                 let details = [];
+                if (transaction.createdBy) details.push(`👤 ${transaction.createdBy.name}`);
                 if (transaction.supplier) details.push(`Fornecedor: ${transaction.supplier}`);
                 if (transaction.reason) details.push(`Motivo: ${transaction.reason}`);
-                if (transaction.customer) details.push(`👤 Cliente: ${transaction.customer.nomeFantasia || transaction.customer.razaoSocial}`);
+                if (transaction.customer) details.push(`🏢 Cliente: ${transaction.customer.nomeFantasia || transaction.customer.razaoSocial}`);
                 if (transaction.destination) details.push(`Destino: ${transaction.destination}`);
                 if (transaction.notes) details.push(`Obs: ${transaction.notes}`);
                 const detailsText = details.join(' | ');
