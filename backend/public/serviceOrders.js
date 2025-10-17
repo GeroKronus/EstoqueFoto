@@ -73,13 +73,13 @@ class ServiceOrderManager {
                         <button class="btn-new-os" onclick="serviceOrderManager.showNewOSModal().catch(e => console.error(e))">
                             ➕ Nova OS
                         </button>
-                        <div style="display: flex; align-items: center; gap: 10px; margin-left: 20px;">
-                            <span style="font-weight: 500; color: #666;">Visualização:</span>
-                            <div class="view-toggle">
-                                <button class="view-btn ${this.viewMode === 'cards' ? 'active' : ''}" onclick="serviceOrderManager.toggleView('cards')">
+                        <div class="view-mode-toggle">
+                            <label>Visualização:</label>
+                            <div class="toggle-buttons">
+                                <button class="toggle-btn ${this.viewMode === 'cards' ? 'active' : ''}" onclick="serviceOrderManager.toggleView('cards')" title="Visualização em Cards">
                                     🔲 Cards
                                 </button>
-                                <button class="view-btn ${this.viewMode === 'table' ? 'active' : ''}" onclick="serviceOrderManager.toggleView('table')">
+                                <button class="toggle-btn ${this.viewMode === 'table' ? 'active' : ''}" onclick="serviceOrderManager.toggleView('table')" title="Visualização em Tabela">
                                     📋 Tabela
                                 </button>
                             </div>

@@ -3696,41 +3696,8 @@ header {
 }
 
 /* ========== SERVICE ORDERS - View Toggle (Mesmo padrão do Estoque) ========== */
-.view-toggle {
-    display: flex;
-    gap: 0;
-}
-
-.view-btn {
-    background: #e0e0e0;
-    color: #666;
-    border: none;
-    padding: 8px 16px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.view-btn:first-child {
-    border-radius: 5px 0 0 5px;
-}
-
-.view-btn:last-child {
-    border-radius: 0 5px 5px 0;
-}
-
-.view-btn:hover {
-    background: #d0d0d0;
-}
-
-.view-btn.active {
-    background: #4CAF50;
-    color: white;
-}
+/* As classes .view-mode-toggle, .toggle-buttons e .toggle-btn já existem no sistema
+   e são usadas pelo módulo de Estoque, então não precisam ser redefinidas aqui */
 
 /* ========== SERVICE ORDERS - Table View ========== */
 .table-container {
