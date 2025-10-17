@@ -59,7 +59,7 @@ class ServiceOrderManager {
             <div class="os-container">
                 <div class="os-header">
                     <div>
-                        <h2>🔧 Ordens de Serviço</h2>
+                        <h2 onclick="serviceOrderManager.backToList()" style="cursor: pointer; user-select: none;" title="Voltar para lista de ordens">🔧 Ordens de Serviço</h2>
                     </div>
                     <div class="os-filters">
                         <input type="text" id="osSearchInput" placeholder="🔍 Buscar por OS, cliente, equipamento ou defeito..." oninput="serviceOrderManager.handleSearch()">
