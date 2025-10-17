@@ -75,7 +75,12 @@ router.get('/', authenticateToken, async (req, res) => {
                 u.name as created_by_name,
                 uc.name as cancelled_by_name,
                 cust.razao_social as customer_razao_social,
-                cust.nome_fantasia as customer_nome_fantasia
+                cust.nome_fantasia as customer_nome_fantasia,
+                (
+                    SELECT STRING_AGG(DISTINCT eoi2.equipment_name, ', ')
+                    FROM exit_order_items eoi2
+                    WHERE eoi2.exit_order_id = eo.id
+                ) as equipment_names
             FROM exit_orders eo
             ${joinConditionalItems ? 'INNER JOIN exit_order_items eoi ON eo.id = eoi.exit_order_id' : ''}
             LEFT JOIN users u ON eo.created_by = u.id
@@ -109,6 +114,7 @@ router.get('/', authenticateToken, async (req, res) => {
             status: row.status,
             totalItems: parseInt(row.total_items),
             totalValue: parseFloat(row.total_value) || 0,
+            equipmentNames: row.equipment_names || '',
             createdBy: {
                 id: row.created_by,
                 name: row.created_by_name

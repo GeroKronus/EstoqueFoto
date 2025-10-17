@@ -34,9 +34,9 @@ class ExitOrdersManager {
                     <input
                         type="text"
                         id="exitOrderSearchFilter"
-                        placeholder="🔍 Buscar..."
+                        placeholder="🔍 Buscar por cliente, equipamento, etc..."
                         oninput="exitOrdersManager.applyFilters()"
-                        style="width: 200px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;"
+                        style="width: 300px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;"
                     >
                     <select id="exitOrderStatusFilter" onchange="exitOrdersManager.loadOrders()" style="flex: 1; min-width: 300px;">
                         <option value="">Todos os Status</option>
@@ -125,16 +125,18 @@ class ExitOrdersManager {
 
         // Filtrar ordens baseado no texto de busca
         this.currentOrders = this.allOrders.filter(order => {
-            // Buscar em: motivo, cliente, destino e criado por
+            // Buscar em: motivo, cliente, destino, criado por e equipamentos
             const reason = this.translateReason(order.reason).toLowerCase();
             const customer = (order.customer?.razaoSocial || order.customerName || '').toLowerCase();
             const destination = (order.destination || '').toLowerCase();
             const createdBy = (order.createdBy?.name || '').toLowerCase();
+            const equipmentNames = (order.equipmentNames || '').toLowerCase();
 
             return reason.includes(searchText) ||
                    customer.includes(searchText) ||
                    destination.includes(searchText) ||
-                   createdBy.includes(searchText);
+                   createdBy.includes(searchText) ||
+                   equipmentNames.includes(searchText);
         });
 
         this.renderOrdersList(this.currentOrders);
