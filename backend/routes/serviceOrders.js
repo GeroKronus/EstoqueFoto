@@ -839,23 +839,17 @@ router.delete('/test-data', authenticateToken, async (req, res) => {
         }
 
         const result = await transaction(async (client) => {
-            // Buscar todas as OSs de teste
-            const testOSResult = await client.query(`
+            // Buscar TODAS as OSs
+            const allOSResult = await client.query(`
                 SELECT so.id, so.numero_os
                 FROM service_orders so
-                LEFT JOIN customers c ON so.customer_id = c.id
-                WHERE
-                    so.numero_os ILIKE '%TESTE%' OR
-                    c.razao_social ILIKE '%TESTE%' OR
-                    c.nome_fantasia ILIKE '%TESTE%' OR
-                    so.defeito_relatado ILIKE '%TESTE%'
             `);
 
-            const testOSIds = testOSResult.rows.map(row => row.id);
-            const deletedCount = testOSIds.length;
+            const allOSIds = allOSResult.rows.map(row => row.id);
+            const deletedCount = allOSIds.length;
 
             if (deletedCount === 0) {
-                return { deletedCount: 0, message: 'Nenhuma ordem de serviço de teste encontrada' };
+                return { deletedCount: 0, message: 'Nenhuma ordem de serviço encontrada' };
             }
 
             // Deletar em cascata (histórico, itens e pagamentos serão deletados automaticamente se houver ON DELETE CASCADE)
@@ -865,32 +859,32 @@ router.delete('/test-data', authenticateToken, async (req, res) => {
             await client.query(`
                 DELETE FROM service_order_history
                 WHERE service_order_id = ANY($1)
-            `, [testOSIds]);
+            `, [allOSIds]);
 
             // Deletar itens
             await client.query(`
                 DELETE FROM service_order_items
                 WHERE service_order_id = ANY($1)
-            `, [testOSIds]);
+            `, [allOSIds]);
 
             // Deletar pagamentos
             await client.query(`
                 DELETE FROM service_order_payments
                 WHERE service_order_id = ANY($1)
-            `, [testOSIds]);
+            `, [allOSIds]);
 
             // Deletar as OSs
             await client.query(`
                 DELETE FROM service_orders
                 WHERE id = ANY($1)
-            `, [testOSIds]);
+            `, [allOSIds]);
 
-            console.log(`[ADMIN] ${req.user.name} deletou ${deletedCount} OSs de teste:`, testOSResult.rows.map(r => r.numero_os));
+            console.log(`[ADMIN] ${req.user.name} deletou ${deletedCount} OSs:`, allOSResult.rows.map(r => r.numero_os));
 
             return {
                 deletedCount,
-                message: `${deletedCount} ordem(ns) de serviço de teste deletada(s) com sucesso`,
-                deletedOS: testOSResult.rows.map(r => r.numero_os)
+                message: `${deletedCount} ordem(ns) de serviço deletada(s) com sucesso`,
+                deletedOS: allOSResult.rows.map(r => r.numero_os)
             };
         });
 
