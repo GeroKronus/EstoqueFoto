@@ -478,293 +478,196 @@ class ServiceOrderManager {
 
         container.innerHTML = `
             <div class="os-details">
-                <div class="os-details-header">
-                    <div class="os-details-title">
-                        <h2>${order.numeroOS}</h2>
+                <!-- CABEÇALHO COMPACTO -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background: white; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div style="display: flex; align-items: center; gap: 20px;">
+                        <button onclick="serviceOrderManager.backToList()" class="btn-os-action btn-os-back" style="padding: 8px 16px;">← Voltar</button>
+                        <h2 style="margin: 0;">${order.numeroOS}</h2>
                         <div class="os-status status-${order.status}">${statusLabel}</div>
                     </div>
-                    <div class="os-actions">
-                        <button onclick="serviceOrderManager.backToList()" class="btn-os-action btn-os-back">← Voltar</button>
-                        <button onclick="serviceOrderManager.showUpdateStatusModal('${order.id}')" class="btn-os-action btn-os-primary">
-                            Atualizar Status
-                        </button>
-                    </div>
+                    <button onclick="serviceOrderManager.showUpdateStatusModal('${order.id}')" class="btn-os-action btn-os-primary">
+                        ✏️ Atualizar Status
+                    </button>
                 </div>
 
-                <div class="os-details-grid">
-                    <!-- Cliente -->
-                    <div class="os-details-section" style="grid-column: 1 / -1;">
-                        <h3>🏢 Cliente</h3>
+                <!-- INFORMAÇÕES PRINCIPAIS EM CARDS -->
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+
+                    <!-- CARD: CLIENTE E CONTATO -->
+                    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <h3 style="margin: 0 0 15px 0; font-size: 16px; color: #444; border-bottom: 2px solid #4CAF50; padding-bottom: 8px;">🏢 Cliente e Contato</h3>
                         ${order.customer ? `
-                            <table class="os-items-table">
-                                <tbody>
-                                    <tr>
-                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Razão Social</td>
-                                        <td>${order.customer.razaoSocial}</td>
-                                    </tr>
-                                    ${order.customer.nomeFantasia ? `
-                                        <tr>
-                                            <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Nome Fantasia</td>
-                                            <td>${order.customer.nomeFantasia}</td>
-                                        </tr>
-                                    ` : ''}
-                                    ${order.customer.telefone ? `
-                                        <tr>
-                                            <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Telefone</td>
-                                            <td>${order.customer.telefone}</td>
-                                        </tr>
-                                    ` : ''}
-                                </tbody>
-                            </table>
-                        ` : '<p>Cliente não informado</p>'}
+                            <div style="display: grid; gap: 10px;">
+                                <div><strong style="color: #666; font-size: 12px;">RAZÃO SOCIAL:</strong><br>${order.customer.razaoSocial}</div>
+                                ${order.customer.nomeFantasia ? `<div><strong style="color: #666; font-size: 12px;">NOME FANTASIA:</strong><br>${order.customer.nomeFantasia}</div>` : ''}
+                                ${order.customer.telefone ? `<div><strong style="color: #666; font-size: 12px;">TELEFONE:</strong><br>${order.customer.telefone}</div>` : ''}
+                            </div>
+                        ` : '<p style="color: #999;">Cliente não informado</p>'}
                     </div>
 
-                    <!-- Equipamento -->
-                    <div class="os-details-section" style="grid-column: 1 / -1;">
-                        <h3>📱 Equipamento</h3>
-                        <table class="os-items-table">
-                            <tbody>
-                                ${order.equipamento?.marca ? `
-                                    <tr>
-                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Marca</td>
-                                        <td>${order.equipamento.marca}</td>
-                                    </tr>
-                                ` : ''}
-                                ${order.equipamento?.modelo ? `
-                                    <tr>
-                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Modelo</td>
-                                        <td>${order.equipamento.modelo}</td>
-                                    </tr>
-                                ` : ''}
-                                ${order.equipamento?.serial ? `
-                                    <tr>
-                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Serial/IMEI</td>
-                                        <td>${order.equipamento.serial}</td>
-                                    </tr>
-                                ` : ''}
-                                ${order.acessorios ? `
-                                    <tr>
-                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Acessórios</td>
-                                        <td>${order.acessorios}</td>
-                                    </tr>
-                                ` : ''}
-                                ${!order.equipamento?.marca && !order.equipamento?.modelo && !order.equipamento?.serial && !order.acessorios ? `
-                                    <tr>
-                                        <td colspan="2" style="text-align: center; color: #666;">Nenhuma informação de equipamento</td>
-                                    </tr>
-                                ` : ''}
-                            </tbody>
-                        </table>
+                    <!-- CARD: EQUIPAMENTO -->
+                    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <h3 style="margin: 0 0 15px 0; font-size: 16px; color: #444; border-bottom: 2px solid #2196F3; padding-bottom: 8px;">📱 Equipamento</h3>
+                        <div style="display: grid; gap: 10px;">
+                            ${order.equipamento?.marca ? `<div><strong style="color: #666; font-size: 12px;">MARCA:</strong><br>${order.equipamento.marca}</div>` : ''}
+                            ${order.equipamento?.modelo ? `<div><strong style="color: #666; font-size: 12px;">MODELO:</strong><br>${order.equipamento.modelo}</div>` : ''}
+                            ${order.equipamento?.serial ? `<div><strong style="color: #666; font-size: 12px;">SERIAL/IMEI:</strong><br>${order.equipamento.serial}</div>` : ''}
+                            ${order.acessorios ? `<div><strong style="color: #666; font-size: 12px;">ACESSÓRIOS:</strong><br>${order.acessorios}</div>` : ''}
+                            ${!order.equipamento?.marca && !order.equipamento?.modelo && !order.equipamento?.serial && !order.acessorios ? '<p style="color: #999;">Nenhuma informação</p>' : ''}
+                        </div>
                     </div>
 
-                    <!-- Defeitos -->
-                    <div class="os-details-section" style="grid-column: 1 / -1;">
-                        <h3>⚠️ Defeitos</h3>
-                        <table class="os-items-table">
-                            <tbody>
-                                <tr>
-                                    <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Relatado</td>
-                                    <td>${order.defeitoRelatado}</td>
-                                </tr>
-                                ${order.defeitoConstatado ? `
-                                    <tr>
-                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Constatado</td>
-                                        <td>${order.defeitoConstatado}</td>
-                                    </tr>
-                                ` : ''}
-                            </tbody>
-                        </table>
+                    <!-- CARD: DEFEITOS -->
+                    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); grid-column: 1 / -1;">
+                        <h3 style="margin: 0 0 15px 0; font-size: 16px; color: #444; border-bottom: 2px solid #ff9800; padding-bottom: 8px;">⚠️ Defeitos</h3>
+                        <div style="display: grid; gap: 15px;">
+                            <div style="background: #fff3cd; padding: 12px; border-radius: 6px; border-left: 4px solid #ff9800;">
+                                <strong style="color: #666; font-size: 12px;">RELATADO PELO CLIENTE:</strong><br>
+                                <span style="font-size: 14px;">${order.defeitoRelatado}</span>
+                            </div>
+                            ${order.defeitoConstatado ? `
+                                <div style="background: #ffebee; padding: 12px; border-radius: 6px; border-left: 4px solid #f44336;">
+                                    <strong style="color: #666; font-size: 12px;">CONSTATADO PELO TÉCNICO:</strong><br>
+                                    <span style="font-size: 14px;">${order.defeitoConstatado}</span>
+                                </div>
+                            ` : ''}
+                        </div>
                     </div>
 
-                    <!-- Valores e Datas -->
-                    <div class="os-details-section" style="grid-column: 1 / -1;">
-                        <h3>💰 Valores, Prazos e Datas</h3>
-                        <table class="os-items-table">
-                            <tbody>
-                                ${order.valorOrcado > 0 ? `
-                                    <tr>
-                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Valor Orçado</td>
-                                        <td><strong>R$ ${order.valorOrcado.toFixed(2)}</strong></td>
-                                    </tr>
-                                ` : ''}
-                                ${order.valorFinal > 0 ? `
-                                    <tr>
-                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Valor Final</td>
-                                        <td><strong>R$ ${order.valorFinal.toFixed(2)}</strong></td>
-                                    </tr>
-                                ` : ''}
-                                <tr>
-                                    <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Garantia</td>
-                                    <td>${order.garantiaDias} dias</td>
-                                </tr>
-                                ${order.prazoEstimado ? `
-                                    <tr>
-                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Prazo Estimado</td>
-                                        <td>${new Date(order.prazoEstimado).toLocaleDateString('pt-BR')}</td>
-                                    </tr>
-                                ` : ''}
-                                <tr>
-                                    <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Data Entrada</td>
-                                    <td>${new Date(order.dataEntrada).toLocaleString('pt-BR')}</td>
-                                </tr>
-                                ${order.dataOrcamento ? `
-                                    <tr>
-                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Data Orçamento</td>
-                                        <td>${new Date(order.dataOrcamento).toLocaleString('pt-BR')}</td>
-                                    </tr>
-                                ` : ''}
-                                ${order.dataAprovacao ? `
-                                    <tr>
-                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Data Aprovação</td>
-                                        <td>${new Date(order.dataAprovacao).toLocaleString('pt-BR')}</td>
-                                    </tr>
-                                ` : ''}
-                                ${order.dataConclusao ? `
-                                    <tr>
-                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Data Conclusão</td>
-                                        <td>${new Date(order.dataConclusao).toLocaleString('pt-BR')}</td>
-                                    </tr>
-                                ` : ''}
-                                ${order.dataEntrega ? `
-                                    <tr>
-                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Data Entrega</td>
-                                        <td>${new Date(order.dataEntrega).toLocaleString('pt-BR')}</td>
-                                    </tr>
-                                ` : ''}
-                            </tbody>
-                        </table>
+                    <!-- CARD: VALORES E PRAZOS -->
+                    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <h3 style="margin: 0 0 15px 0; font-size: 16px; color: #444; border-bottom: 2px solid #9C27B0; padding-bottom: 8px;">💰 Valores e Prazos</h3>
+                        <div style="display: grid; gap: 10px;">
+                            ${order.valorOrcado > 0 ? `<div><strong style="color: #666; font-size: 12px;">VALOR ORÇADO:</strong><br><span style="font-size: 18px; color: #2196F3;">R$ ${order.valorOrcado.toFixed(2)}</span></div>` : ''}
+                            ${order.valorFinal > 0 ? `<div><strong style="color: #666; font-size: 12px;">VALOR FINAL:</strong><br><span style="font-size: 18px; color: #4CAF50; font-weight: bold;">R$ ${order.valorFinal.toFixed(2)}</span></div>` : ''}
+                            <div><strong style="color: #666; font-size: 12px;">GARANTIA:</strong><br>${order.garantiaDias} dias</div>
+                            ${order.prazoEstimado ? `<div><strong style="color: #666; font-size: 12px;">PRAZO ESTIMADO:</strong><br>${new Date(order.prazoEstimado).toLocaleDateString('pt-BR')}</div>` : ''}
+                        </div>
                     </div>
 
-                    <!-- Responsáveis -->
-                    <div class="os-details-section" style="grid-column: 1 / -1;">
-                        <h3>👥 Responsáveis</h3>
-                        <table class="os-items-table">
-                            <tbody>
-                                ${order.tecnicoResponsavel ? `
-                                    <tr>
-                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Técnico Responsável</td>
-                                        <td>${order.tecnicoResponsavel.name}</td>
-                                    </tr>
-                                ` : ''}
-                                ${order.recebidoPor ? `
-                                    <tr>
-                                        <td style="width: 200px; font-weight: 600; background: #f5f5f5;">Recebido por</td>
-                                        <td>${order.recebidoPor.name}</td>
-                                    </tr>
-                                ` : ''}
-                                ${!order.tecnicoResponsavel && !order.recebidoPor ? `
-                                    <tr>
-                                        <td colspan="2" style="text-align: center; color: #666;">Nenhum responsável atribuído</td>
-                                    </tr>
-                                ` : ''}
-                            </tbody>
-                        </table>
+                    <!-- CARD: DATAS E RESPONSÁVEIS -->
+                    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <h3 style="margin: 0 0 15px 0; font-size: 16px; color: #444; border-bottom: 2px solid #607D8B; padding-bottom: 8px;">📅 Datas e Responsáveis</h3>
+                        <div style="display: grid; gap: 10px; font-size: 13px;">
+                            <div><strong style="color: #666; font-size: 12px;">DATA ENTRADA:</strong><br>${new Date(order.dataEntrada).toLocaleString('pt-BR')}</div>
+                            ${order.dataOrcamento ? `<div><strong style="color: #666; font-size: 12px;">ORÇAMENTO:</strong><br>${new Date(order.dataOrcamento).toLocaleDateString('pt-BR')}</div>` : ''}
+                            ${order.dataAprovacao ? `<div><strong style="color: #666; font-size: 12px;">APROVAÇÃO:</strong><br>${new Date(order.dataAprovacao).toLocaleDateString('pt-BR')}</div>` : ''}
+                            ${order.dataConclusao ? `<div><strong style="color: #666; font-size: 12px;">CONCLUSÃO:</strong><br>${new Date(order.dataConclusao).toLocaleDateString('pt-BR')}</div>` : ''}
+                            ${order.dataEntrega ? `<div><strong style="color: #666; font-size: 12px;">ENTREGA:</strong><br>${new Date(order.dataEntrega).toLocaleDateString('pt-BR')}</div>` : ''}
+                            <div style="margin-top: 5px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+                                ${order.recebidoPor ? `<div style="margin-bottom: 5px;"><strong style="color: #666; font-size: 12px;">RECEBIDO:</strong> ${order.recebidoPor.name}</div>` : ''}
+                                ${order.tecnicoResponsavel ? `<div><strong style="color: #666; font-size: 12px;">TÉCNICO:</strong> ${order.tecnicoResponsavel.name}</div>` : ''}
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Peças -->
-                    <div class="os-details-section" style="grid-column: 1 / -1;">
+                    ${order.observacoes ? `
+                        <!-- CARD: OBSERVAÇÕES -->
+                        <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); grid-column: 1 / -1; border-left: 4px solid #2196F3;">
+                            <h3 style="margin: 0 0 10px 0; font-size: 16px; color: #1976D2;">📌 Observações</h3>
+                            <p style="margin: 0; line-height: 1.6;">${order.observacoes}</p>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <!-- SEÇÕES DE PEÇAS E PAGAMENTOS EM CARDS -->
+                <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
+
+                    <!-- CARD: PEÇAS UTILIZADAS -->
+                    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h3>🔧 Peças Utilizadas</h3>
-                            <button onclick="serviceOrderManager.showAddItemModal('${order.id}')" class="btn-os-action btn-os-primary">
+                            <h3 style="margin: 0; font-size: 16px; color: #444;">🔧 Peças Utilizadas</h3>
+                            <button onclick="serviceOrderManager.showAddItemModal('${order.id}')" class="btn-os-action btn-os-primary" style="font-size: 14px; padding: 8px 16px;">
                                 + Adicionar Peça
                             </button>
                         </div>
                         ${order.items && order.items.length > 0 ? `
-                            <table class="os-items-table">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                                 <thead>
-                                    <tr>
-                                        <th>Descrição</th>
-                                        <th style="text-align: center;">Quantidade</th>
-                                        <th style="text-align: right;">Valor Unit.</th>
-                                        <th style="text-align: right;">Total</th>
+                                    <tr style="background: #f5f5f5; border-bottom: 2px solid #ddd;">
+                                        <th style="padding: 10px; text-align: left;">Descrição</th>
+                                        <th style="padding: 10px; text-align: center; width: 100px;">Qtd</th>
+                                        <th style="padding: 10px; text-align: right; width: 120px;">Unit.</th>
+                                        <th style="padding: 10px; text-align: right; width: 120px;">Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     ${order.items.map(item => `
-                                        <tr>
-                                            <td>${item.descricao}</td>
-                                            <td style="text-align: center;">${item.quantidade}</td>
-                                            <td style="text-align: right;">R$ ${item.valorUnitario.toFixed(2)}</td>
-                                            <td style="text-align: right;"><strong>R$ ${item.valorTotal.toFixed(2)}</strong></td>
+                                        <tr style="border-bottom: 1px solid #eee;">
+                                            <td style="padding: 10px;">${item.descricao}</td>
+                                            <td style="padding: 10px; text-align: center;">${item.quantidade}</td>
+                                            <td style="padding: 10px; text-align: right; color: #666;">R$ ${item.valorUnitario.toFixed(2)}</td>
+                                            <td style="padding: 10px; text-align: right; font-weight: 600;">R$ ${item.valorTotal.toFixed(2)}</td>
                                         </tr>
                                     `).join('')}
-                                    <tr style="background: #f5f5f5; font-weight: bold;">
-                                        <td colspan="3" style="text-align: right;">Total:</td>
-                                        <td style="text-align: right;">
+                                    <tr style="background: #f0f7ff; font-weight: bold;">
+                                        <td colspan="3" style="padding: 12px; text-align: right;">TOTAL PEÇAS:</td>
+                                        <td style="padding: 12px; text-align: right; color: #2196F3; font-size: 16px;">
                                             R$ ${order.items.reduce((sum, item) => sum + item.valorTotal, 0).toFixed(2)}
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
-                        ` : '<p style="color: #666;">Nenhuma peça adicionada ainda.</p>'}
+                        ` : '<p style="color: #999; text-align: center; padding: 20px;">Nenhuma peça adicionada ainda.</p>'}
                     </div>
 
-                    <!-- Pagamentos -->
-                    <div class="os-details-section" style="grid-column: 1 / -1;">
+                    <!-- CARD: PAGAMENTOS -->
+                    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h3>💳 Pagamentos</h3>
-                            <button onclick="serviceOrderManager.showAddPaymentModal('${order.id}')" class="btn-os-action btn-os-primary">
+                            <h3 style="margin: 0; font-size: 16px; color: #444;">💳 Pagamentos</h3>
+                            <button onclick="serviceOrderManager.showAddPaymentModal('${order.id}')" class="btn-os-action btn-os-primary" style="font-size: 14px; padding: 8px 16px;">
                                 + Registrar Pagamento
                             </button>
                         </div>
                         ${order.payments && order.payments.length > 0 ? `
-                            <table class="os-items-table">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                                 <thead>
-                                    <tr>
-                                        <th>Data</th>
-                                        <th>Forma de Pagamento</th>
-                                        <th style="text-align: right;">Valor</th>
-                                        <th>Observações</th>
+                                    <tr style="background: #f5f5f5; border-bottom: 2px solid #ddd;">
+                                        <th style="padding: 10px; text-align: left; width: 120px;">Data</th>
+                                        <th style="padding: 10px; text-align: left;">Forma</th>
+                                        <th style="padding: 10px; text-align: right; width: 120px;">Valor</th>
+                                        <th style="padding: 10px; text-align: left;">Observações</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     ${order.payments.map(payment => `
-                                        <tr>
-                                            <td>${new Date(payment.dataPagamento).toLocaleDateString('pt-BR')}</td>
-                                            <td>${this.getPaymentMethodLabel(payment.formaPagamento)}</td>
-                                            <td style="text-align: right;"><strong>R$ ${payment.valor.toFixed(2)}</strong></td>
-                                            <td>${payment.observacoes || '-'}</td>
+                                        <tr style="border-bottom: 1px solid #eee;">
+                                            <td style="padding: 10px;">${new Date(payment.dataPagamento).toLocaleDateString('pt-BR')}</td>
+                                            <td style="padding: 10px;">${this.getPaymentMethodLabel(payment.formaPagamento)}</td>
+                                            <td style="padding: 10px; text-align: right; font-weight: 600; color: #4CAF50;">R$ ${payment.valor.toFixed(2)}</td>
+                                            <td style="padding: 10px; color: #666; font-size: 13px;">${payment.observacoes || '-'}</td>
                                         </tr>
                                     `).join('')}
-                                    <tr style="background: #f5f5f5; font-weight: bold;">
-                                        <td colspan="2" style="text-align: right;">Total Pago:</td>
-                                        <td style="text-align: right;">
+                                    <tr style="background: #e8f5e9; font-weight: bold;">
+                                        <td colspan="2" style="padding: 12px; text-align: right;">TOTAL PAGO:</td>
+                                        <td style="padding: 12px; text-align: right; color: #4CAF50; font-size: 16px;">
                                             R$ ${order.payments.reduce((sum, p) => sum + p.valor, 0).toFixed(2)}
                                         </td>
                                         <td></td>
                                     </tr>
                                 </tbody>
                             </table>
-                        ` : '<p style="color: #666;">Nenhum pagamento registrado ainda.</p>'}
+                        ` : '<p style="color: #999; text-align: center; padding: 20px;">Nenhum pagamento registrado ainda.</p>'}
                     </div>
 
-                    <!-- Histórico -->
-                    <div class="os-details-section" style="grid-column: 1 / -1;">
-                        <h3>📝 Histórico</h3>
+                    <!-- CARD: HISTÓRICO -->
+                    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <h3 style="margin: 0 0 15px 0; font-size: 16px; color: #444; border-bottom: 2px solid #607D8B; padding-bottom: 8px;">📝 Histórico</h3>
                         ${order.history && order.history.length > 0 ? `
-                            <div class="os-history">
+                            <div style="display: grid; gap: 10px;">
                                 ${order.history.map(h => `
-                                    <div class="os-history-item">
-                                        <div class="os-history-header">
-                                            <div class="os-history-action">${h.action}</div>
-                                            <div class="os-history-date">${new Date(h.createdAt).toLocaleString('pt-BR')}</div>
+                                    <div style="padding: 12px; background: #f9f9f9; border-left: 3px solid #607D8B; border-radius: 4px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 5px;">
+                                            <strong style="color: #333; font-size: 14px;">${h.action}</strong>
+                                            <span style="color: #666; font-size: 12px;">${new Date(h.createdAt).toLocaleString('pt-BR')}</span>
                                         </div>
-                                        ${h.details ? `<div class="os-history-details">${h.details}</div>` : ''}
-                                        <div class="os-history-user">Por: ${h.userName}</div>
+                                        ${h.details ? `<div style="color: #666; font-size: 13px; margin: 5px 0;">${h.details}</div>` : ''}
+                                        <div style="color: #999; font-size: 12px;">Por: ${h.userName}</div>
                                     </div>
                                 `).join('')}
                             </div>
-                        ` : '<p style="color: #666;">Nenhum histórico disponível.</p>'}
+                        ` : '<p style="color: #999; text-align: center; padding: 20px;">Nenhum histórico disponível.</p>'}
                     </div>
-
-                    ${order.observacoes ? `
-                        <div class="os-details-section" style="grid-column: 1 / -1;">
-                            <h3>📌 Observações</h3>
-                            <p style="background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ff9800;">
-                                ${order.observacoes}
-                            </p>
-                        </div>
-                    ` : ''}
                 </div>
             </div>
         `;
