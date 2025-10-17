@@ -143,9 +143,6 @@
             <div style="text-align: center; margin-top: 10px;">Verificando autenticação...</div>
         </div>
 
-        <button id="executeBtn" style="display: none;" onclick="executeMigration()">
-            🚀 Executar Migration 018
-        </button>
     </div>
 
     <script src="config.js"></script>
@@ -202,14 +199,19 @@
                     return;
                 }
 
-                // Tudo ok!
-                statusDiv.className = 'status success';
+                // Tudo ok! Executar migration automaticamente
+                statusDiv.className = 'status loading';
                 statusDiv.innerHTML = `
-                    <strong>✅ Autenticado como Administrador</strong>
-                    <p>Usuário: <strong>${data.user.name}</strong></p>
-                    <p style="margin-top: 10px;">Clique no botão abaixo para executar a migration.</p>
+                    <div class="spinner"></div>
+                    <div style="text-align: center; margin-top: 10px;">
+                        <strong>✅ Autenticado como Administrador</strong>
+                        <p>Usuário: <strong>${data.user.name}</strong></p>
+                        <p style="margin-top: 10px;">Executando migration automaticamente...</p>
+                    </div>
                 `;
-                button.style.display = 'block';
+
+                // Executar automaticamente após 1 segundo
+                setTimeout(() => executeMigration(), 1000);
 
             } catch (error) {
                 statusDiv.className = 'status error';
@@ -227,10 +229,6 @@
 
         async function executeMigration() {
             const statusDiv = document.getElementById('status');
-            const button = document.getElementById('executeBtn');
-
-            button.disabled = true;
-            button.textContent = 'Executando...';
 
             statusDiv.className = 'status loading';
             statusDiv.innerHTML = `
@@ -280,9 +278,6 @@
                     </div>
                 `;
 
-                button.textContent = '✓ Migration Concluída';
-                button.style.background = '#28a745';
-
             } catch (error) {
                 statusDiv.className = 'status error';
                 statusDiv.innerHTML = `
@@ -295,9 +290,12 @@
                     <p style="margin-top: 15px; padding: 15px; background: #fff3cd; border-radius: 8px;">
                         💡 <strong>Dica:</strong> Se o erro persistir, verifique os logs do servidor ou entre em contato com o suporte.
                     </p>
+                    <p style="margin-top: 15px; text-align: center;">
+                        <a href="javascript:location.reload()" style="color: #dc3545; font-weight: 600; text-decoration: none; padding: 10px 20px; background: white; border-radius: 5px; display: inline-block;">
+                            🔄 Tentar Novamente
+                        </a>
+                    </p>
                 `;
-                button.disabled = false;
-                button.textContent = 'Tentar Novamente';
             }
         }
     </script>
