@@ -1155,7 +1155,14 @@ function showModal(modalId) {
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        // Se o modal foi criado dinamicamente, removê-lo do DOM
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    }
 }
 
 function selectItemForEntry(itemId) {
