@@ -811,49 +811,4 @@ router.post('/:id/payments', authenticateToken, async (req, res) => {
     }
 });
 
-// DELETE /api/service-orders/admin/delete-all - Excluir todos os dados de teste (ADMIN ONLY)
-router.delete('/admin/delete-all', authenticateToken, async (req, res) => {
-    try {
-        // Verificar se o usuário é admin (você pode adicionar uma verificação de role aqui)
-        console.log(`⚠️ ADMIN ACTION: User ${req.user.name} (ID: ${req.user.id}) está excluindo TODOS os dados de teste`);
-
-        const result = await transaction(async (client) => {
-            // Deletar na ordem correta devido às foreign keys
-
-            // 1. Deletar pagamentos
-            const paymentsResult = await client.query('DELETE FROM service_order_payments RETURNING id');
-
-            // 2. Deletar itens
-            const itemsResult = await client.query('DELETE FROM service_order_items RETURNING id');
-
-            // 3. Deletar histórico
-            const historyResult = await client.query('DELETE FROM service_order_history RETURNING id');
-
-            // 4. Deletar ordens de serviço
-            const ordersResult = await client.query('DELETE FROM service_orders RETURNING id');
-
-            // 5. Resetar a sequência de numeração
-            await client.query("ALTER SEQUENCE service_orders_number_seq RESTART WITH 1");
-
-            return {
-                ordersDeleted: ordersResult.rows.length,
-                itemsDeleted: itemsResult.rows.length,
-                paymentsDeleted: paymentsResult.rows.length,
-                historyDeleted: historyResult.rows.length
-            };
-        });
-
-        console.log(`✅ Exclusão completa:`, result);
-
-        res.json({
-            message: 'Todos os dados de teste foram excluídos com sucesso',
-            deleted: result
-        });
-
-    } catch (error) {
-        console.error('❌ Erro ao excluir dados de teste:', error);
-        res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-});
-
 module.exports = router;

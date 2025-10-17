@@ -72,9 +72,6 @@ class ServiceOrderManager {
                         <button class="btn-new-os" onclick="serviceOrderManager.showNewOSModal().catch(e => console.error(e))">
                             ➕ Nova OS
                         </button>
-                        <button class="btn-admin" onclick="serviceOrderManager.showAdminPanel()" style="background: #dc3545; margin-left: 10px;">
-                            ⚙️ Admin
-                        </button>
                     </div>
                 </div>
                 <div id="serviceOrdersContent"></div>
@@ -144,7 +141,7 @@ class ServiceOrderManager {
 
         const ordersHtml = this.currentOrders.map(order => {
             const statusLabel = statusLabels[order.status] || order.status;
-            const customerName = order.customer?.razaoSocial || order.customer?.nomeFantasia || 'Cliente não informado';
+            const customerName = order.customer?.nomeFantasia || order.customer?.razaoSocial || 'Cliente não informado';
             const equipamento = `${order.equipamento?.marca || ''} ${order.equipamento?.modelo || ''}`.trim() || 'Não informado';
 
             return `
@@ -229,132 +226,152 @@ class ServiceOrderManager {
                     </div>
                 </div>
 
-                <div style="display: grid; gap: 20px;">
-                    <!-- Informações Gerais -->
+                <div class="os-details-grid">
+                    <!-- Cliente -->
                     <div class="os-details-section">
-                        <h3 style="margin-bottom: 15px;">📋 Informações Gerais</h3>
-                        <table class="os-info-table">
-                            <tbody>
-                                ${order.customer ? `
-                                    <tr>
-                                        <td class="label-cell">🏢 Cliente</td>
-                                        <td colspan="3">${order.customer.razaoSocial}${order.customer.nomeFantasia ? ` (${order.customer.nomeFantasia})` : ''}</td>
-                                    </tr>
-                                    ${order.customer.telefone ? `
-                                        <tr>
-                                            <td class="label-cell">📞 Telefone</td>
-                                            <td colspan="3">${order.customer.telefone}</td>
-                                        </tr>
-                                    ` : ''}
-                                ` : '<tr><td colspan="4">Cliente não informado</td></tr>'}
-
-                                ${order.equipamento?.marca || order.equipamento?.modelo ? `
-                                    <tr>
-                                        <td class="label-cell">📱 Equipamento</td>
-                                        <td colspan="3">${order.equipamento.marca || ''} ${order.equipamento.modelo || ''}</td>
-                                    </tr>
-                                ` : ''}
-
-                                ${order.equipamento?.serial ? `
-                                    <tr>
-                                        <td class="label-cell">🔢 Serial/IMEI</td>
-                                        <td colspan="3">${order.equipamento.serial}</td>
-                                    </tr>
-                                ` : ''}
-
-                                ${order.acessorios ? `
-                                    <tr>
-                                        <td class="label-cell">🔌 Acessórios</td>
-                                        <td colspan="3">${order.acessorios}</td>
-                                    </tr>
-                                ` : ''}
-
-                                <tr>
-                                    <td class="label-cell">⚠️ Defeito Relatado</td>
-                                    <td colspan="3" style="white-space: pre-wrap;">${order.defeitoRelatado}</td>
-                                </tr>
-
-                                ${order.defeitoConstatado ? `
-                                    <tr>
-                                        <td class="label-cell">🔍 Defeito Constatado</td>
-                                        <td colspan="3" style="white-space: pre-wrap;">${order.defeitoConstatado}</td>
-                                    </tr>
-                                ` : ''}
-
-                                <tr>
-                                    <td class="label-cell">📅 Data Entrada</td>
-                                    <td>${new Date(order.dataEntrada).toLocaleString('pt-BR')}</td>
-                                    <td class="label-cell">🛡️ Garantia</td>
-                                    <td>${order.garantiaDias} dias</td>
-                                </tr>
-
-                                ${order.tecnicoResponsavel || order.recebidoPor ? `
-                                    <tr>
-                                        ${order.tecnicoResponsavel ? `
-                                            <td class="label-cell">🔧 Técnico</td>
-                                            <td>${order.tecnicoResponsavel.name}</td>
-                                        ` : '<td colspan="2"></td>'}
-                                        ${order.recebidoPor ? `
-                                            <td class="label-cell">👤 Recebido por</td>
-                                            <td>${order.recebidoPor.name}</td>
-                                        ` : '<td colspan="2"></td>'}
-                                    </tr>
-                                ` : ''}
-                            </tbody>
-                        </table>
+                        <h3>🏢 Cliente</h3>
+                        ${order.customer ? `
+                            <div class="os-info-row">
+                                <div class="os-info-label">Razão Social:</div>
+                                <div class="os-info-value">${order.customer.razaoSocial}</div>
+                            </div>
+                            ${order.customer.nomeFantasia ? `
+                                <div class="os-info-row">
+                                    <div class="os-info-label">Nome Fantasia:</div>
+                                    <div class="os-info-value">${order.customer.nomeFantasia}</div>
+                                </div>
+                            ` : ''}
+                            ${order.customer.telefone ? `
+                                <div class="os-info-row">
+                                    <div class="os-info-label">Telefone:</div>
+                                    <div class="os-info-value">${order.customer.telefone}</div>
+                                </div>
+                            ` : ''}
+                        ` : '<p>Cliente não informado</p>'}
                     </div>
 
-                    <!-- Valores e Datas -->
-                    ${order.valorOrcado > 0 || order.valorFinal > 0 || order.prazoEstimado || order.dataOrcamento || order.dataAprovacao || order.dataConclusao || order.dataEntrega ? `
-                        <div class="os-details-section">
-                            <h3 style="margin-bottom: 15px;">💰 Valores e Datas</h3>
-                            <table class="os-info-table">
-                                <tbody>
-                                    ${order.valorOrcado > 0 || order.prazoEstimado ? `
-                                        <tr>
-                                            ${order.valorOrcado > 0 ? `
-                                                <td class="label-cell">💵 Valor Orçado</td>
-                                                <td><strong>R$ ${order.valorOrcado.toFixed(2)}</strong></td>
-                                            ` : '<td colspan="2"></td>'}
-                                            ${order.prazoEstimado ? `
-                                                <td class="label-cell">⏰ Prazo Estimado</td>
-                                                <td>${new Date(order.prazoEstimado).toLocaleDateString('pt-BR')}</td>
-                                            ` : '<td colspan="2"></td>'}
-                                        </tr>
-                                    ` : ''}
+                    <!-- Equipamento -->
+                    <div class="os-details-section">
+                        <h3>📱 Equipamento</h3>
+                        ${order.equipamento?.marca ? `
+                            <div class="os-info-row">
+                                <div class="os-info-label">Marca:</div>
+                                <div class="os-info-value">${order.equipamento.marca}</div>
+                            </div>
+                        ` : ''}
+                        ${order.equipamento?.modelo ? `
+                            <div class="os-info-row">
+                                <div class="os-info-label">Modelo:</div>
+                                <div class="os-info-value">${order.equipamento.modelo}</div>
+                            </div>
+                        ` : ''}
+                        ${order.equipamento?.serial ? `
+                            <div class="os-info-row">
+                                <div class="os-info-label">Serial:</div>
+                                <div class="os-info-value">${order.equipamento.serial}</div>
+                            </div>
+                        ` : ''}
+                        ${order.acessorios ? `
+                            <div class="os-info-row">
+                                <div class="os-info-label">Acessórios:</div>
+                                <div class="os-info-value">${order.acessorios}</div>
+                            </div>
+                        ` : ''}
+                    </div>
 
-                                    ${order.valorFinal > 0 ? `
-                                        <tr>
-                                            <td class="label-cell">💰 Valor Final</td>
-                                            <td colspan="3"><strong style="font-size: 18px; color: #28a745;">R$ ${order.valorFinal.toFixed(2)}</strong></td>
-                                        </tr>
-                                    ` : ''}
-
-                                    ${order.dataOrcamento ? `
-                                        <tr>
-                                            <td class="label-cell">📋 Data Orçamento</td>
-                                            <td>${new Date(order.dataOrcamento).toLocaleString('pt-BR')}</td>
-                                            ${order.dataAprovacao ? `
-                                                <td class="label-cell">✅ Data Aprovação</td>
-                                                <td>${new Date(order.dataAprovacao).toLocaleString('pt-BR')}</td>
-                                            ` : '<td colspan="2"></td>'}
-                                        </tr>
-                                    ` : ''}
-
-                                    ${order.dataConclusao ? `
-                                        <tr>
-                                            <td class="label-cell">🏁 Data Conclusão</td>
-                                            <td>${new Date(order.dataConclusao).toLocaleString('pt-BR')}</td>
-                                            ${order.dataEntrega ? `
-                                                <td class="label-cell">📦 Data Entrega</td>
-                                                <td>${new Date(order.dataEntrega).toLocaleString('pt-BR')}</td>
-                                            ` : '<td colspan="2"></td>'}
-                                        </tr>
-                                    ` : ''}
-                                </tbody>
-                            </table>
+                    <!-- Defeitos -->
+                    <div class="os-details-section" style="grid-column: 1 / -1;">
+                        <h3>⚠️ Defeitos</h3>
+                        <div class="os-info-row">
+                            <div class="os-info-label">Relatado:</div>
+                            <div class="os-info-value">${order.defeitoRelatado}</div>
                         </div>
-                    ` : ''}
+                        ${order.defeitoConstatado ? `
+                            <div class="os-info-row">
+                                <div class="os-info-label">Constatado:</div>
+                                <div class="os-info-value">${order.defeitoConstatado}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- Valores -->
+                    <div class="os-details-section">
+                        <h3>💰 Valores e Prazos</h3>
+                        ${order.valorOrcado > 0 ? `
+                            <div class="os-info-row">
+                                <div class="os-info-label">Valor Orçado:</div>
+                                <div class="os-info-value">R$ ${order.valorOrcado.toFixed(2)}</div>
+                            </div>
+                        ` : ''}
+                        ${order.valorFinal > 0 ? `
+                            <div class="os-info-row">
+                                <div class="os-info-label">Valor Final:</div>
+                                <div class="os-info-value">R$ ${order.valorFinal.toFixed(2)}</div>
+                            </div>
+                        ` : ''}
+                        ${order.prazoEstimado ? `
+                            <div class="os-info-row">
+                                <div class="os-info-label">Prazo Estimado:</div>
+                                <div class="os-info-value">${new Date(order.prazoEstimado).toLocaleDateString('pt-BR')}</div>
+                            </div>
+                        ` : ''}
+                        <div class="os-info-row">
+                            <div class="os-info-label">Garantia:</div>
+                            <div class="os-info-value">${order.garantiaDias} dias</div>
+                        </div>
+                    </div>
+
+                    <!-- Responsáveis -->
+                    <div class="os-details-section">
+                        <h3>👥 Responsáveis</h3>
+                        ${order.tecnicoResponsavel ? `
+                            <div class="os-info-row">
+                                <div class="os-info-label">Técnico:</div>
+                                <div class="os-info-value">${order.tecnicoResponsavel.name}</div>
+                            </div>
+                        ` : ''}
+                        ${order.recebidoPor ? `
+                            <div class="os-info-row">
+                                <div class="os-info-label">Recebido por:</div>
+                                <div class="os-info-value">${order.recebidoPor.name}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- Datas -->
+                    <div class="os-details-section" style="grid-column: 1 / -1;">
+                        <h3>📅 Datas</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div class="os-info-row">
+                                <div class="os-info-label">Entrada:</div>
+                                <div class="os-info-value">${new Date(order.dataEntrada).toLocaleString('pt-BR')}</div>
+                            </div>
+                            ${order.dataOrcamento ? `
+                                <div class="os-info-row">
+                                    <div class="os-info-label">Orçamento:</div>
+                                    <div class="os-info-value">${new Date(order.dataOrcamento).toLocaleString('pt-BR')}</div>
+                                </div>
+                            ` : ''}
+                            ${order.dataAprovacao ? `
+                                <div class="os-info-row">
+                                    <div class="os-info-label">Aprovação:</div>
+                                    <div class="os-info-value">${new Date(order.dataAprovacao).toLocaleString('pt-BR')}</div>
+                                </div>
+                            ` : ''}
+                            ${order.dataConclusao ? `
+                                <div class="os-info-row">
+                                    <div class="os-info-label">Conclusão:</div>
+                                    <div class="os-info-value">${new Date(order.dataConclusao).toLocaleString('pt-BR')}</div>
+                                </div>
+                            ` : ''}
+                            ${order.dataEntrega ? `
+                                <div class="os-info-row">
+                                    <div class="os-info-label">Entrega:</div>
+                                    <div class="os-info-value">${new Date(order.dataEntrega).toLocaleString('pt-BR')}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
 
                     <!-- Peças -->
                     <div class="os-details-section" style="grid-column: 1 / -1;">
@@ -493,9 +510,12 @@ class ServiceOrderManager {
             await this.loadUsers();
         }
 
+        console.log('Clientes carregados:', this.customers.length);
+        console.log('Usuários carregados:', this.users.length);
+
         const customerOptions = this.customers
             .filter(c => c.ativo)
-            .map(c => `<option value="${c.id}">${c.razao_social || c.nome_fantasia}</option>`)
+            .map(c => `<option value="${c.id}">${c.nomeFantasia || c.razaoSocial}</option>`)
             .join('');
 
         const techOptions = this.users
@@ -503,12 +523,9 @@ class ServiceOrderManager {
             .join('');
 
         const modalHtml = `
-            <div class="modal" id="newOSModal" style="display: flex;" onclick="event.target === this && event.stopPropagation()">
+            <div class="modal" id="newOSModal" style="display: flex;">
                 <div class="modal-content" style="max-width: 800px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h2 style="margin: 0;">🔧 Nova Ordem de Serviço</h2>
-                        <button type="button" onclick="closeModal('newOSModal')" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #666; line-height: 1;">&times;</button>
-                    </div>
+                    <h2>🔧 Nova Ordem de Serviço</h2>
                     <form id="newOSForm">
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                             <div style="grid-column: 1 / -1;">
@@ -541,7 +558,7 @@ class ServiceOrderManager {
 
                             <div style="grid-column: 1 / -1;">
                                 <label>Defeito Relatado *</label>
-                                <textarea id="osDefeitoRelatado" placeholder="Descreva o problema relatado pelo cliente" style="height: 80px;"></textarea>
+                                <textarea id="osDefeitoRelatado" required placeholder="Descreva o problema relatado pelo cliente" style="height: 80px;"></textarea>
                             </div>
 
                             <div>
@@ -581,31 +598,15 @@ class ServiceOrderManager {
     }
 
     async handleCreateOS() {
-        const customerId = document.getElementById('osCustomerId').value;
-        const defeitoRelatadoElement = document.getElementById('osDefeitoRelatado');
-        const defeitoRelatado = defeitoRelatadoElement ? defeitoRelatadoElement.value.trim() : '';
-
-        // Validação manual
-        if (!customerId) {
-            window.notify.error('Por favor, selecione um cliente');
-            return;
-        }
-
-        if (!defeitoRelatado) {
-            window.notify.error('Por favor, descreva o defeito relatado');
-            if (defeitoRelatadoElement) defeitoRelatadoElement.focus();
-            return;
-        }
-
         const data = {
-            customer_id: parseInt(customerId),
-            equipamento_marca: document.getElementById('osEquipMarca').value || null,
-            equipamento_modelo: document.getElementById('osEquipModelo').value || null,
-            equipamento_serial: document.getElementById('osEquipSerial').value || null,
+            customerId: parseInt(document.getElementById('osCustomerId').value),
+            equipamentoMarca: document.getElementById('osEquipMarca').value || null,
+            equipamentoModelo: document.getElementById('osEquipModelo').value || null,
+            equipamentoSerial: document.getElementById('osEquipSerial').value || null,
             acessorios: document.getElementById('osAcessorios').value || null,
-            defeito_relatado: defeitoRelatado,
-            tecnico_responsavel_id: document.getElementById('osTecnicoId').value || null,
-            garantia_dias: parseInt(document.getElementById('osGarantiaDias').value) || 90,
+            defeitoRelatado: document.getElementById('osDefeitoRelatado').value,
+            tecnicoResponsavelId: document.getElementById('osTecnicoId').value || null,
+            garantiaDias: parseInt(document.getElementById('osGarantiaDias').value) || 90,
             observacoes: document.getElementById('osObservacoes').value || null
         };
 
@@ -731,21 +732,18 @@ class ServiceOrderManager {
         const newStatus = document.getElementById('osNewStatus').value;
         const data = { status: newStatus };
 
-        // Campos opcionais baseados no status (backend espera snake_case)
+        // Campos opcionais baseados no status
         const valorOrcado = document.getElementById('osValorOrcado')?.value;
-        if (valorOrcado) data.valor_orcado = parseFloat(valorOrcado);
+        if (valorOrcado) data.valorOrcado = parseFloat(valorOrcado);
 
         const prazoEstimado = document.getElementById('osPrazoEstimado')?.value;
-        if (prazoEstimado) data.prazo_estimado = prazoEstimado;
+        if (prazoEstimado) data.prazoEstimado = prazoEstimado;
 
         const defeitoConstatado = document.getElementById('osDefeitoConstatado')?.value;
-        if (defeitoConstatado) data.defeito_constatado = defeitoConstatado;
+        if (defeitoConstatado) data.defeitoConstatado = defeitoConstatado;
 
         const valorFinal = document.getElementById('osValorFinal')?.value;
-        if (valorFinal) data.valor_final = parseFloat(valorFinal);
-
-        const tecnicoId = document.getElementById('osTecnicoId')?.value;
-        if (tecnicoId) data.tecnico_responsavel_id = parseInt(tecnicoId);
+        if (valorFinal) data.valorFinal = parseFloat(valorFinal);
 
         try {
             await window.api.request(`/service-orders/${orderId}/status`, {
@@ -952,77 +950,6 @@ class ServiceOrderManager {
         } catch (error) {
             console.error('Erro ao registrar pagamento:', error);
             window.notify.error(error.message || 'Erro ao registrar pagamento');
-        }
-    }
-
-    // ========== PAINEL ADMINISTRATIVO ==========
-    showAdminPanel() {
-        const modalHtml = `
-            <div class="modal" id="adminPanelModal" style="display: flex;">
-                <div class="modal-content" style="max-width: 600px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h2 style="margin: 0;">⚙️ Painel Administrativo</h2>
-                        <button type="button" onclick="closeModal('adminPanelModal')" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #666; line-height: 1;">&times;</button>
-                    </div>
-
-                    <div style="background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ff9800; margin-bottom: 20px;">
-                        <strong>⚠️ ATENÇÃO</strong>
-                        <p style="margin: 5px 0 0 0;">Esta ação é irreversível! Todos os dados de testes serão permanentemente excluídos.</p>
-                    </div>
-
-                    <div style="margin-bottom: 20px;">
-                        <h3 style="margin-bottom: 10px;">🗑️ Limpar Dados de Teste</h3>
-                        <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
-                            Esta opção irá excluir TODAS as ordens de serviço, itens, pagamentos e histórico.
-                        </p>
-                        <button onclick="serviceOrderManager.handleDeleteAllTestData()" class="btn-danger" style="width: 100%; background: #dc3545; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;">
-                            🗑️ Excluir Todos os Dados de Teste
-                        </button>
-                    </div>
-
-                    <div class="modal-actions" style="margin-top: 20px;">
-                        <button type="button" onclick="closeModal('adminPanelModal')" style="width: 100%;">Fechar</button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-    }
-
-    async handleDeleteAllTestData() {
-        const confirmation = confirm(
-            '⚠️ ATENÇÃO!\n\n' +
-            'Você está prestes a EXCLUIR PERMANENTEMENTE:\n\n' +
-            '• Todas as Ordens de Serviço\n' +
-            '• Todos os Itens (Peças)\n' +
-            '• Todos os Pagamentos\n' +
-            '• Todo o Histórico\n\n' +
-            'Esta ação NÃO pode ser desfeita!\n\n' +
-            'Deseja realmente continuar?'
-        );
-
-        if (!confirmation) return;
-
-        const secondConfirmation = confirm(
-            '🚨 ÚLTIMA CONFIRMAÇÃO!\n\n' +
-            'Digite OK para confirmar a exclusão de TODOS os dados de teste.'
-        );
-
-        if (!secondConfirmation) return;
-
-        try {
-            await window.api.request('/service-orders/admin/delete-all', {
-                method: 'DELETE'
-            });
-
-            window.notify.success('Todos os dados de teste foram excluídos com sucesso!');
-            closeModal('adminPanelModal');
-            await this.loadOrders();
-            this.renderOrdersList();
-        } catch (error) {
-            console.error('Erro ao excluir dados:', error);
-            window.notify.error(error.message || 'Erro ao excluir dados de teste');
         }
     }
 }
