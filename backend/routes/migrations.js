@@ -20,7 +20,8 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
             '014': '014_add_informatica_category.sql',
             '015': '015_add_insumos_category.sql',
             '016': '016_add_document_and_finalize.sql',
-            '017': '017_fix_status_constraint_and_remove_item_document.sql'
+            '017': '017_fix_status_constraint_and_remove_item_document.sql',
+            '018': '018_create_service_orders.sql'
         };
 
         const migrationFile = migrationFiles[String(migrationNumber).padStart(3, '0')];
@@ -72,6 +73,8 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
             tablesToCheck = ['exit_order_items', 'exit_orders']; // Verifica se as tabelas existem (a migration adiciona colunas)
         } else if (migrationNumber == '017') {
             tablesToCheck = ['exit_orders']; // Verifica se a tabela exit_orders existe (a migration altera constraint e remove coluna)
+        } else if (migrationNumber == '018') {
+            tablesToCheck = ['service_orders', 'service_order_items', 'service_order_history', 'service_order_payments']; // Verifica se as tabelas de OS foram criadas
         }
 
         const result = await query(`
