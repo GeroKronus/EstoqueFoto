@@ -134,9 +134,11 @@ class ServiceOrderManager {
         this.handleSearch();
     }
 
-    toggleView(mode) {
+    async toggleView(mode) {
         this.viewMode = mode;
         this.renderMainUI();
+        // Recarregar dados do servidor para garantir que está atualizado
+        await this.loadOrders();
         this.renderOrdersList();
     }
 
