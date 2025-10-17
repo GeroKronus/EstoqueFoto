@@ -8,6 +8,7 @@ class ServiceOrderManager {
         this.users = [];
         this.equipmentList = [];
         this.viewMode = 'cards'; // 'cards' ou 'table'
+        this.expandedOrders = []; // Array de IDs de ordens expandidas (para tabela)
     }
 
     async initialize() {
@@ -213,6 +214,30 @@ class ServiceOrderManager {
 
     renderTableView() {
         const container = document.getElementById('serviceOrdersContent');
+        container.innerHTML = `
+            <table class="exit-orders-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;"></th>
+                        <th>OS #</th>
+                        <th>Status</th>
+                        <th>Cliente</th>
+                        <th>Equipamento</th>
+                        <th>Defeito Relatado</th>
+                        <th>Técnico</th>
+                        <th>Data Entrada</th>
+                        <th style="width: 120px;">Valor</th>
+                        <th style="width: 100px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${this.currentOrders.map(order => this.renderTableOrderRow(order)).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    renderTableOrderRow(order) {
         const statusLabels = {
             'aguardando_orcamento': 'Aguardando Orçamento',
             'orcamento_pendente': 'Orçamento Pendente',
@@ -224,49 +249,196 @@ class ServiceOrderManager {
             'cancelado': 'Cancelado'
         };
 
-        const rowsHtml = this.currentOrders.map(order => {
-            const statusLabel = statusLabels[order.status] || order.status;
-            const customerName = order.customer?.razaoSocial || order.customer?.nomeFantasia || 'Não informado';
-            const equipamento = `${order.equipamento?.marca || ''} ${order.equipamento?.modelo || ''}`.trim() || 'Não informado';
+        const statusLabel = statusLabels[order.status] || order.status;
+        const customerName = order.customer?.razaoSocial || order.customer?.nomeFantasia || 'Não informado';
+        const equipamento = `${order.equipamento?.marca || ''} ${order.equipamento?.modelo || ''}`.trim() || 'Não informado';
+        const isExpanded = this.expandedOrders?.includes(order.id);
 
-            return `
-                <tr onclick="serviceOrderManager.showOrderDetails('${order.id}')" style="cursor: pointer;">
-                    <td><strong>${order.numeroOS}</strong></td>
-                    <td><span class="table-status status-${order.status}">${statusLabel}</span></td>
-                    <td>${customerName}</td>
-                    <td>${equipamento}</td>
-                    <td>${order.defeitoRelatado.substring(0, 40)}${order.defeitoRelatado.length > 40 ? '...' : ''}</td>
-                    <td>${order.tecnicoResponsavel?.name || '-'}</td>
-                    <td>${new Date(order.dataEntrada).toLocaleDateString('pt-BR')}</td>
-                    <td style="text-align: right;">
-                        ${order.valorFinal > 0 ? `<strong>R$ ${order.valorFinal.toFixed(2)}</strong>` :
-                          order.valorOrcado > 0 ? `R$ ${order.valorOrcado.toFixed(2)}` : '-'}
-                    </td>
-                </tr>
+        return `
+            <tr class="exit-order-table-row ${order.status === 'cancelado' ? 'cancelled-row' : ''}" data-order-id="${order.id}">
+                <td class="expand-cell">
+                    <button class="expand-btn ${isExpanded ? 'expanded' : ''}" onclick="serviceOrderManager.toggleOrderDetails('${order.id}')" title="Expandir/Recolher detalhes">
+                        ▶
+                    </button>
+                </td>
+                <td><strong>${order.numeroOS}</strong></td>
+                <td><span class="status-badge status-${order.status}">${statusLabel}</span></td>
+                <td>${customerName}</td>
+                <td>${equipamento}</td>
+                <td>${order.defeitoRelatado.substring(0, 50)}${order.defeitoRelatado.length > 50 ? '...' : ''}</td>
+                <td>${order.tecnicoResponsavel?.name || '-'}</td>
+                <td>${new Date(order.dataEntrada).toLocaleDateString('pt-BR')}<br><small style="color: #666;">${new Date(order.dataEntrada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</small></td>
+                <td><strong>${order.valorFinal > 0 ? `R$ ${order.valorFinal.toFixed(2)}` : order.valorOrcado > 0 ? `R$ ${order.valorOrcado.toFixed(2)}` : '-'}</strong></td>
+                <td class="actions-cell-compact">
+                    <button class="btn-icon" onclick="serviceOrderManager.showUpdateStatusModal('${order.id}')" title="Atualizar status">
+                        ✏️
+                    </button>
+                    <button class="btn-icon" onclick="serviceOrderManager.showOrderDetails('${order.id}')" title="Ver detalhes completos">
+                        👁️
+                    </button>
+                </td>
+            </tr>
+            <tr id="order-details-${order.id}" class="order-details-row" style="display: ${isExpanded ? 'table-row' : 'none'};">
+                <td colspan="10">
+                    <div class="order-details-container" id="order-details-content-${order.id}">
+                        <!-- Conteúdo será carregado ao expandir -->
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
+    async toggleOrderDetails(orderId) {
+        const detailsRow = document.getElementById(`order-details-${orderId}`);
+        const expandBtn = event.target;
+        const isCurrentlyExpanded = this.expandedOrders.includes(orderId);
+
+        if (isCurrentlyExpanded) {
+            // Recolher
+            detailsRow.style.display = 'none';
+            expandBtn.classList.remove('expanded');
+            this.expandedOrders = this.expandedOrders.filter(id => id !== orderId);
+        } else {
+            // Expandir
+            detailsRow.style.display = 'table-row';
+            expandBtn.classList.add('expanded');
+            this.expandedOrders.push(orderId);
+
+            // Mostrar indicador de carregamento
+            const container = document.getElementById(`order-details-content-${orderId}`);
+            if (container) {
+                container.innerHTML = '<div style="padding: 15px; text-align: center; color: #666;">⏳ Carregando detalhes...</div>';
+            }
+
+            // Carregar detalhes da ordem
+            await this.loadOrderDetailsInline(orderId);
+        }
+    }
+
+    async loadOrderDetailsInline(orderId) {
+        const container = document.getElementById(`order-details-content-${orderId}`);
+
+        try {
+            const order = await this.getOrder(orderId);
+
+            if (!order) {
+                throw new Error('Ordem não encontrada');
+            }
+
+            // Renderizar detalhes expandidos
+            container.innerHTML = this.renderExpandedOrderDetails(order);
+
+        } catch (error) {
+            console.error('Erro ao carregar detalhes da ordem:', error);
+            container.innerHTML = `
+                <div style="padding: 15px; text-align: center; color: #f44336;">
+                    ❌ Erro ao carregar detalhes da ordem<br>
+                    <small style="color: #666; font-size: 0.85rem;">${error.message}</small>
+                </div>
             `;
-        }).join('');
+        }
+    }
 
-        container.innerHTML = `
-            <div class="table-container">
-                <table class="os-table">
-                    <thead>
-                        <tr>
-                            <th>Número OS</th>
-                            <th>Status</th>
-                            <th>Cliente</th>
-                            <th>Equipamento</th>
-                            <th>Defeito</th>
-                            <th>Técnico</th>
-                            <th>Data Entrada</th>
-                            <th style="text-align: right;">Valor</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rowsHtml}
-                    </tbody>
-                </table>
+    renderExpandedOrderDetails(order) {
+        const statusLabels = {
+            'aguardando_orcamento': 'Aguardando Orçamento',
+            'orcamento_pendente': 'Orçamento Pendente',
+            'aprovado': 'Aprovado',
+            'em_reparo': 'Em Reparo',
+            'concluido': 'Concluído',
+            'aguardando_retirada': 'Aguardando Retirada',
+            'entregue': 'Entregue',
+            'cancelado': 'Cancelado'
+        };
+
+        let html = `
+            <div class="expanded-order-details">
+                <div class="expanded-order-info" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    ${order.customer ? `<div><strong>Cliente:</strong> ${order.customer.razaoSocial || order.customer.nomeFantasia}</div>` : ''}
+                    ${order.customer?.telefone ? `<div><strong>Telefone:</strong> ${order.customer.telefone}</div>` : ''}
+                    ${order.equipamento?.serial ? `<div><strong>Serial/IMEI:</strong> ${order.equipamento.serial}</div>` : ''}
+                    ${order.acessorios ? `<div><strong>Acessórios:</strong> ${order.acessorios}</div>` : ''}
+                    ${order.garantiaDias ? `<div><strong>Garantia:</strong> ${order.garantiaDias} dias</div>` : ''}
+                    ${order.prazoEstimado ? `<div><strong>Prazo Estimado:</strong> ${new Date(order.prazoEstimado).toLocaleDateString('pt-BR')}</div>` : ''}
+                    ${order.recebidoPor ? `<div><strong>Recebido por:</strong> ${order.recebidoPor.name}</div>` : ''}
+                </div>
+
+                ${order.defeitoConstatado ? `
+                    <div style="background: #fff3cd; padding: 12px; border-radius: 4px; margin-bottom: 15px; border-left: 4px solid #ff9800;">
+                        <strong>⚠️ Defeito Constatado:</strong> ${order.defeitoConstatado}
+                    </div>
+                ` : ''}
+
+                ${order.observacoes ? `
+                    <div style="background: #e3f2fd; padding: 12px; border-radius: 4px; margin-bottom: 15px; border-left: 4px solid #2196F3;">
+                        <strong>📌 Observações:</strong> ${order.observacoes}
+                    </div>
+                ` : ''}
+
+                ${order.items && order.items.length > 0 ? `
+                    <div style="margin-top: 15px;">
+                        <strong>🔧 Peças Utilizadas:</strong>
+                        <table class="order-items-table" style="margin-top: 10px;">
+                            <thead>
+                                <tr>
+                                    <th>Descrição</th>
+                                    <th style="text-align: center;">Qtd</th>
+                                    <th style="text-align: right;">Unit.</th>
+                                    <th style="text-align: right;">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${order.items.map(item => `
+                                    <tr>
+                                        <td>${item.descricao}</td>
+                                        <td style="text-align: center;">${item.quantidade}</td>
+                                        <td style="text-align: right;">R$ ${item.valorUnitario.toFixed(2)}</td>
+                                        <td style="text-align: right;"><strong>R$ ${item.valorTotal.toFixed(2)}</strong></td>
+                                    </tr>
+                                `).join('')}
+                                <tr class="total-row">
+                                    <td colspan="3" style="text-align: right;"><strong>Total Peças:</strong></td>
+                                    <td style="text-align: right;"><strong>R$ ${order.items.reduce((sum, item) => sum + item.valorTotal, 0).toFixed(2)}</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                ` : ''}
+
+                ${order.payments && order.payments.length > 0 ? `
+                    <div style="margin-top: 15px;">
+                        <strong>💳 Pagamentos:</strong>
+                        <table class="order-items-table" style="margin-top: 10px;">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Forma</th>
+                                    <th style="text-align: right;">Valor</th>
+                                    <th>Obs</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${order.payments.map(payment => `
+                                    <tr>
+                                        <td>${new Date(payment.dataPagamento).toLocaleDateString('pt-BR')}</td>
+                                        <td>${this.getPaymentMethodLabel(payment.formaPagamento)}</td>
+                                        <td style="text-align: right;"><strong>R$ ${payment.valor.toFixed(2)}</strong></td>
+                                        <td>${payment.observacoes || '-'}</td>
+                                    </tr>
+                                `).join('')}
+                                <tr class="total-row">
+                                    <td colspan="2" style="text-align: right;"><strong>Total Pago:</strong></td>
+                                    <td style="text-align: right;"><strong>R$ ${order.payments.reduce((sum, p) => sum + p.valor, 0).toFixed(2)}</strong></td>
+                                    <td></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                ` : ''}
             </div>
         `;
+
+        return html;
     }
 
     async showOrderDetails(orderId) {
