@@ -519,8 +519,8 @@ class ServiceOrderManager {
         const customerOptions = this.customers
             .filter(c => c.ativo)
             .map(c => {
-                console.log('Cliente:', c.id, c.nomeFantasia, c.razaoSocial);
-                return `<option value="${c.id}">${c.nomeFantasia || c.razaoSocial}</option>`;
+                console.log('Cliente:', c.id, c.nome_fantasia, c.razao_social);
+                return `<option value="${c.id}">${c.nome_fantasia || c.razao_social}</option>`;
             })
             .join('');
 
