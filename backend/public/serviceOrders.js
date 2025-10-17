@@ -7,6 +7,7 @@ class ServiceOrderManager {
         this.customers = [];
         this.users = [];
         this.equipmentList = [];
+        this.viewMode = 'cards'; // 'cards' ou 'table'
     }
 
     async initialize() {
@@ -57,7 +58,15 @@ class ServiceOrderManager {
                         <h2>🔧 Ordens de Serviço</h2>
                     </div>
                     <div class="os-filters">
-                        <input type="text" id="osSearchInput" placeholder="🔍 Buscar OS..." oninput="serviceOrderManager.handleSearch()">
+                        <div class="view-toggle">
+                            <button class="view-btn ${this.viewMode === 'cards' ? 'active' : ''}" onclick="serviceOrderManager.toggleView('cards')" title="Visualização em Cards">
+                                <span style="font-size: 18px;">⊞</span>
+                            </button>
+                            <button class="view-btn ${this.viewMode === 'table' ? 'active' : ''}" onclick="serviceOrderManager.toggleView('table')" title="Visualização em Tabela">
+                                <span style="font-size: 18px;">☰</span>
+                            </button>
+                        </div>
+                        <input type="text" id="osSearchInput" placeholder="🔍 Buscar por OS, cliente, equipamento ou defeito..." oninput="serviceOrderManager.handleSearch()">
                         <select id="osStatusFilter" onchange="serviceOrderManager.handleFilterChange()">
                             <option value="">Todos os status</option>
                             <option value="aguardando_orcamento">Aguardando Orçamento</option>
@@ -113,6 +122,12 @@ class ServiceOrderManager {
         this.handleSearch();
     }
 
+    toggleView(mode) {
+        this.viewMode = mode;
+        this.renderMainUI();
+        this.renderOrdersList();
+    }
+
     renderOrdersList() {
         const container = document.getElementById('serviceOrdersContent');
         if (!container) return;
@@ -128,6 +143,15 @@ class ServiceOrderManager {
             return;
         }
 
+        if (this.viewMode === 'table') {
+            this.renderTableView();
+        } else {
+            this.renderCardsView();
+        }
+    }
+
+    renderCardsView() {
+        const container = document.getElementById('serviceOrdersContent');
         const statusLabels = {
             'aguardando_orcamento': 'Aguardando Orçamento',
             'orcamento_pendente': 'Orçamento Pendente',
@@ -180,6 +204,64 @@ class ServiceOrderManager {
         container.innerHTML = `
             <div class="os-grid">
                 ${ordersHtml}
+            </div>
+        `;
+    }
+
+    renderTableView() {
+        const container = document.getElementById('serviceOrdersContent');
+        const statusLabels = {
+            'aguardando_orcamento': 'Aguardando Orçamento',
+            'orcamento_pendente': 'Orçamento Pendente',
+            'aprovado': 'Aprovado',
+            'em_reparo': 'Em Reparo',
+            'concluido': 'Concluído',
+            'aguardando_retirada': 'Aguardando Retirada',
+            'entregue': 'Entregue',
+            'cancelado': 'Cancelado'
+        };
+
+        const rowsHtml = this.currentOrders.map(order => {
+            const statusLabel = statusLabels[order.status] || order.status;
+            const customerName = order.customer?.razaoSocial || order.customer?.nomeFantasia || 'Não informado';
+            const equipamento = `${order.equipamento?.marca || ''} ${order.equipamento?.modelo || ''}`.trim() || 'Não informado';
+
+            return `
+                <tr onclick="serviceOrderManager.showOrderDetails('${order.id}')" style="cursor: pointer;">
+                    <td><strong>${order.numeroOS}</strong></td>
+                    <td><span class="table-status status-${order.status}">${statusLabel}</span></td>
+                    <td>${customerName}</td>
+                    <td>${equipamento}</td>
+                    <td>${order.defeitoRelatado.substring(0, 40)}${order.defeitoRelatado.length > 40 ? '...' : ''}</td>
+                    <td>${order.tecnicoResponsavel?.name || '-'}</td>
+                    <td>${new Date(order.dataEntrada).toLocaleDateString('pt-BR')}</td>
+                    <td style="text-align: right;">
+                        ${order.valorFinal > 0 ? `<strong>R$ ${order.valorFinal.toFixed(2)}</strong>` :
+                          order.valorOrcado > 0 ? `R$ ${order.valorOrcado.toFixed(2)}` : '-'}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        container.innerHTML = `
+            <div class="table-container">
+                <table class="os-table">
+                    <thead>
+                        <tr>
+                            <th>Número OS</th>
+                            <th>Status</th>
+                            <th>Cliente</th>
+                            <th>Equipamento</th>
+                            <th>Defeito</th>
+                            <th>Técnico</th>
+                            <th>Data Entrada</th>
+                            <th style="text-align: right;">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
             </div>
         `;
     }
