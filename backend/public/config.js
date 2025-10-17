@@ -65,8 +65,10 @@ function getCurrentUser() {
 function setCurrentUser(user) {
     if (user) {
         localStorage.setItem(CONFIG.USER_KEY, JSON.stringify(user));
+        window.currentUser = user; // Disponibilizar globalmente
     } else {
         localStorage.removeItem(CONFIG.USER_KEY);
+        window.currentUser = null;
     }
 }
 

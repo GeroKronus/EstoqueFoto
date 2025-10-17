@@ -18,6 +18,7 @@ class PhotoAuthManager {
                 // Verificar token no backend
                 const userData = await window.api.getMe();
                 this.currentUser = userData.user;
+                window.currentUser = userData.user; // Disponibilizar globalmente
                 console.log('✅ Sessão restaurada para:', this.currentUser.name);
                 this.showModuleSelection();
                 return;
