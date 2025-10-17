@@ -69,7 +69,7 @@ class ServiceOrderManager {
                             <option value="entregue">Entregue</option>
                             <option value="cancelado">Cancelado</option>
                         </select>
-                        <button class="btn-new-os" onclick="serviceOrderManager.showNewOSModal()">
+                        <button class="btn-new-os" onclick="serviceOrderManager.showNewOSModal().catch(e => console.error(e))">
                             ➕ Nova OS
                         </button>
                     </div>
@@ -501,7 +501,18 @@ class ServiceOrderManager {
     }
 
     // ========== MODAL NOVA OS ==========
-    showNewOSModal() {
+    async showNewOSModal() {
+        // Garantir que os dados estejam carregados
+        if (this.customers.length === 0) {
+            await this.loadCustomers();
+        }
+        if (this.users.length === 0) {
+            await this.loadUsers();
+        }
+
+        console.log('Clientes carregados:', this.customers.length);
+        console.log('Usuários carregados:', this.users.length);
+
         const customerOptions = this.customers
             .filter(c => c.ativo)
             .map(c => `<option value="${c.id}">${c.nomeFantasia || c.razaoSocial}</option>`)
@@ -751,6 +762,11 @@ class ServiceOrderManager {
 
     // ========== MODAL ADICIONAR PEÇA ==========
     async showAddItemModal(orderId) {
+        // Garantir que os equipamentos estejam carregados
+        if (this.equipmentList.length === 0) {
+            await this.loadEquipment();
+        }
+
         const equipOptions = this.equipmentList
             .filter(e => e.quantity > 0)
             .map(e => `<option value="${e.id}" data-price="${e.averageCost || 0}">${e.name} (Estoque: ${e.quantity} ${e.unit})</option>`)
