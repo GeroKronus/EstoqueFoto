@@ -23,8 +23,6 @@ class ServiceOrderManager {
         try {
             const response = await window.api.request('/customers?limit=1000');
             this.customers = response.customers || [];
-            console.log('📊 Response completo:', response);
-            console.log('📊 Primeiro cliente:', this.customers[0]);
         } catch (error) {
             console.error('Erro ao carregar clientes:', error);
         }
@@ -512,16 +510,9 @@ class ServiceOrderManager {
             await this.loadUsers();
         }
 
-        console.log('Clientes carregados:', this.customers.length);
-        console.log('Usuários carregados:', this.users.length);
-        console.log('Dados dos clientes:', this.customers);
-
         const customerOptions = this.customers
             .filter(c => c.ativo)
-            .map(c => {
-                console.log('Cliente:', c.id, c.nome_fantasia, c.razao_social);
-                return `<option value="${c.id}">${c.nome_fantasia || c.razao_social}</option>`;
-            })
+            .map(c => `<option value="${c.id}">${c.razao_social || c.nome_fantasia}</option>`)
             .join('');
 
         const techOptions = this.users
