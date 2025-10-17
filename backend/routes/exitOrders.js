@@ -752,11 +752,38 @@ router.put('/:orderId/items/:itemId', authenticateToken, async (req, res) => {
                 [itemId]
             );
 
-            return { orderItem: updatedItemResult.rows[0], modified: true };
+            // Verificar se todos os itens da ordem estão zerados
+            const allItemsResult = await client.query(
+                'SELECT * FROM exit_order_items WHERE exit_order_id = $1',
+                [orderId]
+            );
+
+            const allItemsZeroed = allItemsResult.rows.length > 0 &&
+                allItemsResult.rows.every(item => parseFloat(item.quantity) === 0);
+
+            let autoCancelled = false;
+            if (allItemsZeroed) {
+                // Cancelar ordem automaticamente
+                await client.query(`
+                    UPDATE exit_orders
+                    SET
+                        status = 'cancelada',
+                        cancelled_at = NOW(),
+                        cancelled_by = $1,
+                        cancellation_reason = $2
+                    WHERE id = $3
+                `, [req.user.id, 'Todos os itens foram zerados', orderId]);
+
+                autoCancelled = true;
+            }
+
+            return { orderItem: updatedItemResult.rows[0], modified: true, autoCancelled };
         });
 
         res.json({
-            message: result.modified ? 'Quantidade do item atualizada com sucesso' : 'Nenhuma alteração realizada',
+            message: result.autoCancelled
+                ? 'Quantidade atualizada. Ordem cancelada automaticamente pois todos os itens foram zerados.'
+                : (result.modified ? 'Quantidade do item atualizada com sucesso' : 'Nenhuma alteração realizada'),
             item: {
                 id: result.orderItem.id,
                 equipmentName: result.orderItem.equipment_name,
@@ -972,11 +999,36 @@ router.delete('/:orderId/items/:itemId', authenticateToken, async (req, res) => 
                 req.user.name
             ]);
 
-            return { orderItem, equipment };
+            // Verificar se não há mais itens ou se todos estão zerados
+            const remainingItemsResult = await client.query(
+                'SELECT * FROM exit_order_items WHERE exit_order_id = $1',
+                [orderId]
+            );
+
+            let autoCancelled = false;
+            if (remainingItemsResult.rows.length === 0 ||
+                remainingItemsResult.rows.every(item => parseFloat(item.quantity) === 0)) {
+                // Cancelar ordem automaticamente
+                await client.query(`
+                    UPDATE exit_orders
+                    SET
+                        status = 'cancelada',
+                        cancelled_at = NOW(),
+                        cancelled_by = $1,
+                        cancellation_reason = $2
+                    WHERE id = $3
+                `, [req.user.id, 'Todos os itens foram removidos ou zerados', orderId]);
+
+                autoCancelled = true;
+            }
+
+            return { orderItem, equipment, autoCancelled };
         });
 
         res.json({
-            message: `Item ${result.orderItem.equipment_name} excluído da ordem e devolvido ao estoque`,
+            message: result.autoCancelled
+                ? `Item ${result.orderItem.equipment_name} excluído. Ordem cancelada automaticamente pois não há mais itens.`
+                : `Item ${result.orderItem.equipment_name} excluído da ordem e devolvido ao estoque`,
             returnedQuantity: parseFloat(result.orderItem.quantity),
             unit: result.orderItem.unit
         });
