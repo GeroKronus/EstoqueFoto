@@ -19,7 +19,7 @@ class PhotoAuthManager {
                 const userData = await window.api.getMe();
                 this.currentUser = userData.user;
                 console.log('✅ Sessão restaurada para:', this.currentUser.name);
-                this.loadSystemInterface();
+                this.showModuleSelection();
                 return;
             } catch (error) {
                 console.warn('⚠️ Token inválido ou expirado, redirecionando para login');
@@ -218,7 +218,7 @@ Você agora pode:
 Carregando sistema...`);
 
                 setTimeout(() => {
-                    this.loadSystemInterface();
+                    this.showModuleSelection();
                 }, 1000);
             } else {
                 throw new Error('Resposta inválida do servidor');
