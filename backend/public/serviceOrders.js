@@ -54,11 +54,9 @@ class ServiceOrderManager {
         section.innerHTML = `
             <div class="os-container">
                 <div class="os-header">
-                    <div>
-                        <h2>🔧 Ordens de Serviço - TESTE</h2>
-                    </div>
+                    <h2>🔧 Ordens de Serviço</h2>
                     <div class="os-filters">
-                        <input type="text" id="osSearchInput" placeholder="🔍 Buscar OS..." oninput="serviceOrderManager.handleSearch()">
+                        <input type="text" id="osSearchInput" placeholder="🔍 Buscar por OS, cliente, equipamento..." oninput="serviceOrderManager.handleSearch()">
                         <select id="osStatusFilter" onchange="serviceOrderManager.handleFilterChange()">
                             <option value="">Todos os status</option>
                             <option value="aguardando_orcamento">Aguardando Orçamento</option>
@@ -76,10 +74,10 @@ class ServiceOrderManager {
                         <div class="view-mode-toggle">
                             <label>Visualização:</label>
                             <div class="toggle-buttons">
-                                <button class="toggle-btn ${this.viewMode === 'cards' ? 'active' : ''}" onclick="serviceOrderManager.toggleView('cards')" title="Visualização em Cards">
+                                <button id="viewModeCards" class="toggle-btn ${this.viewMode === 'cards' ? 'active' : ''}" onclick="serviceOrderManager.toggleView('cards')" title="Visualização em Cards">
                                     🔲 Cards
                                 </button>
-                                <button class="toggle-btn ${this.viewMode === 'table' ? 'active' : ''}" onclick="serviceOrderManager.toggleView('table')" title="Visualização em Tabela">
+                                <button id="viewModeTable" class="toggle-btn ${this.viewMode === 'table' ? 'active' : ''}" onclick="serviceOrderManager.toggleView('table')" title="Visualização em Tabela">
                                     📋 Tabela
                                 </button>
                             </div>
