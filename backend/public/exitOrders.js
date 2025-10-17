@@ -200,6 +200,7 @@ class ExitOrdersManager {
                             <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
                                 <div><strong>📄 Documento Saída:</strong> ${order.documentNumber}</div>
                                 <div><strong>Finalizada em:</strong> ${this.formatDateTime(order.finalizedAt)}</div>
+                                <div><strong>Finalizada por:</strong> ${order.finalizedBy?.name || '-'}</div>
                             </div>
                         ` : ''}
                     </div>
@@ -410,6 +411,7 @@ class ExitOrdersManager {
                         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
                             <div><strong>📄 Documento Saída:</strong> ${order.documentNumber}</div>
                             <div><strong>Finalizada em:</strong> ${this.formatDateTime(order.finalizedAt)}</div>
+                            <div><strong>Finalizada por:</strong> ${order.finalizedBy?.name || '-'}</div>
                         </div>
                     ` : ''}
                 </div>
@@ -1158,7 +1160,8 @@ class ExitOrdersManager {
                             ${order.status === 'finalizada' && order.documentNumber ? `
                                 <div class="finalization-info" style="margin-top: 15px; padding: 10px; background: #e8f5e9; border-left: 4px solid #4CAF50; border-radius: 4px;">
                                     <strong>📄 Documento Saída:</strong> ${order.documentNumber}<br>
-                                    <strong>Finalizada em:</strong> ${this.formatDateTime(order.finalizedAt)}
+                                    <strong>Finalizada em:</strong> ${this.formatDateTime(order.finalizedAt)}<br>
+                                    <strong>Finalizada por:</strong> ${order.finalizedBy?.name || '-'}
                                 </div>
                             ` : ''}
 

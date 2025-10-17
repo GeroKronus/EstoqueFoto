@@ -74,6 +74,7 @@ router.get('/', authenticateToken, async (req, res) => {
                 eo.*,
                 u.name as created_by_name,
                 uc.name as cancelled_by_name,
+                uf.name as finalized_by_name,
                 cust.razao_social as customer_razao_social,
                 cust.nome_fantasia as customer_nome_fantasia,
                 (
@@ -85,6 +86,7 @@ router.get('/', authenticateToken, async (req, res) => {
             ${joinConditionalItems ? 'INNER JOIN exit_order_items eoi ON eo.id = eoi.exit_order_id' : ''}
             LEFT JOIN users u ON eo.created_by = u.id
             LEFT JOIN users uc ON eo.cancelled_by = uc.id
+            LEFT JOIN users uf ON eo.finalized_by = uf.id
             LEFT JOIN customers cust ON eo.customer_id = cust.id
             ${whereClause}
             ORDER BY eo.${finalSortBy} ${finalSortOrder}
@@ -128,7 +130,10 @@ router.get('/', authenticateToken, async (req, res) => {
             } : null,
             cancellationReason: row.cancellation_reason,
             finalizedAt: row.finalized_at,
-            finalizedBy: row.finalized_by,
+            finalizedBy: row.finalized_by ? {
+                id: row.finalized_by,
+                name: row.finalized_by_name
+            } : null,
             customer: row.customer_id ? {
                 id: row.customer_id,
                 razaoSocial: row.customer_razao_social,
@@ -230,11 +235,13 @@ router.get('/:id', authenticateToken, async (req, res) => {
                 eo.*,
                 u.name as created_by_name,
                 uc.name as cancelled_by_name,
+                uf.name as finalized_by_name,
                 cust.razao_social as customer_razao_social,
                 cust.nome_fantasia as customer_nome_fantasia
             FROM exit_orders eo
             LEFT JOIN users u ON eo.created_by = u.id
             LEFT JOIN users uc ON eo.cancelled_by = uc.id
+            LEFT JOIN users uf ON eo.finalized_by = uf.id
             LEFT JOIN customers cust ON eo.customer_id = cust.id
             WHERE eo.id = $1
         `;
@@ -285,7 +292,10 @@ router.get('/:id', authenticateToken, async (req, res) => {
             } : null,
             cancellationReason: row.cancellation_reason,
             finalizedAt: row.finalized_at,
-            finalizedBy: row.finalized_by,
+            finalizedBy: row.finalized_by ? {
+                id: row.finalized_by,
+                name: row.finalized_by_name
+            } : null,
             customer: row.customer_id ? {
                 id: row.customer_id,
                 razaoSocial: row.customer_razao_social,
