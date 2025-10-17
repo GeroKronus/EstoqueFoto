@@ -84,12 +84,6 @@ class ServiceOrderManager {
             const params = new URLSearchParams(filters);
             const response = await window.api.request(`/service-orders?${params}`);
             this.currentOrders = response.orders || [];
-            console.log('🔍 Debug - Ordens carregadas:', this.currentOrders);
-            if (this.currentOrders.length > 0) {
-                console.log('🔍 Debug - Primeira ordem:', this.currentOrders[0]);
-                console.log('🔍 Debug - Customer da primeira ordem:', this.currentOrders[0].customer);
-                console.log('🔍 Debug - Equipamento da primeira ordem:', this.currentOrders[0].equipamento);
-            }
             return this.currentOrders;
         } catch (error) {
             console.error('Erro ao carregar ordens de serviço:', error);
@@ -608,9 +602,6 @@ class ServiceOrderManager {
         const defeitoRelatadoElement = document.getElementById('osDefeitoRelatado');
         const defeitoRelatado = defeitoRelatadoElement ? defeitoRelatadoElement.value.trim() : '';
 
-        console.log('🔍 Debug - Elemento defeitoRelatado:', defeitoRelatadoElement);
-        console.log('🔍 Debug - Valor do defeito:', defeitoRelatado);
-
         // Validação manual
         if (!customerId) {
             window.notify.error('Por favor, selecione um cliente');
@@ -624,18 +615,16 @@ class ServiceOrderManager {
         }
 
         const data = {
-            customerId: parseInt(customerId),
-            equipamentoMarca: document.getElementById('osEquipMarca').value || null,
-            equipamentoModelo: document.getElementById('osEquipModelo').value || null,
-            equipamentoSerial: document.getElementById('osEquipSerial').value || null,
+            customer_id: parseInt(customerId),
+            equipamento_marca: document.getElementById('osEquipMarca').value || null,
+            equipamento_modelo: document.getElementById('osEquipModelo').value || null,
+            equipamento_serial: document.getElementById('osEquipSerial').value || null,
             acessorios: document.getElementById('osAcessorios').value || null,
-            defeito_relatado: defeitoRelatado,  // Backend espera snake_case
-            tecnicoResponsavelId: document.getElementById('osTecnicoId').value || null,
-            garantiaDias: parseInt(document.getElementById('osGarantiaDias').value) || 90,
+            defeito_relatado: defeitoRelatado,
+            tecnico_responsavel_id: document.getElementById('osTecnicoId').value || null,
+            garantia_dias: parseInt(document.getElementById('osGarantiaDias').value) || 90,
             observacoes: document.getElementById('osObservacoes').value || null
         };
-
-        console.log('📤 Dados sendo enviados:', data);
 
         try {
             const response = await window.api.request('/service-orders', {
