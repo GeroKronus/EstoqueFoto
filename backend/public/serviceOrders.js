@@ -801,14 +801,14 @@ class ServiceOrderManager {
 
     async handleCreateOS() {
         const data = {
-            customerId: parseInt(document.getElementById('osCustomerId').value),
-            equipamentoMarca: document.getElementById('osEquipMarca').value || null,
-            equipamentoModelo: document.getElementById('osEquipModelo').value || null,
-            equipamentoSerial: document.getElementById('osEquipSerial').value || null,
+            customer_id: parseInt(document.getElementById('osCustomerId').value),
+            equipamento_marca: document.getElementById('osEquipMarca').value || null,
+            equipamento_modelo: document.getElementById('osEquipModelo').value || null,
+            equipamento_serial: document.getElementById('osEquipSerial').value || null,
             acessorios: document.getElementById('osAcessorios').value || null,
-            defeitoRelatado: document.getElementById('osDefeitoRelatado').value,
-            tecnicoResponsavelId: document.getElementById('osTecnicoId').value || null,
-            garantiaDias: parseInt(document.getElementById('osGarantiaDias').value) || 90,
+            defeito_relatado: document.getElementById('osDefeitoRelatado').value,
+            tecnico_responsavel_id: document.getElementById('osTecnicoId').value || null,
+            garantia_dias: parseInt(document.getElementById('osGarantiaDias').value) || 90,
             observacoes: document.getElementById('osObservacoes').value || null
         };
 
@@ -945,16 +945,16 @@ class ServiceOrderManager {
 
         // Campos opcionais baseados no status
         const valorOrcado = document.getElementById('osValorOrcado')?.value;
-        if (valorOrcado) data.valorOrcado = parseFloat(valorOrcado);
+        if (valorOrcado) data.valor_orcado = parseFloat(valorOrcado);
 
         const prazoEstimado = document.getElementById('osPrazoEstimado')?.value;
-        if (prazoEstimado) data.prazoEstimado = prazoEstimado;
+        if (prazoEstimado) data.prazo_estimado = prazoEstimado;
 
         const defeitoConstatado = document.getElementById('osDefeitoConstatado')?.value;
-        if (defeitoConstatado) data.defeitoConstatado = defeitoConstatado;
+        if (defeitoConstatado) data.defeito_constatado = defeitoConstatado;
 
         const valorFinal = document.getElementById('osValorFinal')?.value;
-        if (valorFinal) data.valorFinal = parseFloat(valorFinal);
+        if (valorFinal) data.valor_final = parseFloat(valorFinal);
 
         try {
             await window.api.request(`/service-orders/${orderId}/status`, {
@@ -1083,10 +1083,10 @@ class ServiceOrderManager {
         }
 
         const data = {
-            equipmentId: equipmentId,
+            equipment_id: equipmentId,
             descricao: descricao || null,
             quantidade: parseFloat(document.getElementById('osItemQuantidade').value),
-            valorUnitario: parseFloat(document.getElementById('osItemValorUnitario').value)
+            valor_unitario: parseFloat(document.getElementById('osItemValorUnitario').value)
         };
 
         try {
@@ -1163,7 +1163,7 @@ class ServiceOrderManager {
     async handleAddPayment(orderId) {
         const data = {
             valor: parseFloat(document.getElementById('osPaymentValor').value),
-            formaPagamento: document.getElementById('osPaymentForma').value,
+            forma_pagamento: document.getElementById('osPaymentForma').value,
             observacoes: document.getElementById('osPaymentObs').value || null
         };
 
