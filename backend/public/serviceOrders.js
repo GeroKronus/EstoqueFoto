@@ -520,9 +520,12 @@ class ServiceOrderManager {
             .join('');
 
         const modalHtml = `
-            <div class="modal" id="newOSModal" style="display: flex;">
+            <div class="modal" id="newOSModal" style="display: flex;" onclick="event.target === this && event.stopPropagation()">
                 <div class="modal-content" style="max-width: 800px;">
-                    <h2>🔧 Nova Ordem de Serviço</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h2 style="margin: 0;">🔧 Nova Ordem de Serviço</h2>
+                        <button type="button" onclick="closeModal('newOSModal')" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #666; line-height: 1;">&times;</button>
+                    </div>
                     <form id="newOSForm">
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                             <div style="grid-column: 1 / -1;">
@@ -555,7 +558,7 @@ class ServiceOrderManager {
 
                             <div style="grid-column: 1 / -1;">
                                 <label>Defeito Relatado *</label>
-                                <textarea id="osDefeitoRelatado" required placeholder="Descreva o problema relatado pelo cliente" style="height: 80px;"></textarea>
+                                <textarea id="osDefeitoRelatado" placeholder="Descreva o problema relatado pelo cliente" style="height: 80px;"></textarea>
                             </div>
 
                             <div>
@@ -595,13 +598,28 @@ class ServiceOrderManager {
     }
 
     async handleCreateOS() {
+        const customerId = document.getElementById('osCustomerId').value;
+        const defeitoRelatado = document.getElementById('osDefeitoRelatado').value.trim();
+
+        // Validação manual
+        if (!customerId) {
+            window.notify.error('Por favor, selecione um cliente');
+            return;
+        }
+
+        if (!defeitoRelatado) {
+            window.notify.error('Por favor, descreva o defeito relatado');
+            document.getElementById('osDefeitoRelatado').focus();
+            return;
+        }
+
         const data = {
-            customerId: parseInt(document.getElementById('osCustomerId').value),
+            customerId: parseInt(customerId),
             equipamentoMarca: document.getElementById('osEquipMarca').value || null,
             equipamentoModelo: document.getElementById('osEquipModelo').value || null,
             equipamentoSerial: document.getElementById('osEquipSerial').value || null,
             acessorios: document.getElementById('osAcessorios').value || null,
-            defeitoRelatado: document.getElementById('osDefeitoRelatado').value,
+            defeitoRelatado: defeitoRelatado,
             tecnicoResponsavelId: document.getElementById('osTecnicoId').value || null,
             garantiaDias: parseInt(document.getElementById('osGarantiaDias').value) || 90,
             observacoes: document.getElementById('osObservacoes').value || null
