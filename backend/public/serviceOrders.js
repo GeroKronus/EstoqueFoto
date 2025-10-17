@@ -623,7 +623,7 @@ class ServiceOrderManager {
             equipamentoModelo: document.getElementById('osEquipModelo').value || null,
             equipamentoSerial: document.getElementById('osEquipSerial').value || null,
             acessorios: document.getElementById('osAcessorios').value || null,
-            defeitoRelatado: defeitoRelatado,
+            defeito_relatado: defeitoRelatado,  // Backend espera snake_case
             tecnicoResponsavelId: document.getElementById('osTecnicoId').value || null,
             garantiaDias: parseInt(document.getElementById('osGarantiaDias').value) || 90,
             observacoes: document.getElementById('osObservacoes').value || null
