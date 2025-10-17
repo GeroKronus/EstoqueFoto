@@ -25,8 +25,11 @@ class ServiceOrderManager {
         try {
             const response = await window.api.request('/customers?limit=1000');
             this.customers = response.customers || [];
+            console.log('[loadCustomers] Total de clientes carregados:', this.customers.length);
+            console.log('[loadCustomers] Clientes ativos:', this.customers.filter(c => c.ativo).length);
         } catch (error) {
-            console.error('Erro ao carregar clientes:', error);
+            console.error('[loadCustomers] Erro ao carregar clientes:', error);
+            this.customers = [];
         }
     }
 
@@ -782,21 +785,23 @@ class ServiceOrderManager {
 
     // ========== MODAL NOVA OS ==========
     async showNewOSModal() {
-        // Garantir que os dados estejam carregados
-        if (this.customers.length === 0) {
-            await this.loadCustomers();
-        }
-        if (this.users.length === 0) {
-            await this.loadUsers();
-        }
+        // SEMPRE recarregar clientes e usuários para garantir dados atualizados
+        console.log('[showNewOSModal] Recarregando clientes e usuários...');
+        await this.loadCustomers();
+        await this.loadUsers();
 
-        console.log('Clientes carregados:', this.customers.length);
-        console.log('Usuários carregados:', this.users.length);
+        console.log('[showNewOSModal] Clientes carregados:', this.customers.length);
+        console.log('[showNewOSModal] Usuários carregados:', this.users.length);
 
-        const customerOptions = this.customers
-            .filter(c => c.ativo)
+        const activeCustomers = this.customers.filter(c => c.ativo);
+        console.log('[showNewOSModal] Clientes ativos:', activeCustomers.length);
+        console.log('[showNewOSModal] Primeiros 3 clientes:', activeCustomers.slice(0, 3).map(c => ({ id: c.id, nome: c.nomeFantasia || c.razaoSocial })));
+
+        const customerOptions = activeCustomers
             .map(c => `<option value="${c.id}">${c.nomeFantasia || c.razaoSocial}</option>`)
             .join('');
+
+        console.log('[showNewOSModal] customerOptions length:', customerOptions.length);
 
         const techOptions = this.users
             .map(u => `<option value="${u.id}">${u.name}</option>`)
