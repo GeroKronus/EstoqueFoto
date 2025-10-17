@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migration 018 - Ordens de Serviço</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 700px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .description {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        .info-box {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #2196F3;
+        }
+        .info-box h3 {
+            color: #1976D2;
+            margin-bottom: 10px;
+        }
+        .info-box ul {
+            margin-left: 20px;
+            color: #666;
+        }
+        .info-box li {
+            margin: 5px 0;
+        }
+        .status {
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .loading {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        button:hover:not(:disabled) {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .details {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Migration 018</h1>
+        <p class="description">Sistema de Controle de Ordens de Serviço (Assistência Técnica)</p>
+
+        <div class="info-box">
+            <h3>📋 O que esta migration faz:</h3>
+            <ul>
+                <li><strong>service_orders:</strong> Tabela principal de ordens de serviço</li>
+                <li><strong>service_order_items:</strong> Peças utilizadas nas OS</li>
+                <li><strong>service_order_history:</strong> Histórico de alterações</li>
+                <li><strong>service_order_payments:</strong> Pagamentos das OS</li>
+            </ul>
+            <p style="margin-top: 15px; color: #1976D2; font-weight: 600;">
+                ⚠️ Esta migration cria a estrutura completa para controle de assistência técnica!
+            </p>
+        </div>
+
+        <div id="status" class="status loading">
+            <div class="spinner"></div>
+            <div style="text-align: center; margin-top: 10px;">Verificando autenticação...</div>
+        </div>
+
+        <button id="executeBtn" style="display: none;" onclick="executeMigration()">
+            🚀 Executar Migration 018
+        </button>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        let token = null;
+
+        // Verificar autenticação automaticamente ao carregar
+        window.addEventListener('DOMContentLoaded', async () => {
+            await checkAuth();
+        });
+
+        async function checkAuth() {
+            const statusDiv = document.getElementById('status');
+            const button = document.getElementById('executeBtn');
+
+            // Buscar token
+            token = localStorage.getItem('photo_auth_token') ||
+                    sessionStorage.getItem('auth_token') ||
+                    localStorage.getItem('auth_token') ||
+                    sessionStorage.getItem('token') ||
+                    localStorage.getItem('token');
+
+            if (!token) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `
+                    <strong>❌ Não autenticado</strong>
+                    <p>Você precisa estar logado como administrador.</p>
+                    <p style="margin-top: 15px;">
+                        <a href="/" style="color: #dc3545; font-weight: 600;">
+                            → Fazer login no sistema
+                        </a>
+                    </p>
+                `;
+                return;
+            }
+
+            // Verificar se é admin
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) throw new Error('Token inválido');
+
+                const data = await response.json();
+
+                if (data.user.role !== 'admin') {
+                    statusDiv.className = 'status error';
+                    statusDiv.innerHTML = `
+                        <strong>🚫 Acesso Negado</strong>
+                        <p>Apenas administradores podem executar migrations.</p>
+                        <p>Usuário atual: <strong>${data.user.name}</strong> (${data.user.role})</p>
+                    `;
+                    return;
+                }
+
+                // Tudo ok!
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = `
+                    <strong>✅ Autenticado como Administrador</strong>
+                    <p>Usuário: <strong>${data.user.name}</strong></p>
+                    <p style="margin-top: 10px;">Clique no botão abaixo para executar a migration.</p>
+                `;
+                button.style.display = 'block';
+
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `
+                    <strong>❌ Erro na autenticação</strong>
+                    <p>${error.message}</p>
+                    <p style="margin-top: 15px;">
+                        <a href="/" style="color: #dc3545; font-weight: 600;">
+                            → Fazer login novamente
+                        </a>
+                    </p>
+                `;
+            }
+        }
+
+        async function executeMigration() {
+            const statusDiv = document.getElementById('status');
+            const button = document.getElementById('executeBtn');
+
+            button.disabled = true;
+            button.textContent = 'Executando...';
+
+            statusDiv.className = 'status loading';
+            statusDiv.innerHTML = `
+                <div class="spinner"></div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <strong>Executando Migration 018...</strong>
+                    <p>Criando tabelas de Ordens de Serviço...</p>
+                    <p style="font-size: 14px; color: #666; margin-top: 10px;">Isso pode levar alguns segundos.</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/migrations/run/018`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || data.details || `HTTP ${response.status}`);
+                }
+
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = `
+                    <strong>✅ Migration executada com sucesso!</strong>
+                    <p style="margin-top: 10px;">${data.message}</p>
+                    ${data.tablesCreated && data.tablesCreated.length > 0 ? `
+                        <div class="details">
+                            <strong>📊 Tabelas criadas:</strong><br>
+                            ${data.tablesCreated.map(t => `✓ ${t}`).join('<br>')}
+                        </div>
+                    ` : ''}
+                    <div style="margin-top: 20px; padding: 20px; background: #e8f5e9; border-radius: 8px; border-left: 4px solid #4CAF50;">
+                        <strong style="color: #2e7d32;">🎉 Sistema de Ordens de Serviço instalado!</strong>
+                        <p style="margin-top: 10px; color: #1b5e20;">
+                            Agora você pode:<br>
+                            • Criar ordens de serviço para clientes<br>
+                            • Controlar status de reparos<br>
+                            • Gerenciar peças utilizadas<br>
+                            • Registrar pagamentos<br>
+                            • Visualizar histórico completo
+                        </p>
+                    </div>
+                `;
+
+                button.textContent = '✓ Migration Concluída';
+                button.style.background = '#28a745';
+
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `
+                    <strong>❌ Erro ao executar migration</strong>
+                    <p>${error.message}</p>
+                    <div class="details">
+                        <strong>Detalhes do erro:</strong><br>
+                        ${error.stack || error.message || 'Sem detalhes adicionais'}
+                    </div>
+                    <p style="margin-top: 15px; padding: 15px; background: #fff3cd; border-radius: 8px;">
+                        💡 <strong>Dica:</strong> Se o erro persistir, verifique os logs do servidor ou entre em contato com o suporte.
+                    </p>
+                `;
+                button.disabled = false;
+                button.textContent = 'Tentar Novamente';
+            }
+        }
+    </script>
+</body>
+</html>
