@@ -599,7 +599,11 @@ class ServiceOrderManager {
 
     async handleCreateOS() {
         const customerId = document.getElementById('osCustomerId').value;
-        const defeitoRelatado = document.getElementById('osDefeitoRelatado').value.trim();
+        const defeitoRelatadoElement = document.getElementById('osDefeitoRelatado');
+        const defeitoRelatado = defeitoRelatadoElement ? defeitoRelatadoElement.value.trim() : '';
+
+        console.log('🔍 Debug - Elemento defeitoRelatado:', defeitoRelatadoElement);
+        console.log('🔍 Debug - Valor do defeito:', defeitoRelatado);
 
         // Validação manual
         if (!customerId) {
@@ -609,7 +613,7 @@ class ServiceOrderManager {
 
         if (!defeitoRelatado) {
             window.notify.error('Por favor, descreva o defeito relatado');
-            document.getElementById('osDefeitoRelatado').focus();
+            if (defeitoRelatadoElement) defeitoRelatadoElement.focus();
             return;
         }
 
@@ -624,6 +628,8 @@ class ServiceOrderManager {
             garantiaDias: parseInt(document.getElementById('osGarantiaDias').value) || 90,
             observacoes: document.getElementById('osObservacoes').value || null
         };
+
+        console.log('📤 Dados sendo enviados:', data);
 
         try {
             const response = await window.api.request('/service-orders', {
