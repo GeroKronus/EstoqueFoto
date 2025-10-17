@@ -72,6 +72,9 @@ class ServiceOrderManager {
                         <button class="btn-new-os" onclick="serviceOrderManager.showNewOSModal().catch(e => console.error(e))">
                             ➕ Nova OS
                         </button>
+                        <button class="btn-admin" onclick="serviceOrderManager.showAdminPanel()" style="background: #dc3545; margin-left: 10px;">
+                            ⚙️ Admin
+                        </button>
                     </div>
                 </div>
                 <div id="serviceOrdersContent"></div>
@@ -969,6 +972,77 @@ class ServiceOrderManager {
         } catch (error) {
             console.error('Erro ao registrar pagamento:', error);
             window.notify.error(error.message || 'Erro ao registrar pagamento');
+        }
+    }
+
+    // ========== PAINEL ADMINISTRATIVO ==========
+    showAdminPanel() {
+        const modalHtml = `
+            <div class="modal" id="adminPanelModal" style="display: flex;">
+                <div class="modal-content" style="max-width: 600px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h2 style="margin: 0;">⚙️ Painel Administrativo</h2>
+                        <button type="button" onclick="closeModal('adminPanelModal')" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #666; line-height: 1;">&times;</button>
+                    </div>
+
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ff9800; margin-bottom: 20px;">
+                        <strong>⚠️ ATENÇÃO</strong>
+                        <p style="margin: 5px 0 0 0;">Esta ação é irreversível! Todos os dados de testes serão permanentemente excluídos.</p>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 10px;">🗑️ Limpar Dados de Teste</h3>
+                        <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                            Esta opção irá excluir TODAS as ordens de serviço, itens, pagamentos e histórico.
+                        </p>
+                        <button onclick="serviceOrderManager.handleDeleteAllTestData()" class="btn-danger" style="width: 100%; background: #dc3545; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;">
+                            🗑️ Excluir Todos os Dados de Teste
+                        </button>
+                    </div>
+
+                    <div class="modal-actions" style="margin-top: 20px;">
+                        <button type="button" onclick="closeModal('adminPanelModal')" style="width: 100%;">Fechar</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    async handleDeleteAllTestData() {
+        const confirmation = confirm(
+            '⚠️ ATENÇÃO!\n\n' +
+            'Você está prestes a EXCLUIR PERMANENTEMENTE:\n\n' +
+            '• Todas as Ordens de Serviço\n' +
+            '• Todos os Itens (Peças)\n' +
+            '• Todos os Pagamentos\n' +
+            '• Todo o Histórico\n\n' +
+            'Esta ação NÃO pode ser desfeita!\n\n' +
+            'Deseja realmente continuar?'
+        );
+
+        if (!confirmation) return;
+
+        const secondConfirmation = confirm(
+            '🚨 ÚLTIMA CONFIRMAÇÃO!\n\n' +
+            'Digite OK para confirmar a exclusão de TODOS os dados de teste.'
+        );
+
+        if (!secondConfirmation) return;
+
+        try {
+            await window.api.request('/service-orders/admin/delete-all', {
+                method: 'DELETE'
+            });
+
+            window.notify.success('Todos os dados de teste foram excluídos com sucesso!');
+            closeModal('adminPanelModal');
+            await this.loadOrders();
+            this.renderOrdersList();
+        } catch (error) {
+            console.error('Erro ao excluir dados:', error);
+            window.notify.error(error.message || 'Erro ao excluir dados de teste');
         }
     }
 }
