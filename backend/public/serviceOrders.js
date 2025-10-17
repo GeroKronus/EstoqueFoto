@@ -7,6 +7,7 @@ class ServiceOrderManager {
         this.customers = [];
         this.users = [];
         this.equipmentList = [];
+        this.viewMode = 'cards'; // 'cards' ou 'table'
     }
 
     async initialize() {
@@ -72,6 +73,17 @@ class ServiceOrderManager {
                         <button class="btn-new-os" onclick="serviceOrderManager.showNewOSModal().catch(e => console.error(e))">
                             ➕ Nova OS
                         </button>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-left: 20px;">
+                            <span style="font-weight: 500; color: #666;">Visualização:</span>
+                            <div class="view-toggle">
+                                <button class="view-btn ${this.viewMode === 'cards' ? 'active' : ''}" onclick="serviceOrderManager.toggleView('cards')">
+                                    🔲 Cards
+                                </button>
+                                <button class="view-btn ${this.viewMode === 'table' ? 'active' : ''}" onclick="serviceOrderManager.toggleView('table')">
+                                    📋 Tabela
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div id="serviceOrdersContent"></div>
@@ -113,6 +125,12 @@ class ServiceOrderManager {
         this.handleSearch();
     }
 
+    toggleView(mode) {
+        this.viewMode = mode;
+        this.renderMainUI();
+        this.renderOrdersList();
+    }
+
     renderOrdersList() {
         const container = document.getElementById('serviceOrdersContent');
         if (!container) return;
@@ -128,6 +146,14 @@ class ServiceOrderManager {
             return;
         }
 
+        if (this.viewMode === 'table') {
+            this.renderTableView(container);
+        } else {
+            this.renderCardsView(container);
+        }
+    }
+
+    renderCardsView(container) {
         const statusLabels = {
             'aguardando_orcamento': 'Aguardando Orçamento',
             'orcamento_pendente': 'Orçamento Pendente',
@@ -180,6 +206,62 @@ class ServiceOrderManager {
         container.innerHTML = `
             <div class="os-grid">
                 ${ordersHtml}
+            </div>
+        `;
+    }
+
+    renderTableView(container) {
+        const statusLabels = {
+            'aguardando_orcamento': 'Aguardando Orçamento',
+            'orcamento_pendente': 'Orçamento Pendente',
+            'aprovado': 'Aprovado',
+            'em_reparo': 'Em Reparo',
+            'concluido': 'Concluído',
+            'aguardando_retirada': 'Aguardando Retirada',
+            'entregue': 'Entregue',
+            'cancelado': 'Cancelado'
+        };
+
+        const tableRows = this.currentOrders.map(order => {
+            const statusLabel = statusLabels[order.status] || order.status;
+            const customerName = order.customer?.nomeFantasia || order.customer?.razaoSocial || 'Cliente não informado';
+            const equipamento = `${order.equipamento?.marca || ''} ${order.equipamento?.modelo || ''}`.trim() || 'Não informado';
+            const tecnico = order.tecnicoResponsavel?.name || '-';
+            const valorFinal = order.valorFinal > 0 ? `R$ ${order.valorFinal.toFixed(2)}` : '-';
+
+            return `
+                <tr onclick="serviceOrderManager.showOrderDetails('${order.id}')" style="cursor: pointer;">
+                    <td><strong>${order.numeroOS}</strong></td>
+                    <td>${customerName}</td>
+                    <td>${equipamento}</td>
+                    <td>${order.defeitoRelatado.substring(0, 40)}${order.defeitoRelatado.length > 40 ? '...' : ''}</td>
+                    <td>${tecnico}</td>
+                    <td>${new Date(order.dataEntrada).toLocaleDateString('pt-BR')}</td>
+                    <td><span class="table-status status-${order.status}">${statusLabel}</span></td>
+                    <td style="text-align: right;">${valorFinal}</td>
+                </tr>
+            `;
+        }).join('');
+
+        container.innerHTML = `
+            <div class="table-container">
+                <table class="os-table">
+                    <thead>
+                        <tr>
+                            <th>OS</th>
+                            <th>Cliente</th>
+                            <th>Equipamento</th>
+                            <th>Defeito</th>
+                            <th>Técnico</th>
+                            <th>Entrada</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                </table>
             </div>
         `;
     }
