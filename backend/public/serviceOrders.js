@@ -23,6 +23,8 @@ class ServiceOrderManager {
         try {
             const response = await window.api.request('/customers?limit=1000');
             this.customers = response.customers || [];
+            console.log('📊 Response completo:', response);
+            console.log('📊 Primeiro cliente:', this.customers[0]);
         } catch (error) {
             console.error('Erro ao carregar clientes:', error);
         }
