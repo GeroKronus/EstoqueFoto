@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migration 008</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .status {
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .loading {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        button:hover:not(:disabled) {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .details {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Migration 008</h1>
+        <p style="color: #666; margin-bottom: 30px;">Sistema de Histórico de Ordens de Saída</p>
+
+        <div id="status" class="status loading">
+            <div class="spinner"></div>
+            <div style="text-align: center; margin-top: 10px;">Verificando autenticação...</div>
+        </div>
+
+        <button id="executeBtn" style="display: none;" onclick="executeMigration()">
+            Executar Migration 008
+        </button>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        let token = null;
+
+        // Verificar autenticação automaticamente ao carregar
+        window.addEventListener('DOMContentLoaded', async () => {
+            await checkAuth();
+        });
+
+        async function checkAuth() {
+            const statusDiv = document.getElementById('status');
+            const button = document.getElementById('executeBtn');
+
+            // Buscar token
+            token = sessionStorage.getItem('auth_token') ||
+                    localStorage.getItem('auth_token') ||
+                    sessionStorage.getItem('token') ||
+                    localStorage.getItem('token');
+
+            if (!token) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `
+                    <strong>❌ Não autenticado</strong>
+                    <p>Você precisa estar logado como administrador.</p>
+                    <p style="margin-top: 15px;">
+                        <a href="/" style="color: #dc3545; font-weight: 600;">
+                            → Fazer login no sistema
+                        </a>
+                    </p>
+                `;
+                return;
+            }
+
+            // Verificar se é admin
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) throw new Error('Token inválido');
+
+                const data = await response.json();
+
+                if (data.user.role !== 'admin') {
+                    statusDiv.className = 'status error';
+                    statusDiv.innerHTML = `
+                        <strong>🚫 Acesso Negado</strong>
+                        <p>Apenas administradores podem executar migrations.</p>
+                        <p>Usuário atual: <strong>${data.user.name}</strong> (${data.user.role})</p>
+                    `;
+                    return;
+                }
+
+                // Tudo ok!
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = `
+                    <strong>✅ Autenticado como Administrador</strong>
+                    <p>Usuário: <strong>${data.user.name}</strong></p>
+                    <p style="margin-top: 10px;">Clique no botão abaixo para executar a migration.</p>
+                `;
+                button.style.display = 'block';
+
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `
+                    <strong>❌ Erro na autenticação</strong>
+                    <p>${error.message}</p>
+                    <p style="margin-top: 15px;">
+                        <a href="/" style="color: #dc3545; font-weight: 600;">
+                            → Fazer login novamente
+                        </a>
+                    </p>
+                `;
+            }
+        }
+
+        async function executeMigration() {
+            const statusDiv = document.getElementById('status');
+            const button = document.getElementById('executeBtn');
+
+            button.disabled = true;
+            button.textContent = 'Executando...';
+
+            statusDiv.className = 'status loading';
+            statusDiv.innerHTML = `
+                <div class="spinner"></div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <strong>Executando Migration 008...</strong>
+                    <p>Isso pode levar alguns segundos.</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/migrations/run/008`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || data.details || `HTTP ${response.status}`);
+                }
+
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = `
+                    <strong>✅ Migration executada com sucesso!</strong>
+                    <p style="margin-top: 10px;">${data.message}</p>
+                    ${data.tablesCreated && data.tablesCreated.length > 0 ? `
+                        <div class="details">
+                            <strong>Tabelas criadas:</strong><br>
+                            ${data.tablesCreated.map(t => `• ${t}`).join('<br>')}
+                        </div>
+                    ` : ''}
+                    <p style="margin-top: 20px; padding: 15px; background: #fff; border-radius: 8px; font-weight: 600;">
+                        🎉 Pronto! Agora você pode editar ordens de saída e ver o histórico de alterações.
+                    </p>
+                `;
+
+                button.textContent = '✓ Migration Concluída';
+                button.style.background = '#28a745';
+
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `
+                    <strong>❌ Erro ao executar migration</strong>
+                    <p>${error.message}</p>
+                    <div class="details">
+                        ${error.stack || 'Sem detalhes adicionais'}
+                    </div>
+                `;
+                button.disabled = false;
+                button.textContent = 'Tentar Novamente';
+            }
+        }
+    </script>
+</body>
+</html>
