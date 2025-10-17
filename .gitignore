@@ -30,6 +30,5 @@ Thumbs.db
 dist/
 build/
 
-# Package manager
-package-lock.json
+# Package manager (apenas yarn.lock, mantemos package-lock.json)
 yarn.lock
