@@ -16,6 +16,7 @@ const exitOrderRoutes = require('./routes/exitOrders');
 const migrationRoutes = require('./routes/migrations');
 const adminRoutes = require('./routes/admin');
 const customerRoutes = require('./routes/customers');
+const serviceOrderRoutes = require('./routes/serviceOrders');
 // const setupMigrationRoutes = require('./routes/setupMigration'); // REMOVIDO - Migration já executada
 
 const app = express();
@@ -94,6 +95,7 @@ app.use('/api/exit-orders', exitOrderRoutes);
 app.use('/api/migrations', migrationRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/customers', customerRoutes);
+app.use('/api/service-orders', serviceOrderRoutes);
 // app.use('/api/setup', setupMigrationRoutes); // REMOVIDO - Migration já executada
 
 // Rota de health check
