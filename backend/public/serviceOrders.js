@@ -55,7 +55,7 @@ class ServiceOrderManager {
             <div class="os-container">
                 <div class="os-header">
                     <div>
-                        <h2>🔧 Ordens de Serviço</h2>
+                        <h2>🔧 Ordens de Serviço - TESTE</h2>
                     </div>
                     <div class="os-filters">
                         <input type="text" id="osSearchInput" placeholder="🔍 Buscar OS..." oninput="serviceOrderManager.handleSearch()">
