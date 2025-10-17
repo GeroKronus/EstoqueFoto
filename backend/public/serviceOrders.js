@@ -55,17 +55,9 @@ class ServiceOrderManager {
             <div class="os-container">
                 <div class="os-header">
                     <div>
-                        <h2>🔧 Ordens de Serviço</h2>
+                        <h2>🔧 Ordens de Serviço - TESTE DEPLOY</h2>
                     </div>
                     <div class="os-filters">
-                        <div class="view-toggle">
-                            <button class="view-btn ${this.viewMode === 'cards' ? 'active' : ''}" onclick="serviceOrderManager.toggleView('cards')" title="Visualização em Cards">
-                                <span style="font-size: 18px;">⊞</span>
-                            </button>
-                            <button class="view-btn ${this.viewMode === 'table' ? 'active' : ''}" onclick="serviceOrderManager.toggleView('table')" title="Visualização em Tabela">
-                                <span style="font-size: 18px;">☰</span>
-                            </button>
-                        </div>
                         <input type="text" id="osSearchInput" placeholder="🔍 Buscar por OS, cliente, equipamento ou defeito..." oninput="serviceOrderManager.handleSearch()">
                         <select id="osStatusFilter" onchange="serviceOrderManager.handleFilterChange()">
                             <option value="">Todos os status</option>
@@ -81,6 +73,17 @@ class ServiceOrderManager {
                         <button class="btn-new-os" onclick="serviceOrderManager.showNewOSModal().catch(e => console.error(e))">
                             ➕ Nova OS
                         </button>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-left: 20px;">
+                            <span style="font-weight: 500; color: #666;">Visualização:</span>
+                            <div class="view-toggle">
+                                <button class="view-btn ${this.viewMode === 'cards' ? 'active' : ''}" onclick="serviceOrderManager.toggleView('cards')">
+                                    🔲 Cards
+                                </button>
+                                <button class="view-btn ${this.viewMode === 'table' ? 'active' : ''}" onclick="serviceOrderManager.toggleView('table')">
+                                    📋 Tabela
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div id="serviceOrdersContent"></div>
