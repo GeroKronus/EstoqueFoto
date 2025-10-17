@@ -5,7 +5,7 @@
 CREATE TABLE IF NOT EXISTS service_orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     numero_os VARCHAR(20) UNIQUE NOT NULL, -- Ex: OS-2025-0001
-    customer_id UUID REFERENCES customers(id),
+    customer_id INTEGER REFERENCES customers(id),
 
     -- Status da OS
     status VARCHAR(30) NOT NULL DEFAULT 'aguardando_orcamento'

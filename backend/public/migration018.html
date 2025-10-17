@@ -241,6 +241,9 @@
             `;
 
             try {
+                console.log('Executando migration 018...');
+                console.log('API URL:', `${CONFIG.API_BASE_URL}/migrations/run/018`);
+
                 const response = await fetch(`${CONFIG.API_BASE_URL}/migrations/run/018`, {
                     method: 'POST',
                     headers: {
@@ -249,10 +252,24 @@
                     }
                 });
 
-                const data = await response.json();
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+
+                let data;
+                try {
+                    data = await response.json();
+                    console.log('Response data:', data);
+                } catch (jsonError) {
+                    const text = await response.text();
+                    console.error('Erro ao parsear JSON:', jsonError);
+                    console.error('Response text:', text);
+                    throw new Error(`Erro ao processar resposta do servidor: ${text.substring(0, 200)}`);
+                }
 
                 if (!response.ok) {
-                    throw new Error(data.error || data.details || `HTTP ${response.status}`);
+                    const errorMsg = data.error || data.details || data.message || `HTTP ${response.status}`;
+                    console.error('Migration falhou:', errorMsg);
+                    throw new Error(errorMsg);
                 }
 
                 statusDiv.className = 'status success';
@@ -279,13 +296,21 @@
                 `;
 
             } catch (error) {
+                console.error('Erro completo:', error);
+
                 statusDiv.className = 'status error';
                 statusDiv.innerHTML = `
                     <strong>❌ Erro ao executar migration</strong>
-                    <p>${error.message}</p>
+                    <p><strong>Mensagem:</strong> ${error.message}</p>
                     <div class="details">
-                        <strong>Detalhes do erro:</strong><br>
-                        ${error.stack || error.message || 'Sem detalhes adicionais'}
+                        <strong>Stack trace completo:</strong><br>
+                        ${error.stack || 'Sem stack trace'}
+                    </div>
+                    <div class="details" style="margin-top: 10px;">
+                        <strong>Instruções para debug:</strong><br>
+                        1. Abra o Console do navegador (F12 → Console)<br>
+                        2. Procure por mensagens de erro em vermelho<br>
+                        3. Copie e cole os detalhes completos
                     </div>
                     <p style="margin-top: 15px; padding: 15px; background: #fff3cd; border-radius: 8px;">
                         💡 <strong>Dica:</strong> Se o erro persistir, verifique os logs do servidor ou entre em contato com o suporte.
