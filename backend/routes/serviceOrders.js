@@ -449,6 +449,15 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
         const { id } = req.params;
         const { status, defeito_constatado, valor_orcado, valor_final, prazo_estimado, tecnico_responsavel_id } = req.body;
 
+        // DEBUG: Log completo do request
+        console.log('========== DEBUG UPDATE STATUS ==========');
+        console.log('ID da OS:', id);
+        console.log('Body completo:', JSON.stringify(req.body, null, 2));
+        console.log('Status:', status);
+        console.log('valor_orcado:', valor_orcado, typeof valor_orcado);
+        console.log('valor_final:', valor_final, typeof valor_final);
+        console.log('=========================================');
+
         if (!status) {
             return res.status(400).json({ error: 'Status é obrigatório' });
         }
@@ -562,7 +571,21 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
                 RETURNING *
             `;
 
+            // DEBUG: Log da query
+            console.log('========== DEBUG QUERY ==========');
+            console.log('Update Fields:', updateFields);
+            console.log('Params:', params);
+            console.log('ParamCount:', paramCount);
+            console.log('Query:', updateQuery);
+            console.log('=================================');
+
             const updateResult = await client.query(updateQuery, params);
+
+            // DEBUG: Log do resultado
+            console.log('========== DEBUG RESULTADO ==========');
+            console.log('Rows afetadas:', updateResult.rowCount);
+            console.log('Resultado:', JSON.stringify(updateResult.rows[0], null, 2));
+            console.log('=====================================');
 
             // Registrar no histórico
             await client.query(`
@@ -599,11 +622,16 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Erro ao atualizar status:', error);
+        console.error('========== ERRO AO ATUALIZAR STATUS ==========');
+        console.error('Erro completo:', error);
+        console.error('Message:', error.message);
+        console.error('Stack:', error.stack);
+        console.error('==============================================');
+
         if (error.message === 'Ordem de serviço não encontrada') {
             res.status(404).json({ error: error.message });
         } else {
-            res.status(500).json({ error: 'Erro interno do servidor' });
+            res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
         }
     }
 });
