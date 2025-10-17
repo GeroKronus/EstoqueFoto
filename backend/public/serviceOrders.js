@@ -141,7 +141,7 @@ class ServiceOrderManager {
 
         const ordersHtml = this.currentOrders.map(order => {
             const statusLabel = statusLabels[order.status] || order.status;
-            const customerName = order.customer?.nomeFantasia || order.customer?.razaoSocial || 'Cliente não informado';
+            const customerName = order.customer?.razao_social || order.customer?.nome_fantasia || 'Cliente não informado';
             const equipamento = `${order.equipamento?.marca || ''} ${order.equipamento?.modelo || ''}`.trim() || 'Não informado';
 
             return `
@@ -233,12 +233,12 @@ class ServiceOrderManager {
                         ${order.customer ? `
                             <div class="os-info-row">
                                 <div class="os-info-label">Razão Social:</div>
-                                <div class="os-info-value">${order.customer.razaoSocial}</div>
+                                <div class="os-info-value">${order.customer.razao_social}</div>
                             </div>
-                            ${order.customer.nomeFantasia ? `
+                            ${order.customer.nome_fantasia ? `
                                 <div class="os-info-row">
                                     <div class="os-info-label">Nome Fantasia:</div>
-                                    <div class="os-info-value">${order.customer.nomeFantasia}</div>
+                                    <div class="os-info-value">${order.customer.nome_fantasia}</div>
                                 </div>
                             ` : ''}
                             ${order.customer.telefone ? `
