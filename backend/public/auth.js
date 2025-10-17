@@ -241,6 +241,45 @@ Carregando sistema...`);
         this.showLogin();
     }
 
+    async handleChangePassword() {
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+
+        // Validações
+        if (newPassword !== confirmNewPassword) {
+            window.notify.error('As senhas não coincidem');
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            window.notify.error('A nova senha deve ter pelo menos 6 caracteres');
+            return;
+        }
+
+        if (currentPassword === newPassword) {
+            window.notify.error('A nova senha deve ser diferente da senha atual');
+            return;
+        }
+
+        try {
+            await window.api.changePassword(currentPassword, newPassword);
+
+            window.notify.success('Senha alterada com sucesso!');
+
+            // Limpar formulário
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmNewPassword').value = '';
+
+            // Fechar modal
+            closeModal('changePasswordModal');
+        } catch (error) {
+            console.error('Erro ao alterar senha:', error);
+            window.notify.error(error.message || 'Erro ao alterar senha');
+        }
+    }
+
     getCurrentUser() {
         return this.currentUser;
     }
@@ -282,6 +321,7 @@ Carregando sistema...`);
                         </div>
                         <div class="header-user">
                             <span id="currentUserInfo">👤 ${this.currentUser.name} ${isAdmin ? '👑' : ''}</span>
+                            <button id="changePasswordBtn" class="change-password-btn">🔑 Alterar Senha</button>
                             <button id="logoutBtn" class="logout-btn">🚪 Sair</button>
                         </div>
                     </div>
@@ -658,11 +698,38 @@ Carregando sistema...`);
                         </div>
                     </div>
                 </div>
+
+                <!-- Modal Alterar Senha -->
+                <div id="changePasswordModal" class="modal">
+                    <div class="modal-content">
+                        <h2>🔑 Alterar Senha</h2>
+                        <form id="changePasswordForm">
+                            <input type="password" id="currentPassword" placeholder="Senha atual" required minlength="6" autocomplete="current-password">
+                            <input type="password" id="newPassword" placeholder="Nova senha (mínimo 6 caracteres)" required minlength="6" autocomplete="new-password">
+                            <input type="password" id="confirmNewPassword" placeholder="Confirmar nova senha" required minlength="6" autocomplete="new-password">
+                            <div class="modal-actions">
+                                <button type="button" onclick="closeModal('changePasswordModal')">Cancelar</button>
+                                <button type="submit">Alterar Senha</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         `;
 
         // Configurar evento de logout
         document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
+
+        // Configurar evento de alterar senha
+        document.getElementById('changePasswordBtn').addEventListener('click', () => {
+            showModal('changePasswordModal');
+        });
+
+        // Configurar formulário de alteração de senha
+        document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.handleChangePassword();
+        });
 
         // Inicializar sistema de inventário
         // IMPORTANTE: Sempre recriar a instância após reconstruir a interface
