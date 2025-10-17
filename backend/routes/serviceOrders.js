@@ -68,13 +68,13 @@ router.get('/', authenticateToken, async (req, res) => {
             const searchPattern = `%${search.trim()}%`;
             whereConditions.push(`(
                 so.numero_os ILIKE $${paramCount} OR
-                c.razao_social ILIKE $${paramCount} OR
-                c.nome_fantasia ILIKE $${paramCount} OR
-                so.defeito_relatado ILIKE $${paramCount} OR
-                so.defeito_constatado ILIKE $${paramCount} OR
-                so.equipamento_marca ILIKE $${paramCount} OR
-                so.equipamento_modelo ILIKE $${paramCount} OR
-                so.equipamento_serial ILIKE $${paramCount}
+                COALESCE(c.razao_social, '') ILIKE $${paramCount} OR
+                COALESCE(c.nome_fantasia, '') ILIKE $${paramCount} OR
+                COALESCE(so.defeito_relatado, '') ILIKE $${paramCount} OR
+                COALESCE(so.defeito_constatado, '') ILIKE $${paramCount} OR
+                COALESCE(so.equipamento_marca, '') ILIKE $${paramCount} OR
+                COALESCE(so.equipamento_modelo, '') ILIKE $${paramCount} OR
+                COALESCE(so.equipamento_serial, '') ILIKE $${paramCount}
             )`);
             queryParams.push(searchPattern);
         }
