@@ -2416,19 +2416,72 @@ header {
     letter-spacing: 0.5px;
 }
 
+/* Status para Ordens de Serviço na tabela */
+.status-badge.status-aguardando_orcamento {
+    background: #FFA726;
+    color: white;
+    box-shadow: 0 2px 4px rgba(255, 167, 38, 0.3);
+}
+
+.status-badge.status-orcamento_pendente {
+    background: #FB8C00;
+    color: white;
+    box-shadow: 0 2px 4px rgba(251, 140, 0, 0.3);
+}
+
+.status-badge.status-aprovado {
+    background: #4CAF50;
+    color: white;
+    box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+}
+
+.status-badge.status-em_reparo {
+    background: #9C27B0;
+    color: white;
+    box-shadow: 0 2px 4px rgba(156, 39, 176, 0.3);
+}
+
+.status-badge.status-concluido {
+    background: #2E7D32;
+    color: white;
+    box-shadow: 0 2px 4px rgba(46, 125, 50, 0.3);
+}
+
+.status-badge.status-aguardando_retirada {
+    background: #00ACC1;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0, 172, 193, 0.3);
+}
+
+.status-badge.status-entregue {
+    background: #689F38;
+    color: white;
+    box-shadow: 0 2px 4px rgba(104, 159, 56, 0.3);
+}
+
+.status-badge.status-cancelado {
+    background: #D32F2F;
+    color: white;
+    box-shadow: 0 2px 4px rgba(211, 47, 47, 0.3);
+}
+
+/* Status para Ordens de Saída (manter compatibilidade) */
 .status-badge.status-ativa {
-    background: #e8f5e9;
-    color: #4CAF50;
+    background: #4CAF50;
+    color: white;
+    box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
 }
 
 .status-badge.status-finalizada {
-    background: #e3f2fd;
-    color: #2196F3;
+    background: #2196F3;
+    color: white;
+    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
 }
 
 .status-badge.status-cancelada {
-    background: #ffebee;
-    color: #f44336;
+    background: #D32F2F;
+    color: white;
+    box-shadow: 0 2px 4px rgba(211, 47, 47, 0.3);
 }
 
 /* Ações compactas */
@@ -3153,35 +3206,43 @@ header {
 }
 
 .os-card.status-aguardando_orcamento {
-    border-left-color: #ff9800;
+    border-left-color: #FFA726;
+    border-left-width: 5px;
 }
 
 .os-card.status-orcamento_pendente {
-    border-left-color: #ff9800;
+    border-left-color: #FB8C00;
+    border-left-width: 5px;
 }
 
 .os-card.status-aprovado {
-    border-left-color: #2196F3;
+    border-left-color: #4CAF50;
+    border-left-width: 5px;
 }
 
 .os-card.status-em_reparo {
     border-left-color: #9C27B0;
+    border-left-width: 5px;
 }
 
 .os-card.status-concluido {
-    border-left-color: #4CAF50;
+    border-left-color: #2E7D32;
+    border-left-width: 5px;
 }
 
 .os-card.status-aguardando_retirada {
-    border-left-color: #00BCD4;
+    border-left-color: #00ACC1;
+    border-left-width: 5px;
 }
 
 .os-card.status-entregue {
-    border-left-color: #8BC34A;
+    border-left-color: #689F38;
+    border-left-width: 5px;
 }
 
 .os-card.status-cancelado {
-    border-left-color: #f44336;
+    border-left-color: #D32F2F;
+    border-left-width: 5px;
     background: #ffebee;
     opacity: 0.7;
 }
@@ -3209,43 +3270,51 @@ header {
 }
 
 .os-status.status-aguardando_orcamento {
-    background: #fff3e0;
-    color: #ff9800;
+    background: #FFA726;
+    color: white;
+    box-shadow: 0 2px 4px rgba(255, 167, 38, 0.3);
 }
 
 .os-status.status-orcamento_pendente {
-    background: #fff3e0;
-    color: #ff9800;
+    background: #FB8C00;
+    color: white;
+    box-shadow: 0 2px 4px rgba(251, 140, 0, 0.3);
 }
 
 .os-status.status-aprovado {
-    background: #e3f2fd;
-    color: #2196F3;
+    background: #4CAF50;
+    color: white;
+    box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
 }
 
 .os-status.status-em_reparo {
-    background: #f3e5f5;
-    color: #9C27B0;
+    background: #9C27B0;
+    color: white;
+    box-shadow: 0 2px 4px rgba(156, 39, 176, 0.3);
 }
 
 .os-status.status-concluido {
-    background: #e8f5e9;
-    color: #4CAF50;
+    background: #2E7D32;
+    color: white;
+    box-shadow: 0 2px 4px rgba(46, 125, 50, 0.3);
 }
 
 .os-status.status-aguardando_retirada {
-    background: #e0f7fa;
-    color: #00BCD4;
+    background: #00ACC1;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0, 172, 193, 0.3);
 }
 
 .os-status.status-entregue {
-    background: #f1f8e9;
-    color: #8BC34A;
+    background: #689F38;
+    color: white;
+    box-shadow: 0 2px 4px rgba(104, 159, 56, 0.3);
 }
 
 .os-status.status-cancelado {
-    background: #ffebee;
-    color: #f44336;
+    background: #D32F2F;
+    color: white;
+    box-shadow: 0 2px 4px rgba(211, 47, 47, 0.3);
 }
 
 .os-info {
