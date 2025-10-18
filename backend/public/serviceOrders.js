@@ -35,10 +35,12 @@ class ServiceOrderManager {
 
     async loadUsers() {
         try {
-            const response = await window.api.request('/users');
+            const response = await window.api.request('/users/list');
             this.users = response.users || [];
+            console.log('[loadUsers] Total de usuários carregados:', this.users.length);
         } catch (error) {
-            console.error('Erro ao carregar usuários:', error);
+            console.error('[loadUsers] Erro ao carregar usuários:', error);
+            this.users = [];
         }
     }
 

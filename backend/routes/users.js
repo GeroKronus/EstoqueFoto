@@ -6,6 +6,33 @@ const { authenticateToken, requireAdmin, checkUserAccess } = require('../middlew
 
 const router = express.Router();
 
+// GET /api/users/list - Listar usuários ativos para dropdowns (todos autenticados)
+router.get('/list', authenticateToken, async (req, res) => {
+    try {
+        const result = await query(`
+            SELECT id, name, username, role
+            FROM users
+            WHERE active = true
+            ORDER BY name ASC
+        `);
+
+        const users = result.rows.map(row => ({
+            id: row.id,
+            name: row.name,
+            username: row.username,
+            role: row.role
+        }));
+
+        res.json({ users });
+
+    } catch (error) {
+        console.error('Erro ao listar usuários:', error);
+        res.status(500).json({
+            error: 'Erro interno do servidor'
+        });
+    }
+});
+
 // GET /api/users - Listar usuários (admin only)
 router.get('/', authenticateToken, requireAdmin, async (req, res) => {
     try {
