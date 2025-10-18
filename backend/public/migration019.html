@@ -265,9 +265,26 @@
         // Verificar autenticação
         window.addEventListener('DOMContentLoaded', () => {
             const token = localStorage.getItem('token');
+            console.log('Token encontrado:', token ? 'SIM' : 'NÃO');
+
             if (!token) {
-                alert('Você precisa estar autenticado para executar migrations.\n\nRedirecionando para a página de login...');
-                window.location.href = '/';
+                // Mostrar aviso mas permitir que usuário veja a página
+                const resultDiv = document.getElementById('result');
+                resultDiv.className = 'error';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <div class="result-title">⚠️ Não autenticado</div>
+                    <div class="result-content">
+                        Você precisa estar logado como administrador para executar migrations.<br><br>
+                        <button onclick="window.open('/', '_blank')" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                            Abrir página de login
+                        </button>
+                        <button onclick="location.reload()" style="background: #48bb78; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600; margin-left: 10px;">
+                            Já fiz login - Recarregar
+                        </button>
+                    </div>
+                `;
+                document.getElementById('executeBtn').disabled = true;
             }
         });
     </script>
