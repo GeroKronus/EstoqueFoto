@@ -724,7 +724,7 @@ class ServiceOrderManager {
             .join('');
 
         const modalHtml = `
-            <div class="modal" id="newOSModal" style="display: flex;">
+            <div class="modal" id="newOSModal" data-dynamic="true" style="display: flex;">
                 <div class="modal-content" style="max-width: 800px;">
                     <h2>🔧 Nova Ordem de Serviço</h2>
                     <form id="newOSForm">
@@ -860,7 +860,7 @@ class ServiceOrderManager {
         ).join('');
 
         const modalHtml = `
-            <div class="modal" id="updateStatusModal" style="display: flex;">
+            <div class="modal" id="updateStatusModal" data-dynamic="true" style="display: flex;">
                 <div class="modal-content" style="max-width: 600px;">
                     <h2>📝 Atualizar Status - ${order.numeroOS}</h2>
                     <form id="updateStatusForm">
@@ -992,7 +992,7 @@ class ServiceOrderManager {
             .join('');
 
         const modalHtml = `
-            <div class="modal" id="addItemModal" style="display: flex;">
+            <div class="modal" id="addItemModal" data-dynamic="true" style="display: flex;">
                 <div class="modal-content" style="max-width: 600px;">
                     <h2>🔧 Adicionar Peça à OS</h2>
                     <form id="addItemForm">
@@ -1115,7 +1115,7 @@ class ServiceOrderManager {
     // ========== MODAL ADICIONAR PAGAMENTO ==========
     async showAddPaymentModal(orderId) {
         const modalHtml = `
-            <div class="modal" id="addPaymentModal" style="display: flex;">
+            <div class="modal" id="addPaymentModal" data-dynamic="true" style="display: flex;">
                 <div class="modal-content" style="max-width: 600px;">
                     <h2>💳 Registrar Pagamento</h2>
                     <form id="addPaymentForm">
@@ -1204,7 +1204,7 @@ class ServiceOrderManager {
         }
 
         const modalHtml = `
-            <div class="modal" id="clearTestDataModal" style="display: flex;">
+            <div class="modal" id="clearTestDataModal" data-dynamic="true" style="display: flex;">
                 <div class="modal-content" style="max-width: 600px;">
                     <h2 style="color: #f44336;">⚠️ DELETAR TODAS AS ORDENS DE SERVIÇO</h2>
                     <div style="background: #ffebee; padding: 15px; border-radius: 5px; border-left: 4px solid #d32f2f; margin: 20px 0;">
