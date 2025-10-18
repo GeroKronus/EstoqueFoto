@@ -231,7 +231,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('photo_auth_token')}`
                     }
                 });
 
@@ -259,8 +259,9 @@
 
         // Verificar autenticação e executar automaticamente
         window.addEventListener('DOMContentLoaded', () => {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('photo_auth_token');
             console.log('Token encontrado:', token ? 'SIM' : 'NÃO');
+            console.log('Token value:', token ? token.substring(0, 20) + '...' : 'null');
 
             if (!token) {
                 // Mostrar aviso mas permitir que usuário veja a página
