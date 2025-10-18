@@ -1158,8 +1158,9 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = 'none';
-        // Se o modal foi criado dinamicamente, removê-lo do DOM
-        if (modal.parentNode) {
+        // Não remover modais estáticos do DOM
+        // Apenas modais criados dinamicamente com atributo data-dynamic devem ser removidos
+        if (modal.dataset.dynamic === 'true' && modal.parentNode) {
             modal.parentNode.removeChild(modal);
         }
     }
