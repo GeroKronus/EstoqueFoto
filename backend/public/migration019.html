@@ -214,11 +214,6 @@
             const resultDiv = document.getElementById('result');
             const executeBtn = document.getElementById('executeBtn');
 
-            // Confirmação
-            if (!confirm('Tem certeza que deseja executar a Migration 019?\n\nEsta ação irá adicionar a coluna numero_nota_fiscal à tabela service_order_payments.')) {
-                return;
-            }
-
             // Mostrar loading
             resultDiv.className = 'loading';
             resultDiv.style.display = 'block';
@@ -262,7 +257,7 @@
             }
         }
 
-        // Verificar autenticação
+        // Verificar autenticação e executar automaticamente
         window.addEventListener('DOMContentLoaded', () => {
             const token = localStorage.getItem('token');
             console.log('Token encontrado:', token ? 'SIM' : 'NÃO');
@@ -285,6 +280,12 @@
                     </div>
                 `;
                 document.getElementById('executeBtn').disabled = true;
+            } else {
+                // Token encontrado - executar migration automaticamente
+                console.log('Executando migration automaticamente...');
+                setTimeout(() => {
+                    executeMigration();
+                }, 500); // Pequeno delay para garantir que a página carregou completamente
             }
         });
     </script>
