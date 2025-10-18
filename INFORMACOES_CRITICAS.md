@@ -263,6 +263,106 @@ git push origin main
 
 ---
 
+## 🗃️ PADRÃO DE MIGRATIONS
+
+### ⚠️ SEMPRE seguir este padrão ao criar migrations!
+
+Quando for necessário fazer alterações no banco de dados (adicionar tabelas, colunas, constraints, etc.), siga este padrão:
+
+#### 1. Criar arquivo SQL da migration
+**Local:** `backend/database/migrations/`
+**Formato:** `NNN_descricao_da_migration.sql` (ex: `019_add_invoice_to_payments.sql`)
+
+```sql
+-- Migration NNN: Descrição clara do que faz
+-- Mais detalhes se necessário
+
+ALTER TABLE nome_tabela
+ADD COLUMN IF NOT EXISTS nome_coluna TIPO;
+
+COMMENT ON COLUMN nome_tabela.nome_coluna IS 'Descrição da coluna';
+```
+
+**IMPORTANTE:** Use sempre `IF NOT EXISTS` ou `IF EXISTS` para tornar a migration idempotente!
+
+#### 2. Criar página HTML de execução
+**Local:** `backend/public/`
+**Formato:** `migrationNNN.html` (ex: `migration019.html`)
+
+Use o template da migration019.html como base, alterando:
+- Número da migration
+- Título e descrição
+- Endpoint da API (`/api/migrations/run/NNN`)
+
+#### 3. Registrar a migration no backend
+**Arquivo:** `backend/routes/migrations.js`
+
+Adicionar nos dois locais:
+
+```javascript
+// 1. No objeto migrationFiles:
+const migrationFiles = {
+    // ...migrations existentes...
+    'NNN': 'NNN_descricao_da_migration.sql'
+};
+
+// 2. No bloco de verificação tablesToCheck:
+} else if (migrationNumber == 'NNN') {
+    tablesToCheck = ['nome_da_tabela']; // Tabela(s) afetada(s)
+}
+```
+
+#### 4. Executar a migration
+
+**Opção 1 - Via Navegador (Recomendado):**
+```
+https://estoque.picstone.com.br/migrationNNN.html
+```
+- Fazer login como admin
+- Clicar em "Executar Migration"
+- Aguardar confirmação
+
+**Opção 2 - Via Terminal Local:**
+```bash
+cd D:\ClaudeTeste\estoque-fotografia\backend
+node database/runMigrationNNN.js
+```
+
+**Opção 3 - Via Railway Console:**
+```bash
+cd backend
+node database/runMigrationNNN.js
+```
+
+#### 5. Verificar execução
+
+Após executar, verificar:
+- ✅ Mensagem de sucesso na página HTML
+- ✅ Logs do servidor (se executado via terminal)
+- ✅ Testar funcionalidade que usa a migration
+
+### Checklist de Migration
+
+- [ ] Criar arquivo `NNN_descricao.sql` em `backend/database/migrations/`
+- [ ] Migration é idempotente (usa IF [NOT] EXISTS)
+- [ ] Criar página `migrationNNN.html` em `backend/public/`
+- [ ] Registrar migration em `backend/routes/migrations.js`
+- [ ] Criar script `runMigrationNNN.js` (opcional)
+- [ ] Testar migration localmente
+- [ ] Commitar e fazer push
+- [ ] Executar migration em produção via https://estoque.picstone.com.br/migrationNNN.html
+- [ ] Verificar que funcionou corretamente
+
+### Exemplo Completo
+
+**Migration 019** - Adicionar número de nota fiscal:
+- Arquivo SQL: `019_add_invoice_to_payments.sql`
+- Página HTML: https://estoque.picstone.com.br/migration019.html
+- Script: `runMigration019.js`
+- Registrado em: `migrations.js`
+
+---
+
 ## 👤 INFORMAÇÕES DO USUÁRIO
 
 - **Nome:** Rogério Isidoro
@@ -321,4 +421,4 @@ Sempre consulte este arquivo quando:
 
 ---
 
-*Última atualização: 18/10/2025 - Adicionada seção crítica sobre SEMPRE fazer push após commit*
+*Última atualização: 17/10/2025 - Adicionado padrão de execução de migrations via navegador (migrationNNN.html)*
