@@ -32,11 +32,28 @@ class ApiService {
             const data = isJson ? await response.json() : await response.text();
 
             if (!response.ok) {
-                // Se token expirou, limpar autenticação
+                // Se token expirou ou não autorizado
                 if (response.status === 401) {
-                    clearAuth();
-                    window.location.reload();
-                    return;
+                    console.error('❌ Erro 401 (Não Autorizado):', {
+                        endpoint,
+                        method: options.method || 'GET',
+                        tokenExists: !!token,
+                        tokenPrefix: token ? token.substring(0, 20) + '...' : 'null',
+                        timestamp: new Date().toISOString()
+                    });
+
+                    // Só fazer reload se realmente não tiver token
+                    // Isso evita reload desnecessário se for apenas um erro pontual
+                    if (!token) {
+                        console.warn('⚠️ Token não encontrado, redirecionando para login...');
+                        clearAuth();
+                        window.location.reload();
+                        return;
+                    }
+
+                    // Se tem token mas deu 401, pode ser erro temporário
+                    // Não limpar auth, apenas lançar erro para retry
+                    throw new Error('Sessão expirada ou não autorizada. Por favor, tente novamente.');
                 }
 
                 throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
