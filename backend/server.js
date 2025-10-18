@@ -186,6 +186,17 @@ app.get('/api/debug', async (req, res) => {
 // Servir arquivos estáticos do frontend
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Rotas específicas para páginas de migration (ANTES do catch-all)
+app.get('/migration*.html', (req, res) => {
+    const filePath = path.join(__dirname, 'public', req.path);
+    res.sendFile(filePath, (err) => {
+        if (err) {
+            console.error(`Migration page not found: ${req.path}`);
+            res.status(404).send('Migration page not found');
+        }
+    });
+});
+
 // Rota para servir o index.html em qualquer rota que não seja da API
 app.get('*', (req, res) => {
     if (!req.path.startsWith('/api')) {
