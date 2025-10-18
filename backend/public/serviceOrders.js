@@ -426,6 +426,7 @@ class ServiceOrderManager {
                                     <th>Data</th>
                                     <th>Forma</th>
                                     <th style="text-align: right;">Valor</th>
+                                    <th>NF</th>
                                     <th>Obs</th>
                                 </tr>
                             </thead>
@@ -435,13 +436,14 @@ class ServiceOrderManager {
                                         <td>${new Date(payment.dataPagamento).toLocaleDateString('pt-BR')}</td>
                                         <td>${this.getPaymentMethodLabel(payment.formaPagamento)}</td>
                                         <td style="text-align: right;"><strong>R$ ${payment.valor.toFixed(2)}</strong></td>
+                                        <td style="color: #2196F3; font-weight: 500;">${payment.numeroNotaFiscal || '-'}</td>
                                         <td>${payment.observacoes || '-'}</td>
                                     </tr>
                                 `).join('')}
                                 <tr class="total-row">
                                     <td colspan="2" style="text-align: right;"><strong>Total Pago:</strong></td>
                                     <td style="text-align: right;"><strong>R$ ${order.payments.reduce((sum, p) => sum + p.valor, 0).toFixed(2)}</strong></td>
-                                    <td></td>
+                                    <td colspan="2"></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -630,6 +632,7 @@ class ServiceOrderManager {
                                         <th style="padding: 10px; text-align: left; width: 120px;">Data</th>
                                         <th style="padding: 10px; text-align: left;">Forma</th>
                                         <th style="padding: 10px; text-align: right; width: 120px;">Valor</th>
+                                        <th style="padding: 10px; text-align: left; width: 100px;">NF</th>
                                         <th style="padding: 10px; text-align: left;">Observações</th>
                                     </tr>
                                 </thead>
@@ -639,6 +642,7 @@ class ServiceOrderManager {
                                             <td style="padding: 10px;">${new Date(payment.dataPagamento).toLocaleDateString('pt-BR')}</td>
                                             <td style="padding: 10px;">${this.getPaymentMethodLabel(payment.formaPagamento)}</td>
                                             <td style="padding: 10px; text-align: right; font-weight: 600; color: #4CAF50;">R$ ${payment.valor.toFixed(2)}</td>
+                                            <td style="padding: 10px; color: #2196F3; font-weight: 500;">${payment.numeroNotaFiscal || '-'}</td>
                                             <td style="padding: 10px; color: #666; font-size: 13px;">${payment.observacoes || '-'}</td>
                                         </tr>
                                     `).join('')}
@@ -647,7 +651,7 @@ class ServiceOrderManager {
                                         <td style="padding: 12px; text-align: right; color: #4CAF50; font-size: 16px;">
                                             R$ ${order.payments.reduce((sum, p) => sum + p.valor, 0).toFixed(2)}
                                         </td>
-                                        <td></td>
+                                        <td colspan="2"></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -1134,6 +1138,11 @@ class ServiceOrderManager {
                         </div>
 
                         <div>
+                            <label>Número da Nota Fiscal</label>
+                            <input type="text" id="osPaymentNotaFiscal" placeholder="Ex: 12345" maxlength="50">
+                        </div>
+
+                        <div>
                             <label>Observações</label>
                             <textarea id="osPaymentObs" placeholder="Informações adicionais sobre o pagamento" style="height: 80px;"></textarea>
                         </div>
@@ -1168,6 +1177,7 @@ class ServiceOrderManager {
         const data = {
             valor: parseFloat(document.getElementById('osPaymentValor').value),
             forma_pagamento: document.getElementById('osPaymentForma').value,
+            numero_nota_fiscal: document.getElementById('osPaymentNotaFiscal').value || null,
             observacoes: document.getElementById('osPaymentObs').value || null
         };
 

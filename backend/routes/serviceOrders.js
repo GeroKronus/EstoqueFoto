@@ -62,7 +62,7 @@ router.get('/', authenticateToken, async (req, res) => {
             queryParams.push(new Date(date_to + ' 23:59:59'));
         }
 
-        // Busca por texto livre em múltiplos campos
+        // Busca por texto livre em múltiplos campos (incluindo nota fiscal)
         if (search && search.trim()) {
             paramCount++;
             const searchPattern = `%${search.trim()}%`;
@@ -74,7 +74,12 @@ router.get('/', authenticateToken, async (req, res) => {
                 COALESCE(so.defeito_constatado, '') ILIKE $${paramCount} OR
                 COALESCE(so.equipamento_marca, '') ILIKE $${paramCount} OR
                 COALESCE(so.equipamento_modelo, '') ILIKE $${paramCount} OR
-                COALESCE(so.equipamento_serial, '') ILIKE $${paramCount}
+                COALESCE(so.equipamento_serial, '') ILIKE $${paramCount} OR
+                EXISTS (
+                    SELECT 1 FROM service_order_payments sop
+                    WHERE sop.service_order_id = so.id
+                    AND COALESCE(sop.numero_nota_fiscal, '') ILIKE $${paramCount}
+                )
             )`);
             queryParams.push(searchPattern);
         }
@@ -329,6 +334,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
                 id: p.id,
                 valor: parseFloat(p.valor),
                 formaPagamento: p.forma_pagamento,
+                numeroNotaFiscal: p.numero_nota_fiscal,
                 dataPagamento: p.data_pagamento,
                 observacoes: p.observacoes,
                 createdAt: p.created_at,
@@ -890,7 +896,7 @@ router.post('/:id/items', authenticateToken, async (req, res) => {
 router.post('/:id/payments', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const { valor, forma_pagamento, observacoes } = req.body;
+        const { valor, forma_pagamento, numero_nota_fiscal, observacoes } = req.body;
 
         if (!valor || !forma_pagamento) {
             return res.status(400).json({ error: 'Valor e forma de pagamento são obrigatórios' });
@@ -918,14 +924,16 @@ router.post('/:id/payments', authenticateToken, async (req, res) => {
                     service_order_id,
                     valor,
                     forma_pagamento,
+                    numero_nota_fiscal,
                     observacoes,
                     created_by
-                ) VALUES ($1, $2, $3, $4, $5)
+                ) VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING *
             `, [
                 id,
                 valor,
                 forma_pagamento,
+                numero_nota_fiscal || null,
                 observacoes,
                 req.user.id
             ]);
