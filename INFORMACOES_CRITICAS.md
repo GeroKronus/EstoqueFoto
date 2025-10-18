@@ -23,6 +23,47 @@
 
 ---
 
+## 🚨 REGRA CRÍTICA DE COMMITS
+
+### ⚠️ SEMPRE FAZER PUSH APÓS COMMIT!
+
+**ATENÇÃO MÁXIMA:** Após fazer qualquer commit, **SEMPRE** fazer push para o GitHub:
+
+```bash
+# Depois de fazer commit, SEMPRE executar:
+git push origin main
+```
+
+**Por quê?**
+- 🔴 **Commit LOCAL não sobe para produção**
+- 🔴 **Railway ONLY detecta mudanças no GitHub**
+- 🔴 **Sem push = Sem deploy = Mudanças não entram em produção**
+
+**Repositório GitHub Correto:**
+- **URL:** https://github.com/GeroKronus/EstoqueFoto
+- **Branch:** main
+
+**Workflow Correto (SEMPRE seguir):**
+```bash
+# 1. Fazer alterações no código
+# 2. Add e Commit
+git add .
+git commit -m "mensagem do commit"
+
+# 3. ⚠️ PUSH OBRIGATÓRIO ⚠️
+git push origin main
+
+# 4. Verificar que subiu
+git log origin/main --oneline -3
+```
+
+**Checklist pós-commit:**
+- ✅ Executei `git push origin main`?
+- ✅ Vi mensagem de sucesso do push?
+- ✅ Railway vai fazer deploy automaticamente
+
+---
+
 ## 🌿 BRANCHES GIT
 
 ### Branch Correto
@@ -280,4 +321,4 @@ Sempre consulte este arquivo quando:
 
 ---
 
-*Última atualização: 17/10/2025*
+*Última atualização: 18/10/2025 - Adicionada seção crítica sobre SEMPRE fazer push após commit*
