@@ -224,6 +224,13 @@ class ApiService {
         });
     }
 
+    async changeUserRole(id, role) {
+        return this.request(`${CONFIG.ENDPOINTS.USERS}/${id}/role`, {
+            method: 'PATCH',
+            body: JSON.stringify({ role })
+        });
+    }
+
     async getUsersStats() {
         return this.request(`${CONFIG.ENDPOINTS.USERS}/stats/summary`);
     }

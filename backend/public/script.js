@@ -717,6 +717,10 @@ class PhotoInventoryManager {
                         </div>
                         <div class="user-actions">
                             ${!isCurrentUser ? `
+                                <select class="user-role-select" onchange="photoInventory.changeUserRole('${user.id}', this.value, '${user.name}')" ${!user.active ? 'disabled' : ''}>
+                                    <option value="user" ${user.role === 'user' ? 'selected' : ''}>👤 Usuário</option>
+                                    <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>👑 Admin</option>
+                                </select>
                                 ${user.active ? `
                                     <button class="btn-user-action btn-deactivate" onclick="photoInventory.deactivateUser('${user.id}')">
                                         ⏸️ Desativar
@@ -726,7 +730,7 @@ class PhotoInventoryManager {
                                         ▶️ Reativar
                                     </button>
                                 `}
-                            ` : '<span style="color: #666; font-size: 0.9rem;">Usuário atual</span>'}
+                            ` : '<span style="color: #666; font-size: 0.9rem;">Você (não pode alterar sua própria função)</span>'}
                         </div>
                     </div>
                 `;
@@ -818,6 +822,54 @@ class PhotoInventoryManager {
         } catch (error) {
             console.error('Erro ao reativar usuário:', error);
             window.notify.error('Erro: ' + error.message);
+        }
+    }
+
+    async changeUserRole(userId, newRole, userName) {
+        if (!photoAuthManager.isAdmin()) {
+            window.notify.warning('Apenas administradores podem alterar funções de usuários!');
+            return;
+        }
+
+        const currentUser = photoAuthManager.getCurrentUser();
+        if (userId === currentUser.id) {
+            window.notify.error('Você não pode alterar sua própria função!');
+            await this.renderUsers(); // Restaurar select
+            return;
+        }
+
+        const roleLabel = newRole === 'admin' ? 'Administrador' : 'Usuário Comum';
+
+        const confirmed = await window.notify.confirm({
+            title: 'Alterar Função do Usuário',
+            message: `Tem certeza que deseja alterar a função de "${userName}" para "${roleLabel}"?`,
+            type: 'warning',
+            confirmText: 'Sim, Alterar',
+            cancelText: 'Cancelar'
+        });
+
+        if (!confirmed) {
+            await this.renderUsers(); // Restaurar select
+            return;
+        }
+
+        try {
+            console.log('Alterando role do usuário no PostgreSQL...', { userId, newRole });
+
+            const response = await window.api.changeUserRole(userId, newRole);
+
+            console.log('Role alterada com sucesso:', response);
+
+            // Recarregar lista de usuários
+            await this.renderUsers();
+
+            window.notify.success(response.message || `Função de "${userName}" foi alterada para ${roleLabel} com sucesso!`);
+        } catch (error) {
+            console.error('Erro ao alterar role do usuário:', error);
+            window.notify.error('Erro: ' + error.message);
+
+            // Restaurar select em caso de erro
+            await this.renderUsers();
         }
     }
 

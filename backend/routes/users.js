@@ -494,6 +494,91 @@ router.put('/:id/activate', authenticateToken, requireAdmin, async (req, res) =>
     }
 });
 
+// PATCH /api/users/:id/role - Alterar role do usuário (admin only)
+router.patch('/:id/role', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { role } = req.body;
+
+        // Validar role
+        if (!role || !['admin', 'user'].includes(role)) {
+            return res.status(400).json({
+                error: 'Role deve ser "admin" ou "user"'
+            });
+        }
+
+        // Impedir que admin mude seu próprio role
+        if (id === req.user.id) {
+            return res.status(403).json({
+                error: 'Você não pode alterar sua própria função (role)'
+            });
+        }
+
+        const result = await transaction(async (client) => {
+            // Buscar informações do usuário
+            const userResult = await client.query(
+                'SELECT id, username, name, role, active FROM users WHERE id = $1',
+                [id]
+            );
+
+            if (userResult.rows.length === 0) {
+                throw new Error('Usuário não encontrado');
+            }
+
+            const user = userResult.rows[0];
+
+            if (user.role === role) {
+                throw new Error(`Usuário já possui a função ${role}`);
+            }
+
+            // Atualizar role
+            const updateResult = await client.query(`
+                UPDATE users
+                SET role = $1, updated_at = NOW()
+                WHERE id = $2
+                RETURNING id, username, name, email, role, active, updated_at
+            `, [role, id]);
+
+            // Registrar transação
+            await client.query(`
+                INSERT INTO transactions (
+                    type, equipment_id, equipment_name, category_name,
+                    notes, created_by, user_name
+                )
+                VALUES ($1, NULL, '', '', $2, $3, $4)
+            `, [
+                'usuario_role_alterada',
+                `Função do usuário "${user.name}" (${user.username}) foi alterada de "${user.role}" para "${role}" por ${req.user.name}`,
+                req.user.id,
+                req.user.name
+            ]);
+
+            return updateResult.rows[0];
+        });
+
+        res.json({
+            message: `Função do usuário "${result.name}" foi alterada para ${role === 'admin' ? 'Administrador' : 'Usuário Comum'} com sucesso`,
+            user: {
+                id: result.id,
+                username: result.username,
+                name: result.name,
+                email: result.email,
+                role: result.role,
+                active: result.active,
+                updatedAt: result.updated_at
+            }
+        });
+
+    } catch (error) {
+        console.error('Erro ao alterar role do usuário:', error);
+        if (error.message === 'Usuário não encontrado' || error.message.includes('já possui a função')) {
+            res.status(400).json({ error: error.message });
+        } else {
+            res.status(500).json({ error: 'Erro interno do servidor' });
+        }
+    }
+});
+
 // GET /api/users/stats/summary - Estatísticas gerais dos usuários (admin only)
 router.get('/stats/summary', authenticateToken, requireAdmin, async (req, res) => {
     try {
