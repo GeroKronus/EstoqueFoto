@@ -312,8 +312,8 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 });
 
-// PUT /api/equipment/:id - Atualizar equipamento
-router.put('/:id', authenticateToken, async (req, res) => {
+// PUT /api/equipment/:id - Atualizar equipamento (admin only)
+router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const {
