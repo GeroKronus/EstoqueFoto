@@ -547,7 +547,7 @@ router.patch('/:id/role', authenticateToken, requireAdmin, async (req, res) => {
                 )
                 VALUES ($1, NULL, '', '', $2, $3, $4)
             `, [
-                'usuario_role_alterada',
+                'role_alterada',
                 `Função do usuário "${user.name}" (${user.username}) foi alterada de "${user.role}" para "${role}" por ${req.user.name}`,
                 req.user.id,
                 req.user.name
