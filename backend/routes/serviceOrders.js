@@ -1,6 +1,6 @@
 const express = require('express');
 const { query, transaction } = require('../database/connection');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -1043,6 +1043,40 @@ router.delete('/test-data', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Erro ao deletar dados de teste:', error);
         res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// DELETE /api/service-orders/:id - Deletar ordem de serviço específica (ADMIN ONLY)
+router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Verificar se a ordem existe
+        const checkResult = await query(
+            'SELECT numero_os FROM service_orders WHERE id = $1',
+            [id]
+        );
+
+        if (checkResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Ordem de serviço não encontrada' });
+        }
+
+        const numeroOS = checkResult.rows[0].numero_os;
+
+        // Deletar ordem de serviço (CASCADE vai deletar items, history e payments)
+        await query('DELETE FROM service_orders WHERE id = $1', [id]);
+
+        console.log(`Ordem de serviço ${numeroOS} deletada por admin (user: ${req.user.username})`);
+
+        res.json({
+            success: true,
+            message: `Ordem de serviço ${numeroOS} foi excluída com sucesso`,
+            numeroOS
+        });
+
+    } catch (error) {
+        console.error('Erro ao deletar ordem de serviço:', error);
+        res.status(500).json({ error: 'Erro ao deletar ordem de serviço' });
     }
 });
 

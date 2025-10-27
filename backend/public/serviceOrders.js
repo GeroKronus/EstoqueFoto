@@ -185,32 +185,41 @@ class ServiceOrderManager {
             const equipamento = `${order.equipamento?.marca || ''} ${order.equipamento?.modelo || ''}`.trim() || 'Não informado';
 
             return `
-                <div class="os-card status-${order.status}" onclick="serviceOrderManager.showOrderDetails('${order.id}')">
-                    <div class="os-card-header">
-                        <div class="os-numero">${order.numeroOS}</div>
-                        <div class="os-status status-${order.status}">${statusLabel}</div>
+                <div class="os-card status-${order.status}">
+                    <div onclick="serviceOrderManager.showOrderDetails('${order.id}')" style="cursor: pointer;">
+                        <div class="os-card-header">
+                            <div class="os-numero">${order.numeroOS}</div>
+                            <div class="os-status status-${order.status}">${statusLabel}</div>
+                        </div>
+                        <div class="os-info">
+                            <div>🏢 <strong>Cliente:</strong> ${customerName}</div>
+                            <div>📱 <strong>Equipamento:</strong> ${equipamento}</div>
+                            <div>⚠️ <strong>Defeito:</strong> ${order.defeitoRelatado.substring(0, 50)}${order.defeitoRelatado.length > 50 ? '...' : ''}</div>
+                            ${order.tecnicoResponsavel ? `<div>🔧 <strong>Técnico:</strong> ${order.tecnicoResponsavel.name}</div>` : ''}
+                            <div>📅 <strong>Entrada:</strong> ${new Date(order.dataEntrada).toLocaleDateString('pt-BR')}</div>
+                        </div>
+                        ${order.valorOrcado > 0 || order.valorFinal > 0 ? `
+                            <div class="os-valores">
+                                ${order.valorOrcado > 0 ? `
+                                    <div class="os-valor-item">
+                                        <div class="os-valor-label">Orçado</div>
+                                        <div class="os-valor-value">R$ ${order.valorOrcado.toFixed(2)}</div>
+                                    </div>
+                                ` : ''}
+                                ${order.valorFinal > 0 ? `
+                                    <div class="os-valor-item">
+                                        <div class="os-valor-label">Final</div>
+                                        <div class="os-valor-value">R$ ${order.valorFinal.toFixed(2)}</div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : ''}
                     </div>
-                    <div class="os-info">
-                        <div>🏢 <strong>Cliente:</strong> ${customerName}</div>
-                        <div>📱 <strong>Equipamento:</strong> ${equipamento}</div>
-                        <div>⚠️ <strong>Defeito:</strong> ${order.defeitoRelatado.substring(0, 50)}${order.defeitoRelatado.length > 50 ? '...' : ''}</div>
-                        ${order.tecnicoResponsavel ? `<div>🔧 <strong>Técnico:</strong> ${order.tecnicoResponsavel.name}</div>` : ''}
-                        <div>📅 <strong>Entrada:</strong> ${new Date(order.dataEntrada).toLocaleDateString('pt-BR')}</div>
-                    </div>
-                    ${order.valorOrcado > 0 || order.valorFinal > 0 ? `
-                        <div class="os-valores">
-                            ${order.valorOrcado > 0 ? `
-                                <div class="os-valor-item">
-                                    <div class="os-valor-label">Orçado</div>
-                                    <div class="os-valor-value">R$ ${order.valorOrcado.toFixed(2)}</div>
-                                </div>
-                            ` : ''}
-                            ${order.valorFinal > 0 ? `
-                                <div class="os-valor-item">
-                                    <div class="os-valor-label">Final</div>
-                                    <div class="os-valor-value">R$ ${order.valorFinal.toFixed(2)}</div>
-                                </div>
-                            ` : ''}
+                    ${photoAuthManager.isAdmin() ? `
+                        <div class="os-card-footer" style="padding: 10px; border-top: 1px solid #eee; text-align: right;">
+                            <button class="btn-icon btn-icon-danger" onclick="event.stopPropagation(); serviceOrderManager.deleteOrder('${order.id}', '${order.numeroOS}')" title="Excluir OS (Apenas Admin)" style="padding: 8px 12px;">
+                                🗑️ Excluir
+                            </button>
                         </div>
                     ` : ''}
                 </div>
@@ -288,6 +297,11 @@ class ServiceOrderManager {
                     <button class="btn-icon" onclick="serviceOrderManager.showOrderDetails('${order.id}')" title="Ver detalhes completos">
                         👁️
                     </button>
+                    ${photoAuthManager.isAdmin() ? `
+                        <button class="btn-icon btn-icon-danger" onclick="event.stopPropagation(); serviceOrderManager.deleteOrder('${order.id}', '${order.numeroOS}')" title="Excluir OS (Apenas Admin)">
+                            🗑️
+                        </button>
+                    ` : ''}
                 </td>
             </tr>
             <tr id="order-details-${order.id}" class="order-details-row" style="display: ${isExpanded ? 'table-row' : 'none'};">
@@ -1282,8 +1296,44 @@ class ServiceOrderManager {
             const btn = document.getElementById('btnConfirmClearTest');
             if (btn) {
                 btn.disabled = false;
-                btn.textContent = '🗑️ Deletar Dados de Teste';
+                btn.textContent = '🗑️ DELETAR TODAS AS ORDENS';
             }
+        }
+    }
+
+    async deleteOrder(orderId, numeroOS) {
+        if (!photoAuthManager.isAdmin()) {
+            window.notify.warning('Apenas administradores podem excluir ordens de serviço!');
+            return;
+        }
+
+        const confirmed = await window.notify.confirm({
+            title: '⚠️ Excluir Ordem de Serviço',
+            message: `Tem certeza que deseja excluir a ordem de serviço ${numeroOS}?\n\nEsta ação irá:\n• Excluir a ordem permanentemente\n• Excluir todos os itens associados\n• Excluir histórico de alterações\n• Excluir registros de pagamento\n\n⚠️ ESTA AÇÃO NÃO PODE SER DESFEITA!`,
+            type: 'danger',
+            confirmText: 'Sim, Excluir',
+            cancelText: 'Cancelar'
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            console.log(`Excluindo ordem de serviço ${numeroOS} (ID: ${orderId})`);
+
+            const response = await window.api.deleteServiceOrder(orderId);
+
+            console.log('Ordem excluída com sucesso:', response);
+            window.notify.success(`Ordem de serviço ${numeroOS} foi excluída com sucesso!`);
+
+            // Recarregar lista de ordens
+            await this.loadOrders();
+            this.renderOrdersList();
+
+        } catch (error) {
+            console.error('Erro ao excluir ordem de serviço:', error);
+            window.notify.error(`Erro ao excluir ordem de serviço: ${error.message || 'Erro desconhecido'}`);
         }
     }
 }

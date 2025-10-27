@@ -329,6 +329,13 @@ class ApiService {
         return this.request(`/customers/search/autocomplete?q=${encodeURIComponent(query)}&limit=${limit}`);
     }
 
+    // === ORDENS DE SERVIÇO ===
+    async deleteServiceOrder(id) {
+        return this.request(`/service-orders/${id}`, {
+            method: 'DELETE'
+        });
+    }
+
     // === ADMINISTRAÇÃO ===
     async ensureTables() {
         return this.request(`${CONFIG.ENDPOINTS.ADMIN}/ensure-tables`, {
