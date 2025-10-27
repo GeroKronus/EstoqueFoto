@@ -665,15 +665,29 @@ Carregando sistema...`);
                     <div class="modal-content">
                         <h2>➕ Cadastrar Novo Item</h2>
                         <form id="addProductForm">
+                            <label for="newProductCategory">📁 Categoria *</label>
                             <select id="newProductCategory" required>
                                 <option value="">Selecione a categoria</option>
                             </select>
-                            <input type="text" id="newProductName" placeholder="Nome do equipamento" required>
-                            <input type="text" id="newProductUnit" placeholder="Unidade (un, par, kit, etc.)" required>
-                            <input type="number" id="newProductMinStock" placeholder="Estoque mínimo" required min="1" step="1">
-                            <input type="number" id="newProductCost" placeholder="Custo médio estimado (R$)" min="0" step="0.01">
-                            <input type="text" id="newProductLocation" placeholder="Localização (opcional)">
-                            <textarea id="newProductNotes" placeholder="Observações sobre o equipamento"></textarea>
+
+                            <label for="newProductName">📦 Nome do Equipamento *</label>
+                            <input type="text" id="newProductName" placeholder="Ex: Flash Godox 400" required>
+
+                            <label for="newProductUnit">📏 Unidade de Medida *</label>
+                            <input type="text" id="newProductUnit" placeholder="Ex: un, par, kit, etc." required>
+
+                            <label for="newProductMinStock">⚠️ Estoque Mínimo (alerta) *</label>
+                            <input type="number" id="newProductMinStock" placeholder="Ex: 5" required min="1" step="1">
+
+                            <label for="newProductCost">💰 Custo Médio Unitário (R$)</label>
+                            <input type="number" id="newProductCost" placeholder="Ex: 1500.00" min="0" step="0.01">
+
+                            <label for="newProductLocation">📍 Localização (opcional)</label>
+                            <input type="text" id="newProductLocation" placeholder="Ex: Prateleira A3">
+
+                            <label for="newProductNotes">📝 Observações</label>
+                            <textarea id="newProductNotes" placeholder="Informações adicionais sobre o equipamento"></textarea>
+
                             <div class="modal-actions">
                                 <button type="button" onclick="closeModal('addProductModal')">Cancelar</button>
                                 <button type="submit">Cadastrar Item</button>
@@ -687,15 +701,30 @@ Carregando sistema...`);
                         <h2>✏️ Editar Item</h2>
                         <form id="editProductForm">
                             <input type="hidden" id="editProductId">
+
+                            <label for="editProductCategory">📁 Categoria *</label>
                             <select id="editProductCategory" required>
                                 <option value="">Selecione a categoria</option>
                             </select>
-                            <input type="text" id="editProductName" placeholder="Nome do equipamento" required>
-                            <input type="text" id="editProductUnit" placeholder="Unidade (un, par, kit, etc.)" required>
-                            <input type="number" id="editProductMinStock" placeholder="Estoque mínimo" required min="1" step="1">
-                            <input type="number" id="editProductCost" placeholder="Custo médio estimado (R$)" min="0" step="0.01">
-                            <input type="text" id="editProductLocation" placeholder="Localização (opcional)">
-                            <textarea id="editProductNotes" placeholder="Observações sobre o equipamento"></textarea>
+
+                            <label for="editProductName">📦 Nome do Equipamento *</label>
+                            <input type="text" id="editProductName" placeholder="Ex: Flash Godox 400" required>
+
+                            <label for="editProductUnit">📏 Unidade de Medida *</label>
+                            <input type="text" id="editProductUnit" placeholder="Ex: un, par, kit, etc." required>
+
+                            <label for="editProductMinStock">⚠️ Estoque Mínimo (alerta) *</label>
+                            <input type="number" id="editProductMinStock" placeholder="Ex: 5" required min="1" step="1">
+
+                            <label for="editProductCost">💰 Custo Médio Unitário (R$)</label>
+                            <input type="number" id="editProductCost" placeholder="Ex: 1500.00" min="0" step="0.01">
+
+                            <label for="editProductLocation">📍 Localização (opcional)</label>
+                            <input type="text" id="editProductLocation" placeholder="Ex: Prateleira A3">
+
+                            <label for="editProductNotes">📝 Observações</label>
+                            <textarea id="editProductNotes" placeholder="Informações adicionais sobre o equipamento"></textarea>
+
                             <div class="modal-actions">
                                 <button type="button" onclick="closeModal('editProductModal')">Cancelar</button>
                                 <button type="submit">Salvar Alterações</button>
@@ -1351,15 +1380,29 @@ Carregando sistema...`);
                     <div class="modal-content">
                         <h2>➕ Cadastrar Novo Item</h2>
                         <form id="addProductForm">
+                            <label for="newProductCategory">📁 Categoria *</label>
                             <select id="newProductCategory" required>
                                 <option value="">Selecione a categoria</option>
                             </select>
-                            <input type="text" id="newProductName" placeholder="Nome do equipamento" required>
-                            <input type="text" id="newProductUnit" placeholder="Unidade (un, par, kit, etc.)" required>
-                            <input type="number" id="newProductMinStock" placeholder="Estoque mínimo" required min="1" step="1">
-                            <input type="number" id="newProductCost" placeholder="Custo médio estimado (R$)" min="0" step="0.01">
-                            <input type="text" id="newProductLocation" placeholder="Localização (opcional)">
-                            <textarea id="newProductNotes" placeholder="Observações sobre o equipamento"></textarea>
+
+                            <label for="newProductName">📦 Nome do Equipamento *</label>
+                            <input type="text" id="newProductName" placeholder="Ex: Flash Godox 400" required>
+
+                            <label for="newProductUnit">📏 Unidade de Medida *</label>
+                            <input type="text" id="newProductUnit" placeholder="Ex: un, par, kit, etc." required>
+
+                            <label for="newProductMinStock">⚠️ Estoque Mínimo (alerta) *</label>
+                            <input type="number" id="newProductMinStock" placeholder="Ex: 5" required min="1" step="1">
+
+                            <label for="newProductCost">💰 Custo Médio Unitário (R$)</label>
+                            <input type="number" id="newProductCost" placeholder="Ex: 1500.00" min="0" step="0.01">
+
+                            <label for="newProductLocation">📍 Localização (opcional)</label>
+                            <input type="text" id="newProductLocation" placeholder="Ex: Prateleira A3">
+
+                            <label for="newProductNotes">📝 Observações</label>
+                            <textarea id="newProductNotes" placeholder="Informações adicionais sobre o equipamento"></textarea>
+
                             <div class="modal-actions">
                                 <button type="button" onclick="closeModal('addProductModal')">Cancelar</button>
                                 <button type="submit">Cadastrar Item</button>
@@ -1373,15 +1416,30 @@ Carregando sistema...`);
                         <h2>✏️ Editar Item</h2>
                         <form id="editProductForm">
                             <input type="hidden" id="editProductId">
+
+                            <label for="editProductCategory">📁 Categoria *</label>
                             <select id="editProductCategory" required>
                                 <option value="">Selecione a categoria</option>
                             </select>
-                            <input type="text" id="editProductName" placeholder="Nome do equipamento" required>
-                            <input type="text" id="editProductUnit" placeholder="Unidade (un, par, kit, etc.)" required>
-                            <input type="number" id="editProductMinStock" placeholder="Estoque mínimo" required min="1" step="1">
-                            <input type="number" id="editProductCost" placeholder="Custo médio estimado (R$)" min="0" step="0.01">
-                            <input type="text" id="editProductLocation" placeholder="Localização (opcional)">
-                            <textarea id="editProductNotes" placeholder="Observações sobre o equipamento"></textarea>
+
+                            <label for="editProductName">📦 Nome do Equipamento *</label>
+                            <input type="text" id="editProductName" placeholder="Ex: Flash Godox 400" required>
+
+                            <label for="editProductUnit">📏 Unidade de Medida *</label>
+                            <input type="text" id="editProductUnit" placeholder="Ex: un, par, kit, etc." required>
+
+                            <label for="editProductMinStock">⚠️ Estoque Mínimo (alerta) *</label>
+                            <input type="number" id="editProductMinStock" placeholder="Ex: 5" required min="1" step="1">
+
+                            <label for="editProductCost">💰 Custo Médio Unitário (R$)</label>
+                            <input type="number" id="editProductCost" placeholder="Ex: 1500.00" min="0" step="0.01">
+
+                            <label for="editProductLocation">📍 Localização (opcional)</label>
+                            <input type="text" id="editProductLocation" placeholder="Ex: Prateleira A3">
+
+                            <label for="editProductNotes">📝 Observações</label>
+                            <textarea id="editProductNotes" placeholder="Informações adicionais sobre o equipamento"></textarea>
+
                             <div class="modal-actions">
                                 <button type="button" onclick="closeModal('editProductModal')">Cancelar</button>
                                 <button type="submit">Salvar Alterações</button>
