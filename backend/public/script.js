@@ -521,9 +521,18 @@ class PhotoInventoryManager {
             return;
         }
 
+        console.log('=== DEBUG editProduct ===');
+        console.log('productId recebido:', productId);
+        console.log('Total de items:', this.items.length);
+        console.log('Items com mesmo nome:', this.items.filter(item => item.name && item.name.toLowerCase().includes('flash godox')));
+
         const product = this.items.find(item => item.id === productId);
+
+        console.log('Produto encontrado:', product);
+
         if (!product) {
             window.notify.error('Equipamento não encontrado!');
+            console.log('ERRO: Produto não encontrado com ID:', productId);
             return;
         }
 
@@ -959,7 +968,9 @@ class PhotoInventoryManager {
                         📤
                     </button>
                     ${photoAuthManager.isAdmin() ? `
-                        <button class="btn-table-action btn-edit-small" onclick="photoInventory.editProduct('${item.id}')" title="Editar">
+                        <button class="btn-table-action btn-edit-small"
+                                onclick="console.log('Clicou editar:', '${item.id}', '${item.name}'); photoInventory.editProduct('${item.id}')"
+                                title="Editar - ID: ${item.id}">
                             ✏️
                         </button>
                         <button class="btn-table-action btn-delete-small" onclick="photoInventory.deleteProduct('${item.id}')" title="Excluir">
@@ -1008,7 +1019,9 @@ class PhotoInventoryManager {
                     📤 Saída
                 </button>
                 ${photoAuthManager.isAdmin() ? `
-                    <button class="btn-edit-product" onclick="photoInventory.editProduct('${item.id}')" title="Editar equipamento (Apenas Admin)">
+                    <button class="btn-edit-product"
+                            onclick="console.log('Clicou editar (card):', '${item.id}', '${item.name}'); photoInventory.editProduct('${item.id}')"
+                            title="Editar equipamento - ID: ${item.id}">
                         ✏️ Editar
                     </button>
                     <button class="btn-delete-product" onclick="photoInventory.deleteProduct('${item.id}')" title="Excluir equipamento (Apenas Admin)">
