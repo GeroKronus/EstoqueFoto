@@ -532,44 +532,6 @@ Carregando sistema...`);
                             <input type="file" id="importFile" accept=".json" onchange="importAllData(event)">
                             <label for="importFile" class="file-label">Restaurar Backup</label>
                         </div>
-                        <div class="setting-card ${adminClass}" style="${adminStyle}">
-                            <h3>⚠️ Administração Avançada (Admin)</h3>
-                            <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
-                                <strong>ATENÇÃO:</strong> Operações avançadas de administração do sistema.
-                            </p>
-
-                            <!-- Excluir movimentações mantendo estoque -->
-                            <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #2196F3;">
-                                <strong>🗑️ Excluir Movimentações:</strong>
-                                <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.85rem;">
-                                    <li>Exclui TODAS as transações (entradas e saídas)</li>
-                                    <li>Exclui TODAS as ordens de saída</li>
-                                    <li>Exclui TODOS os itens das ordens</li>
-                                    <li>Exclui TODO o histórico de alterações</li>
-                                    <li><strong style="color: #2196F3;">MANTÉM o estoque intacto (quantidades não são afetadas)</strong></li>
-                                </ul>
-                            </div>
-                            <button id="deleteExitOrdersBtn" onclick="deleteAllExitOrders()" class="btn-danger" style="background: #ff6b6b; width: 100%; margin-bottom: 20px;">
-                                🗑️ EXCLUIR TODAS AS MOVIMENTAÇÕES
-                            </button>
-                            <div id="deleteExitOrdersStatus" style="margin-top: 10px; margin-bottom: 20px; font-size: 0.85rem;"></div>
-
-                            <!-- Zerar todos os movimentos -->
-                            <div style="background: #fff3cd; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #ff9800;">
-                                <strong>⚠️ Zerar Todos os Movimentos:</strong>
-                                <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.85rem;">
-                                    <li>Excluir todas as transações (entradas e saídas)</li>
-                                    <li>Excluir todas as ordens de saída</li>
-                                    <li>Resetar quantidades de todos os equipamentos para zero</li>
-                                    <li>Manter equipamentos, categorias e usuários cadastrados</li>
-                                </ul>
-                                <strong style="color: #d32f2f;">⚠️ ESTA AÇÃO É IRREVERSÍVEL!</strong>
-                            </div>
-                            <button id="resetMovementsBtn" onclick="resetAllMovements()" class="btn-danger" style="background: #d32f2f; width: 100%;">
-                                🗑️ ZERAR TODOS OS MOVIMENTOS
-                            </button>
-                            <div id="resetMovementsStatus" style="margin-top: 10px; font-size: 0.85rem;"></div>
-                        </div>
                     </div>
                 </div>
 
@@ -1246,44 +1208,6 @@ Carregando sistema...`);
                             <button onclick="exportAllData()">Fazer Backup Completo</button>
                             <input type="file" id="importFile" accept=".json" onchange="importAllData(event)">
                             <label for="importFile" class="file-label">Restaurar Backup</label>
-                        </div>
-                        <div class="setting-card ${adminClass}" style="${adminStyle}">
-                            <h3>⚠️ Administração Avançada (Admin)</h3>
-                            <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
-                                <strong>ATENÇÃO:</strong> Operações avançadas de administração do sistema.
-                            </p>
-
-                            <!-- Excluir movimentações mantendo estoque -->
-                            <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #2196F3;">
-                                <strong>🗑️ Excluir Movimentações:</strong>
-                                <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.85rem;">
-                                    <li>Exclui TODAS as transações (entradas e saídas)</li>
-                                    <li>Exclui TODAS as ordens de saída</li>
-                                    <li>Exclui TODOS os itens das ordens</li>
-                                    <li>Exclui TODO o histórico de alterações</li>
-                                    <li><strong style="color: #2196F3;">MANTÉM o estoque intacto (quantidades não são afetadas)</strong></li>
-                                </ul>
-                            </div>
-                            <button id="deleteExitOrdersBtn" onclick="deleteAllExitOrders()" class="btn-danger" style="background: #ff6b6b; width: 100%; margin-bottom: 20px;">
-                                🗑️ EXCLUIR TODAS AS MOVIMENTAÇÕES
-                            </button>
-                            <div id="deleteExitOrdersStatus" style="margin-top: 10px; margin-bottom: 20px; font-size: 0.85rem;"></div>
-
-                            <!-- Zerar todos os movimentos -->
-                            <div style="background: #fff3cd; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #ff9800;">
-                                <strong>⚠️ Zerar Todos os Movimentos:</strong>
-                                <ul style="margin: 8px 0; padding-left: 20px; font-size: 0.85rem;">
-                                    <li>Excluir todas as transações (entradas e saídas)</li>
-                                    <li>Excluir todas as ordens de saída</li>
-                                    <li>Resetar quantidades de todos os equipamentos para zero</li>
-                                    <li>Manter equipamentos, categorias e usuários cadastrados</li>
-                                </ul>
-                                <strong style="color: #d32f2f;">⚠️ ESTA AÇÃO É IRREVERSÍVEL!</strong>
-                            </div>
-                            <button id="resetMovementsBtn" onclick="resetAllMovements()" class="btn-danger" style="background: #d32f2f; width: 100%;">
-                                🗑️ ZERAR TODOS OS MOVIMENTOS
-                            </button>
-                            <div id="resetMovementsStatus" style="margin-top: 10px; font-size: 0.85rem;"></div>
                         </div>
                     </div>
                 </div>
