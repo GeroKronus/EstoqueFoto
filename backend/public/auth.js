@@ -682,6 +682,28 @@ Carregando sistema...`);
                     </div>
                 </div>
 
+                <div id="editProductModal" class="modal">
+                    <div class="modal-content">
+                        <h2>✏️ Editar Item</h2>
+                        <form id="editProductForm">
+                            <input type="hidden" id="editProductId">
+                            <select id="editProductCategory" required>
+                                <option value="">Selecione a categoria</option>
+                            </select>
+                            <input type="text" id="editProductName" placeholder="Nome do equipamento" required>
+                            <input type="text" id="editProductUnit" placeholder="Unidade (un, par, kit, etc.)" required>
+                            <input type="number" id="editProductMinStock" placeholder="Estoque mínimo" required min="1" step="1">
+                            <input type="number" id="editProductCost" placeholder="Custo médio estimado (R$)" min="0" step="0.01">
+                            <input type="text" id="editProductLocation" placeholder="Localização (opcional)">
+                            <textarea id="editProductNotes" placeholder="Observações sobre o equipamento"></textarea>
+                            <div class="modal-actions">
+                                <button type="button" onclick="closeModal('editProductModal')">Cancelar</button>
+                                <button type="submit">Salvar Alterações</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
                 <div id="addUserModal" class="modal">
                     <div class="modal-content">
                         <h2>👤 Cadastrar Novo Usuário</h2>
@@ -1341,6 +1363,28 @@ Carregando sistema...`);
                             <div class="modal-actions">
                                 <button type="button" onclick="closeModal('addProductModal')">Cancelar</button>
                                 <button type="submit">Cadastrar Item</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="editProductModal" class="modal">
+                    <div class="modal-content">
+                        <h2>✏️ Editar Item</h2>
+                        <form id="editProductForm">
+                            <input type="hidden" id="editProductId">
+                            <select id="editProductCategory" required>
+                                <option value="">Selecione a categoria</option>
+                            </select>
+                            <input type="text" id="editProductName" placeholder="Nome do equipamento" required>
+                            <input type="text" id="editProductUnit" placeholder="Unidade (un, par, kit, etc.)" required>
+                            <input type="number" id="editProductMinStock" placeholder="Estoque mínimo" required min="1" step="1">
+                            <input type="number" id="editProductCost" placeholder="Custo médio estimado (R$)" min="0" step="0.01">
+                            <input type="text" id="editProductLocation" placeholder="Localização (opcional)">
+                            <textarea id="editProductNotes" placeholder="Observações sobre o equipamento"></textarea>
+                            <div class="modal-actions">
+                                <button type="button" onclick="closeModal('editProductModal')">Cancelar</button>
+                                <button type="submit">Salvar Alterações</button>
                             </div>
                         </form>
                     </div>

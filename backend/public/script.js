@@ -226,6 +226,14 @@ class PhotoInventoryManager {
             });
         }
 
+        const editProductForm = document.getElementById('editProductForm');
+        if (editProductForm) {
+            editProductForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.updateProduct();
+            });
+        }
+
         if (addUserForm) {
             addUserForm.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -504,6 +512,103 @@ class PhotoInventoryManager {
         } catch (error) {
             console.error('Erro ao excluir equipamento:', error);
             window.notify.error(`Erro ao excluir equipamento: ${error.message}`);
+        }
+    }
+
+    async editProduct(productId) {
+        if (!photoAuthManager.isAdmin()) {
+            window.notify.warning('Apenas administradores podem editar equipamentos!');
+            return;
+        }
+
+        const product = this.items.find(item => item.id === productId);
+        if (!product) {
+            window.notify.error('Equipamento não encontrado!');
+            return;
+        }
+
+        // Preencher o modal com os dados do produto
+        document.getElementById('editProductId').value = product.id;
+        document.getElementById('editProductName').value = product.name;
+        document.getElementById('editProductUnit').value = product.unit;
+        document.getElementById('editProductMinStock').value = product.minStock;
+        document.getElementById('editProductCost').value = product.avgCost;
+        document.getElementById('editProductLocation').value = product.location || '';
+        document.getElementById('editProductNotes').value = product.notes || '';
+
+        // Preencher dropdown de categorias
+        const categorySelect = document.getElementById('editProductCategory');
+        categorySelect.innerHTML = '<option value="">Selecione a categoria</option>';
+        this.categories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.slug;
+            option.textContent = cat.name;
+            if (cat.slug === product.category) {
+                option.selected = true;
+            }
+            categorySelect.appendChild(option);
+        });
+
+        showModal('editProductModal');
+    }
+
+    async updateProduct() {
+        if (!photoAuthManager.isAdmin()) {
+            window.notify.warning('Apenas administradores podem editar equipamentos!');
+            return;
+        }
+
+        const productId = document.getElementById('editProductId').value;
+        const category = document.getElementById('editProductCategory').value;
+        const name = document.getElementById('editProductName').value.trim();
+        const unit = document.getElementById('editProductUnit').value.trim();
+        const minStock = parseInt(document.getElementById('editProductMinStock').value);
+        const cost = parseFloat(document.getElementById('editProductCost').value) || 0;
+        const location = document.getElementById('editProductLocation').value.trim();
+        const notes = document.getElementById('editProductNotes').value.trim();
+
+        if (!category || !name || !unit || isNaN(minStock) || minStock < 1) {
+            window.notify.warning('Por favor, preencha todos os campos obrigatórios corretamente.');
+            return;
+        }
+
+        try {
+            // Buscar ID da categoria
+            const categoryObj = this.categories.find(cat => cat.slug === category);
+            if (!categoryObj) {
+                window.notify.error('Categoria não encontrada!');
+                return;
+            }
+
+            console.log('Atualizando equipamento no PostgreSQL...', { productId, name, categoryId: categoryObj.id });
+
+            const response = await window.api.updateEquipment(productId, {
+                name,
+                categoryId: categoryObj.id,
+                unit,
+                minStock,
+                avgCost: cost,
+                location,
+                notes
+            });
+
+            console.log('Equipamento atualizado com sucesso:', response);
+
+            // Recarregar lista de equipamentos
+            this.items = await this.loadItems();
+            this.renderAllItems();
+            this.updateSummary();
+            this.populateModalSelects();
+            closeModal('editProductModal');
+
+            document.getElementById('editProductForm').reset();
+
+            const categoryName = categoryObj ? categoryObj.name : category;
+            window.notify.success(`Equipamento "${name}" foi atualizado com sucesso!`);
+
+        } catch (error) {
+            console.error('Erro ao atualizar equipamento:', error);
+            window.notify.error(`Erro ao atualizar equipamento: ${error.message}`);
         }
     }
 
@@ -854,6 +959,9 @@ class PhotoInventoryManager {
                         📤
                     </button>
                     ${photoAuthManager.isAdmin() ? `
+                        <button class="btn-table-action btn-edit-small" onclick="photoInventory.editProduct('${item.id}')" title="Editar">
+                            ✏️
+                        </button>
                         <button class="btn-table-action btn-delete-small" onclick="photoInventory.deleteProduct('${item.id}')" title="Excluir">
                             🗑️
                         </button>
@@ -900,6 +1008,9 @@ class PhotoInventoryManager {
                     📤 Saída
                 </button>
                 ${photoAuthManager.isAdmin() ? `
+                    <button class="btn-edit-product" onclick="photoInventory.editProduct('${item.id}')" title="Editar equipamento (Apenas Admin)">
+                        ✏️ Editar
+                    </button>
                     <button class="btn-delete-product" onclick="photoInventory.deleteProduct('${item.id}')" title="Excluir equipamento (Apenas Admin)">
                         🗑️
                     </button>
