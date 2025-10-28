@@ -24,7 +24,8 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
             '018': '018_create_service_orders.sql',
             '019': '019_add_invoice_to_payments.sql',
             '020': '020_add_role_alterada_transaction_type.sql',
-            '021': '021_create_composite_items.sql'
+            '021': '021_create_composite_items.sql',
+            '023': '023_normalize_units_to_uppercase.sql'
         };
 
         const migrationFile = migrationFiles[String(migrationNumber).padStart(3, '0')];
