@@ -179,6 +179,12 @@ class CompositeItemsManager {
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
+        // Prevenir fechamento ao clicar fora do modal
+        const modal = document.getElementById('compositeItemModal');
+        if (modal && typeof preventModalCloseOnBackdropClick === 'function') {
+            preventModalCloseOnBackdropClick(modal);
+        }
+
         document.getElementById('compositeItemForm').addEventListener('submit', (e) => {
             e.preventDefault();
             this.createCompositeItem();
@@ -335,6 +341,12 @@ class CompositeItemsManager {
             `;
 
             document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Prevenir fechamento ao clicar fora do modal
+            const modal = document.getElementById('viewCompositeModal');
+            if (modal && typeof preventModalCloseOnBackdropClick === 'function') {
+                preventModalCloseOnBackdropClick(modal);
+            }
         } catch (error) {
             console.error('Erro ao visualizar item composto:', error);
             window.notify.error('Erro ao carregar detalhes');
