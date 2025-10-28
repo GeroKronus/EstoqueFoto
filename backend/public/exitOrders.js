@@ -1222,9 +1222,8 @@ class ExitOrdersManager {
             window.notify.success('Item adicionado com sucesso!');
             this.closeAddItemModal();
 
-            // Recarregar lista de ordens
+            // Recarregar lista de ordens (já renderiza automaticamente)
             await this.loadOrders();
-            this.renderOrders();
 
         } catch (error) {
             console.error('Erro ao adicionar item:', error);
