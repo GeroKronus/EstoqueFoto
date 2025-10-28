@@ -3477,4 +3477,34 @@ document.addEventListener('click', function(e) {
     }
 });
 
+// Converter unidades para maiúsculas automaticamente
+function setupUnitUppercase() {
+    const unitInputs = ['newProductUnit', 'editProductUnit'];
+
+    unitInputs.forEach(inputId => {
+        const input = document.getElementById(inputId);
+        if (input) {
+            input.addEventListener('input', function(e) {
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.toUpperCase();
+                this.setSelectionRange(start, end);
+            });
+        }
+    });
+}
+
+// Configurar conversão automática quando o DOM estiver pronto
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupUnitUppercase);
+} else {
+    setupUnitUppercase();
+}
+
+// Re-executar quando modais forem abertos (caso os inputs sejam recriados)
+const observer = new MutationObserver(() => {
+    setupUnitUppercase();
+});
+observer.observe(document.body, { childList: true, subtree: true });
+
 // Autenticação é inicializada pelo auth.js

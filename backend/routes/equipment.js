@@ -230,6 +230,9 @@ router.post('/', authenticateToken, async (req, res) => {
             notes
         } = req.body;
 
+        // Converter unit para maiúsculas
+        const normalizedUnit = unit.toUpperCase();
+
         if (!name || !categoryId) {
             return res.status(400).json({
                 error: 'Nome e categoria são obrigatórios'
@@ -257,7 +260,7 @@ router.post('/', authenticateToken, async (req, res) => {
                 )
                 VALUES ($1, $2, $3, $4, $5, $5, $6, $7, true, $8)
                 RETURNING *
-            `, [name, categoryId, unit, minStock, avgCost, location, notes, req.user.id]);
+            `, [name, categoryId, normalizedUnit, minStock, avgCost, location, notes, req.user.id]);
 
             const equipment = equipmentResult.rows[0];
 
@@ -274,7 +277,7 @@ router.post('/', authenticateToken, async (req, res) => {
                 equipment.name,
                 categoryId,
                 0,
-                unit,
+                normalizedUnit,
                 avgCost,
                 0,
                 `Equipamento cadastrado no sistema. ${notes ? 'Observações: ' + notes : ''}`,
@@ -327,8 +330,11 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
             notes
         } = req.body;
 
+        // Converter unit para maiúsculas
+        const normalizedUnit = unit ? unit.toUpperCase() : unit;
+
         console.log('PUT /api/equipment/:id - Request body:', {
-            name, categoryId, unit, quantity, minStock, avgCost, location, notes
+            name, categoryId, unit: normalizedUnit, quantity, minStock, avgCost, location, notes
         });
 
         if (!name || !categoryId) {
@@ -384,7 +390,7 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
                 updateParams = [
                     name,
                     categoryId,
-                    unit,
+                    normalizedUnit,
                     quantity,
                     minStock,
                     avgCost || 0,
@@ -410,7 +416,7 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
                 updateParams = [
                     name,
                     categoryId,
-                    unit,
+                    normalizedUnit,
                     minStock,
                     avgCost || 0,
                     location || null,
