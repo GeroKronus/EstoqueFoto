@@ -579,6 +579,92 @@ router.patch('/:id/role', authenticateToken, requireAdmin, async (req, res) => {
     }
 });
 
+// PATCH /api/users/:id/reset-password - Admin redefine senha de usuário (admin only)
+router.patch('/:id/reset-password', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { newPassword } = req.body;
+
+        // Validações
+        if (!newPassword || newPassword.length < 6) {
+            return res.status(400).json({
+                error: 'A nova senha deve ter pelo menos 6 caracteres'
+            });
+        }
+
+        // Impedir que admin redefina sua própria senha (deve usar a opção de alterar senha)
+        if (id === req.user.id) {
+            return res.status(403).json({
+                error: 'Você não pode redefinir sua própria senha. Use a opção "Alterar Senha".'
+            });
+        }
+
+        const result = await transaction(async (client) => {
+            // Buscar informações do usuário
+            const userResult = await client.query(
+                'SELECT id, username, name, role, active FROM users WHERE id = $1',
+                [id]
+            );
+
+            if (userResult.rows.length === 0) {
+                throw new Error('Usuário não encontrado');
+            }
+
+            const user = userResult.rows[0];
+
+            if (!user.active) {
+                throw new Error('Não é possível redefinir senha de usuário inativo');
+            }
+
+            // Hash da nova senha
+            const bcrypt = require('bcryptjs');
+            const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+            // Atualizar senha
+            await client.query(`
+                UPDATE users
+                SET password_hash = $1, updated_at = NOW()
+                WHERE id = $2
+            `, [hashedPassword, id]);
+
+            // Registrar transação de auditoria
+            await client.query(`
+                INSERT INTO transactions (
+                    type, equipment_id, equipment_name, category_name,
+                    notes, created_by, user_name
+                )
+                VALUES ($1, NULL, '', '', $2, $3, $4)
+            `, [
+                'reset',
+                `Senha do usuário "${user.name}" (${user.username}) foi redefinida pelo administrador ${req.user.name}`,
+                req.user.id,
+                req.user.name
+            ]);
+
+            return user;
+        });
+
+        console.log(`[ADMIN] Senha do usuário ${result.name} redefinida por ${req.user.name}`);
+
+        res.json({
+            message: `Senha de "${result.name}" foi redefinida com sucesso`,
+            user: {
+                id: result.id,
+                username: result.username,
+                name: result.name
+            }
+        });
+
+    } catch (error) {
+        console.error('Erro ao redefinir senha do usuário:', error);
+        if (error.message === 'Usuário não encontrado' || error.message.includes('inativo')) {
+            res.status(400).json({ error: error.message });
+        } else {
+            res.status(500).json({ error: 'Erro interno do servidor' });
+        }
+    }
+});
+
 // GET /api/users/stats/summary - Estatísticas gerais dos usuários (admin only)
 router.get('/stats/summary', authenticateToken, requireAdmin, async (req, res) => {
     try {

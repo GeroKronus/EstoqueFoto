@@ -721,6 +721,9 @@ class PhotoInventoryManager {
                                     <option value="user" ${user.role === 'user' ? 'selected' : ''}>👤 Usuário</option>
                                     <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>👑 Admin</option>
                                 </select>
+                                <button class="btn-user-action btn-reset-password" onclick="photoInventory.showResetPasswordModal('${user.id}', '${user.name}')" ${!user.active ? 'disabled' : ''} title="Redefinir senha do usuário">
+                                    🔑 Senha
+                                </button>
                                 ${user.active ? `
                                     <button class="btn-user-action btn-deactivate" onclick="photoInventory.deactivateUser('${user.id}')">
                                         ⏸️ Desativar
@@ -870,6 +873,90 @@ class PhotoInventoryManager {
 
             // Restaurar select em caso de erro
             await this.renderUsers();
+        }
+    }
+
+    showResetPasswordModal(userId, userName) {
+        if (!photoAuthManager.isAdmin()) {
+            window.notify.warning('Apenas administradores podem redefinir senhas!');
+            return;
+        }
+
+        const modalHtml = `
+            <div class="modal" id="resetPasswordModal" data-dynamic="true" style="display: flex;">
+                <div class="modal-content" style="max-width: 500px;">
+                    <h2>🔑 Redefinir Senha</h2>
+                    <p>Redefinir senha para: <strong>${userName}</strong></p>
+
+                    <form id="resetPasswordForm" style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
+                        <div>
+                            <label for="newPasswordAdmin" style="display: block; margin-bottom: 5px; font-weight: 600;">Nova Senha:</label>
+                            <div style="position: relative;">
+                                <input type="password" id="newPasswordAdmin" required minlength="6" placeholder="Mínimo 6 caracteres" style="width: 100%; padding: 10px; padding-right: 45px;">
+                                <button type="button" onclick="photoAuthManager.togglePasswordVisibility('newPasswordAdmin', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 20px; padding: 0; color: #666;" title="Mostrar/Ocultar senha">
+                                    👁️
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="confirmPasswordAdmin" style="display: block; margin-bottom: 5px; font-weight: 600;">Confirmar Senha:</label>
+                            <div style="position: relative;">
+                                <input type="password" id="confirmPasswordAdmin" required minlength="6" placeholder="Digite a senha novamente" style="width: 100%; padding: 10px; padding-right: 45px;">
+                                <button type="button" onclick="photoAuthManager.togglePasswordVisibility('confirmPasswordAdmin', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 20px; padding: 0; color: #666;" title="Mostrar/Ocultar senha">
+                                    👁️
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="background: #fff3e0; padding: 12px; border-radius: 4px; border-left: 4px solid #ff9800; font-size: 14px;">
+                            ⚠️ O usuário será notificado sobre a alteração e deverá usar a nova senha no próximo login.
+                        </div>
+
+                        <div class="modal-actions">
+                            <button type="button" onclick="closeModal('resetPasswordModal')">Cancelar</button>
+                            <button type="submit" class="btn-primary">🔑 Redefinir Senha</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        document.getElementById('resetPasswordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.resetUserPassword(userId, userName);
+        });
+    }
+
+    async resetUserPassword(userId, userName) {
+        const newPassword = document.getElementById('newPasswordAdmin').value;
+        const confirmPassword = document.getElementById('confirmPasswordAdmin').value;
+
+        if (newPassword !== confirmPassword) {
+            window.notify.error('As senhas não coincidem!');
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            window.notify.error('A senha deve ter pelo menos 6 caracteres!');
+            return;
+        }
+
+        try {
+            console.log('Redefinindo senha do usuário:', userId);
+
+            const response = await window.api.resetUserPassword(userId, newPassword);
+
+            console.log('Senha redefinida com sucesso:', response);
+
+            closeModal('resetPasswordModal');
+
+            window.notify.success(`Senha de "${userName}" foi redefinida com sucesso!`);
+        } catch (error) {
+            console.error('Erro ao redefinir senha:', error);
+            window.notify.error('Erro: ' + error.message);
         }
     }
 

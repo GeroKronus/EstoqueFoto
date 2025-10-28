@@ -231,6 +231,13 @@ class ApiService {
         });
     }
 
+    async resetUserPassword(id, newPassword) {
+        return this.request(`${CONFIG.ENDPOINTS.USERS}/${id}/reset-password`, {
+            method: 'PATCH',
+            body: JSON.stringify({ newPassword })
+        });
+    }
+
     async getUsersStats() {
         return this.request(`${CONFIG.ENDPOINTS.USERS}/stats/summary`);
     }
