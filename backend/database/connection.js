@@ -7,6 +7,7 @@ const pool = new Pool({
     max: 20, // máximo de conexões
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
+    client_encoding: 'UTF8'
 });
 
 // Teste de conexão
