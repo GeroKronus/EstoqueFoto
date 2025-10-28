@@ -1072,18 +1072,26 @@ class ExitOrdersManager {
     // Detectar kits automaticamente em ordens existentes
     async detectKitsInItems(items) {
         try {
+            console.log('🔍 Detectando kits em', items.length, 'itens...');
+
             // Buscar todos os kits ativos
             const response = await window.api.getCompositeItems({ active: 'true' });
             const compositeItems = response.compositeItems || [];
+
+            console.log('📦 Kits disponíveis:', compositeItems.length);
 
             const detectedKits = [];
             const processedItemIds = new Set();
 
             // Para cada kit, tentar encontrar seus componentes nos itens
             for (const kit of compositeItems) {
+                console.log(`\n🔎 Verificando kit: ${kit.name}`);
+
                 // Buscar detalhes do kit com componentes
                 const kitDetails = await window.api.getCompositeItem(kit.id);
                 const components = kitDetails.compositeItem.components;
+
+                console.log(`  Componentes do kit:`, components.map(c => c.equipment_name));
 
                 // Tentar encontrar todos os componentes deste kit nos itens
                 const matchedItems = [];
@@ -1096,11 +1104,15 @@ class ExitOrdersManager {
                     );
 
                     if (item) {
+                        console.log(`  ✅ Encontrado: ${item.equipmentName || item.currentEquipmentName}`);
                         matchedItems.push({
                             ...item,
                             componentBaseQuantity: parseFloat(component.quantity)
                         });
                     } else {
+                        console.log(`  ❌ NÃO encontrado: ${component.equipment_name}`);
+                        console.log(`     Procurando por equipmentId: ${component.equipment_id}`);
+                        console.log(`     IDs disponíveis:`, items.map(i => ({ id: i.equipmentId, name: i.equipmentName || i.currentEquipmentName })));
                         allComponentsFound = false;
                         break;
                     }
@@ -1112,6 +1124,8 @@ class ExitOrdersManager {
                     const kitQuantity = Math.min(...matchedItems.map(item =>
                         Math.floor(item.quantity / item.componentBaseQuantity)
                     ));
+
+                    console.log(`  🎉 Kit completo detectado! ${kitQuantity} kit(s)`);
 
                     if (kitQuantity > 0) {
                         const kitId = `detected-kit-${kit.id}`;
@@ -1133,6 +1147,7 @@ class ExitOrdersManager {
                 }
             }
 
+            console.log(`\n✅ Detecção concluída: ${detectedKits.length} kit(s) detectado(s)`);
             return { detectedKits, processedItemIds };
         } catch (error) {
             console.error('Erro ao detectar kits:', error);
