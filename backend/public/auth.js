@@ -428,6 +428,7 @@ Carregando sistema...`);
                 <nav class="main-nav">
                     <button class="nav-btn active" data-section="inventory">📦 Estoque</button>
                     <button class="nav-btn" data-section="exit-orders">📋 Ordens de Saída</button>
+                    <button class="nav-btn" data-section="composite-items">📦 Itens Compostos</button>
                     <button class="nav-btn" data-section="transactions">📊 Movimentações</button>
                     <button class="nav-btn" data-section="customers">👥 Clientes</button>
                     <button class="nav-btn" data-section="reports">📈 Relatórios</button>
@@ -552,6 +553,12 @@ Carregando sistema...`);
                             <input type="file" id="importFile" accept=".json" onchange="importAllData(event)">
                             <label for="importFile" class="file-label">Restaurar Backup</label>
                         </div>
+                    </div>
+                </div>
+
+                <div id="composite-items-section" class="section">
+                    <div id="mainContent">
+                        <!-- Conteúdo será carregado por compositeItems.js -->
                     </div>
                 </div>
 
@@ -880,6 +887,7 @@ Carregando sistema...`);
 
                 <nav class="main-nav">
                     <button class="nav-btn active" data-section="service-orders">🔧 Ordens de Serviço</button>
+                    <button class="nav-btn" data-section="composite-items">📦 Itens Compostos</button>
                     <button class="nav-btn" data-section="customers">👥 Clientes</button>
                     <button class="nav-btn" data-section="reports">📈 Relatórios</button>
                 </nav>
@@ -1236,6 +1244,12 @@ Carregando sistema...`);
                             <input type="file" id="importFile" accept=".json" onchange="importAllData(event)">
                             <label for="importFile" class="file-label">Restaurar Backup</label>
                         </div>
+                    </div>
+                </div>
+
+                <div id="composite-items-section" class="section">
+                    <div id="mainContent">
+                        <!-- Conteúdo será carregado por compositeItems.js -->
                     </div>
                 </div>
 
