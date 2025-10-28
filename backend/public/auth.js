@@ -702,6 +702,10 @@ Carregando sistema...`);
                             <label for="editProductUnit">📏 Unidade de Medida *</label>
                             <input type="text" id="editProductUnit" placeholder="Ex: un, par, kit, etc." required>
 
+                            <label for="editProductQuantity">📊 Quantidade em Estoque *</label>
+                            <input type="number" id="editProductQuantity" placeholder="Ex: 10" required min="0" step="0.001">
+                            <small style="color: #666; display: block; margin-top: -8px; margin-bottom: 12px;">⚠️ Alterar este valor registrará um ajuste manual de estoque</small>
+
                             <label for="editProductMinStock">⚠️ Estoque Mínimo (alerta) *</label>
                             <input type="number" id="editProductMinStock" placeholder="Ex: 5" required min="1" step="1">
 
@@ -1392,6 +1396,10 @@ Carregando sistema...`);
 
                             <label for="editProductUnit">📏 Unidade de Medida *</label>
                             <input type="text" id="editProductUnit" placeholder="Ex: un, par, kit, etc." required>
+
+                            <label for="editProductQuantity">📊 Quantidade em Estoque *</label>
+                            <input type="number" id="editProductQuantity" placeholder="Ex: 10" required min="0" step="0.001">
+                            <small style="color: #666; display: block; margin-top: -8px; margin-bottom: 12px;">⚠️ Alterar este valor registrará um ajuste manual de estoque</small>
 
                             <label for="editProductMinStock">⚠️ Estoque Mínimo (alerta) *</label>
                             <input type="number" id="editProductMinStock" placeholder="Ex: 5" required min="1" step="1">

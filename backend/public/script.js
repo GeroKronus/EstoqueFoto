@@ -545,6 +545,7 @@ class PhotoInventoryManager {
         document.getElementById('editProductId').value = product.id;
         document.getElementById('editProductName').value = product.name;
         document.getElementById('editProductUnit').value = product.unit;
+        document.getElementById('editProductQuantity').value = product.quantity;
         document.getElementById('editProductMinStock').value = product.minStock;
         document.getElementById('editProductCost').value = product.avgCost;
         document.getElementById('editProductLocation').value = product.location || '';
@@ -576,12 +577,13 @@ class PhotoInventoryManager {
         const category = document.getElementById('editProductCategory').value;
         const name = document.getElementById('editProductName').value.trim();
         const unit = document.getElementById('editProductUnit').value.trim();
+        const quantity = parseFloat(document.getElementById('editProductQuantity').value);
         const minStock = parseInt(document.getElementById('editProductMinStock').value);
         const cost = parseFloat(document.getElementById('editProductCost').value) || 0;
         const location = document.getElementById('editProductLocation').value.trim();
         const notes = document.getElementById('editProductNotes').value.trim();
 
-        if (!category || !name || !unit || isNaN(minStock) || minStock < 1) {
+        if (!category || !name || !unit || isNaN(quantity) || quantity < 0 || isNaN(minStock) || minStock < 1) {
             window.notify.warning('Por favor, preencha todos os campos obrigatórios corretamente.');
             return;
         }
@@ -600,6 +602,7 @@ class PhotoInventoryManager {
                 name,
                 categoryId: categoryObj.id,
                 unit,
+                quantity,
                 minStock,
                 avgCost: cost,
                 location,

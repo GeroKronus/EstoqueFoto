@@ -320,6 +320,7 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
             name,
             categoryId,
             unit,
+            quantity,
             minStock,
             avgCost,
             location,
@@ -332,46 +333,101 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
             });
         }
 
-        // Verificar se equipamento existe
-        const equipmentExists = await query(
-            'SELECT id FROM equipment WHERE id = $1 AND active = true',
-            [id]
-        );
+        // Usar transaction para atualizar equipamento e registrar ajuste se necessário
+        const result = await transaction(async (client) => {
+            // Verificar se equipamento existe e buscar quantidade atual
+            const equipmentResult = await client.query(
+                'SELECT * FROM equipment WHERE id = $1 AND active = true',
+                [id]
+            );
 
-        if (equipmentExists.rows.length === 0) {
-            return res.status(404).json({
-                error: 'Equipamento não encontrado'
-            });
-        }
+            if (equipmentResult.rows.length === 0) {
+                throw new Error('Equipamento não encontrado');
+            }
 
-        // Verificar se categoria existe
-        const categoryExists = await query(
-            'SELECT id FROM categories WHERE id = $1',
-            [categoryId]
-        );
+            const currentEquipment = equipmentResult.rows[0];
+            const oldQuantity = parseFloat(currentEquipment.quantity);
 
-        if (categoryExists.rows.length === 0) {
-            return res.status(404).json({
-                error: 'Categoria não encontrada'
-            });
-        }
+            // Verificar se categoria existe
+            const categoryExists = await client.query(
+                'SELECT id FROM categories WHERE id = $1',
+                [categoryId]
+            );
 
-        const result = await query(`
-            UPDATE equipment
-            SET
-                name = $1,
-                category_id = $2,
-                unit = $3,
-                min_stock = $4,
-                avg_cost = $5,
-                location = $6,
-                notes = $7,
-                updated_at = NOW()
-            WHERE id = $8 AND active = true
-            RETURNING *
-        `, [name, categoryId, unit, minStock, avgCost, location, notes, id]);
+            if (categoryExists.rows.length === 0) {
+                throw new Error('Categoria não encontrada');
+            }
 
-        const equipment = result.rows[0];
+            // Atualizar equipamento (incluindo quantity se fornecido)
+            let updateQuery, updateParams;
+
+            if (quantity !== undefined) {
+                updateQuery = `
+                    UPDATE equipment
+                    SET
+                        name = $1,
+                        category_id = $2,
+                        unit = $3,
+                        quantity = $4,
+                        min_stock = $5,
+                        avg_cost = $6,
+                        location = $7,
+                        notes = $8,
+                        updated_at = NOW()
+                    WHERE id = $9 AND active = true
+                    RETURNING *
+                `;
+                updateParams = [name, categoryId, unit, quantity, minStock, avgCost, location, notes, id];
+            } else {
+                updateQuery = `
+                    UPDATE equipment
+                    SET
+                        name = $1,
+                        category_id = $2,
+                        unit = $3,
+                        min_stock = $4,
+                        avg_cost = $5,
+                        location = $6,
+                        notes = $7,
+                        updated_at = NOW()
+                    WHERE id = $8 AND active = true
+                    RETURNING *
+                `;
+                updateParams = [name, categoryId, unit, minStock, avgCost, location, notes, id];
+            }
+
+            const updateResult = await client.query(updateQuery, updateParams);
+
+            const equipment = updateResult.rows[0];
+            const newQuantity = parseFloat(equipment.quantity);
+
+            // Se a quantidade mudou, registrar transação de ajuste
+            if (quantity !== undefined && oldQuantity !== newQuantity) {
+                const difference = newQuantity - oldQuantity;
+                const adjustmentType = difference > 0 ? 'Entrada' : 'Saída';
+
+                await client.query(`
+                    INSERT INTO transactions (
+                        equipment_id,
+                        type,
+                        quantity,
+                        notes,
+                        created_by,
+                        created_at
+                    ) VALUES ($1, $2, $3, $4, $5, NOW())
+                `, [
+                    id,
+                    'ajuste',
+                    Math.abs(difference),
+                    `Ajuste Manual (${adjustmentType}): ${oldQuantity} → ${newQuantity}`,
+                    req.user.id
+                ]);
+            }
+
+            return equipment;
+        });
+
+        const equipment = result;
 
         res.json({
             message: 'Equipamento atualizado com sucesso',
