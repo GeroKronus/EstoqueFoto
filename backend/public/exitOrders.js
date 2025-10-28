@@ -457,6 +457,7 @@ class ExitOrdersManager {
                         <td>
                             <strong>📦 ${group.kitName}</strong>
                             <span style="color: #666; margin-left: 8px;">(Kit com ${group.items.length} itens)</span>
+                            ${group.isPartial ? '<span style="color: #ff9800; margin-left: 8px; font-size: 0.85em;">⚠️ Parcial</span>' : ''}
                         </td>
                         <td>
                             <strong>${group.kitQuantity} kit${group.kitQuantity > 1 ? 's' : ''}</strong>
@@ -1310,9 +1311,8 @@ class ExitOrdersManager {
                 const kitDetails = await window.api.getCompositeItem(kit.id);
                 const components = kitDetails.compositeItem.components;
 
-                // Tentar encontrar todos os componentes deste kit nos itens
+                // Tentar encontrar componentes deste kit nos itens
                 const matchedItems = [];
-                let allComponentsFound = true;
 
                 for (const component of components) {
                     const item = items.find(i =>
@@ -1325,25 +1325,27 @@ class ExitOrdersManager {
                             ...item,
                             componentBaseQuantity: parseFloat(component.quantity)
                         });
-                    } else {
-                        allComponentsFound = false;
-                        break;
                     }
                 }
 
-                // Se encontrou todos componentes, é um kit
-                if (allComponentsFound && matchedItems.length === components.length) {
-                    // Calcular quantos kits completos
+                // Se encontrou pelo menos 50% dos componentes, considerar como kit parcial
+                const matchPercentage = (matchedItems.length / components.length) * 100;
+
+                if (matchedItems.length >= 2 && matchPercentage >= 50) {
+                    // Calcular quantos kits completos baseado nos itens encontrados
                     const kitQuantity = Math.min(...matchedItems.map(item =>
                         Math.floor(item.quantity / item.componentBaseQuantity)
                     ));
 
                     if (kitQuantity > 0) {
                         const kitId = `detected-kit-${kit.id}`;
+                        const isPartialKit = matchedItems.length < components.length;
+
                         detectedKits.push({
                             kitId,
                             kitName: kit.name,
                             kitQuantity,
+                            isPartial: isPartialKit,
                             items: matchedItems.map(item => ({
                                 ...item,
                                 kitId,
