@@ -8,6 +8,8 @@ class ExitOrdersManager {
         };
         this.expandedOrders = []; // Array de IDs de ordens expandidas
         this.pendingOrderToExpand = null; // ID da ordem que deve ser expandida após renderização
+        this.expandedKits = new Set(); // Set de kitIds expandidos
+        this.kitCounter = 0; // Contador para gerar IDs únicos de kits
     }
 
     // Renderizar seção de ordens de saída
@@ -999,30 +1001,28 @@ class ExitOrdersManager {
                 return;
             }
 
+            // Gerar ID único para este kit
+            const kitId = `kit-${++this.kitCounter}-${Date.now()}`;
+
             // Adicionar todos os componentes
             let addedCount = 0;
             for (const component of compositeItem.components) {
                 const componentQuantity = component.quantity * kitQuantity;
 
-                // Verificar se componente já está na lista
-                const existingItem = this.currentOrder.items.find(item => item.equipmentId === component.equipment_id);
-
-                if (existingItem) {
-                    // Se já existe, somar a quantidade
-                    existingItem.quantity += componentQuantity;
-                    existingItem.totalCost = existingItem.quantity * existingItem.unitCost;
-                } else {
-                    // Adicionar novo componente
-                    this.currentOrder.items.push({
-                        equipmentId: component.equipment_id,
-                        equipmentName: `${component.equipment_name} (do kit: ${compositeItem.name})`,
-                        quantity: componentQuantity,
-                        unit: component.unit,
-                        unitCost: component.current_cost || 0,
-                        totalCost: componentQuantity * (component.current_cost || 0),
-                        fromComposite: compositeItem.name // Marcar que veio de um kit
-                    });
-                }
+                // Adicionar novo componente com metadados do kit
+                this.currentOrder.items.push({
+                    equipmentId: component.equipment_id,
+                    equipmentName: component.equipment_name,
+                    quantity: componentQuantity,
+                    unit: component.unit,
+                    unitCost: component.current_cost || 0,
+                    totalCost: componentQuantity * (component.current_cost || 0),
+                    fromComposite: compositeItem.name, // Nome do kit
+                    fromCompositeId: compositeId, // ID do kit composto
+                    kitId: kitId, // ID único desta instância do kit
+                    kitQuantity: kitQuantity, // Quantos kits foram adicionados
+                    componentBaseQuantity: component.quantity // Quantidade base do componente no kit
+                });
                 addedCount++;
             }
 
@@ -1049,6 +1049,57 @@ class ExitOrdersManager {
         this.updateOrderSummary();
     }
 
+    // Remover kit completo
+    removeKitFromOrder(kitId) {
+        this.currentOrder.items = this.currentOrder.items.filter(
+            item => item.kitId !== kitId
+        );
+        this.expandedKits.delete(kitId);
+        this.renderNewOrderItems();
+        this.updateOrderSummary();
+    }
+
+    // Alternar expansão de kit
+    toggleKitExpansion(kitId) {
+        if (this.expandedKits.has(kitId)) {
+            this.expandedKits.delete(kitId);
+        } else {
+            this.expandedKits.add(kitId);
+        }
+        this.renderNewOrderItems();
+    }
+
+    // Agrupar itens por kit
+    groupItemsByKit(items) {
+        const grouped = [];
+        const processedKits = new Set();
+        const standalone = [];
+
+        items.forEach(item => {
+            if (item.kitId && !processedKits.has(item.kitId)) {
+                // É parte de um kit e ainda não foi processado
+                const kitItems = items.filter(i => i.kitId === item.kitId);
+                grouped.push({
+                    type: 'kit',
+                    kitId: item.kitId,
+                    kitName: item.fromComposite,
+                    kitQuantity: item.kitQuantity,
+                    items: kitItems,
+                    totalCost: kitItems.reduce((sum, i) => sum + i.totalCost, 0)
+                });
+                processedKits.add(item.kitId);
+            } else if (!item.kitId) {
+                // Item standalone (não faz parte de kit)
+                standalone.push({
+                    type: 'standalone',
+                    item: item
+                });
+            }
+        });
+
+        return [...grouped, ...standalone];
+    }
+
     // Renderizar itens da nova ordem (durante criação)
     renderNewOrderItems() {
         const container = document.getElementById('exitOrderItemsList');
@@ -1062,6 +1113,9 @@ class ExitOrdersManager {
             `;
             return;
         }
+
+        // Agrupar itens por kit
+        const grouped = this.groupItemsByKit(this.currentOrder.items);
 
         // Renderizar como tabela com capacidade de editar quantidades
         let html = `
@@ -1078,34 +1132,84 @@ class ExitOrdersManager {
                 <tbody>
         `;
 
-        this.currentOrder.items.forEach(item => {
-            html += `
-                <tr>
-                    <td><strong>${item.equipmentName}</strong></td>
-                    <td>
-                        <input
-                            type="number"
-                            id="preview-qty-${item.equipmentId}"
-                            value="${item.quantity}"
-                            min="1"
-                            step="1"
-                            class="inline-edit-input"
-                            onchange="exitOrdersManager.updatePreviewItemQuantity('${item.equipmentId}', this.value)"
-                        />
-                        <span class="item-unit">${item.unit}</span>
-                    </td>
-                    <td>R$ ${item.unitCost.toFixed(2)}</td>
-                    <td><strong>R$ ${item.totalCost.toFixed(2)}</strong></td>
-                    <td style="text-align: center;">
-                        <button
-                            class="btn-danger btn-small"
-                            onclick="exitOrdersManager.removeItemFromOrder('${item.equipmentId}')"
-                            title="Remover item">
-                            🗑️
-                        </button>
-                    </td>
-                </tr>
-            `;
+        grouped.forEach(group => {
+            if (group.type === 'kit') {
+                // Renderizar linha do kit
+                const isExpanded = this.expandedKits.has(group.kitId);
+                const expandIcon = isExpanded ? '▼' : '▶';
+
+                html += `
+                    <tr style="background: #f5f5f5; cursor: pointer;" onclick="exitOrdersManager.toggleKitExpansion('${group.kitId}')">
+                        <td><strong>📦 ${group.kitName}</strong> <span style="color: #666; font-size: 0.9em;">(Kit com ${group.items.length} itens)</span></td>
+                        <td style="text-align: center;">
+                            <strong>${group.kitQuantity} kit${group.kitQuantity > 1 ? 's' : ''}</strong>
+                            <button
+                                style="margin-left: 8px; padding: 2px 6px; font-size: 11px; border: 1px solid #ccc; background: white; border-radius: 3px;"
+                                onclick="event.stopPropagation();">
+                                ${expandIcon}
+                            </button>
+                        </td>
+                        <td>-</td>
+                        <td><strong>R$ ${group.totalCost.toFixed(2)}</strong></td>
+                        <td style="text-align: center;">
+                            <button
+                                class="btn-danger btn-small"
+                                onclick="event.stopPropagation(); exitOrdersManager.removeKitFromOrder('${group.kitId}')"
+                                title="Remover kit completo">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                `;
+
+                // Renderizar componentes se expandido
+                if (isExpanded) {
+                    group.items.forEach(item => {
+                        html += `
+                            <tr style="background: #fafafa;">
+                                <td style="padding-left: 40px;">↳ ${item.equipmentName}</td>
+                                <td style="text-align: center;">
+                                    ${item.quantity} ${item.unit}
+                                    <span style="color: #888; font-size: 0.85em;">(${item.componentBaseQuantity} × ${group.kitQuantity})</span>
+                                </td>
+                                <td>R$ ${item.unitCost.toFixed(2)}</td>
+                                <td>R$ ${item.totalCost.toFixed(2)}</td>
+                                <td></td>
+                            </tr>
+                        `;
+                    });
+                }
+            } else {
+                // Item standalone
+                const item = group.item;
+                html += `
+                    <tr>
+                        <td><strong>${item.equipmentName}</strong></td>
+                        <td>
+                            <input
+                                type="number"
+                                id="preview-qty-${item.equipmentId}"
+                                value="${item.quantity}"
+                                min="1"
+                                step="1"
+                                class="inline-edit-input"
+                                onchange="exitOrdersManager.updatePreviewItemQuantity('${item.equipmentId}', this.value)"
+                            />
+                            <span class="item-unit">${item.unit}</span>
+                        </td>
+                        <td>R$ ${item.unitCost.toFixed(2)}</td>
+                        <td><strong>R$ ${item.totalCost.toFixed(2)}</strong></td>
+                        <td style="text-align: center;">
+                            <button
+                                class="btn-danger btn-small"
+                                onclick="exitOrdersManager.removeItemFromOrder('${item.equipmentId}')"
+                                title="Remover item">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }
         });
 
         html += `
