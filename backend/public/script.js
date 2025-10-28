@@ -565,6 +565,12 @@ class PhotoInventoryManager {
         });
 
         showModal('editProductModal');
+
+        // Prevenir fechamento ao clicar fora
+        const modal = document.getElementById('editProductModal');
+        if (modal && typeof preventModalCloseOnBackdropClick === 'function') {
+            preventModalCloseOnBackdropClick(modal);
+        }
     }
 
     async updateProduct() {
