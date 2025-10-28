@@ -431,19 +431,37 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
 
                 await client.query(`
                     INSERT INTO transactions (
-                        equipment_id,
                         type,
+                        equipment_id,
+                        equipment_name,
+                        category_name,
                         quantity,
+                        unit,
                         notes,
                         created_by,
-                        created_at
-                    ) VALUES ($1, $2, $3, $4, $5, NOW())
+                        user_name
+                    )
+                    VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        (SELECT name FROM categories WHERE id = $4),
+                        $5,
+                        $6,
+                        $7,
+                        $8,
+                        $9
+                    )
                 `, [
-                    id,
                     'ajuste',
+                    id,
+                    currentEquipment.name,
+                    currentEquipment.category_id,
                     Math.abs(difference),
+                    currentEquipment.unit,
                     `Ajuste Manual (${adjustmentType}): ${oldQuantity} → ${newQuantity}`,
-                    req.user.id
+                    req.user.id,
+                    req.user.name
                 ]);
             }
 
