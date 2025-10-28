@@ -467,7 +467,7 @@ class ExitOrdersManager {
 
                 html += `
                     <tr style="background: #f5f5f5; cursor: pointer;"
-                        onclick="exitOrdersManager.toggleKitExpansion('${group.kitId}')">
+                        onclick="exitOrdersManager.toggleKitExpansion('${group.kitId}', '${order.id}', 'expanded')">
                         <td>
                             <strong>📦 ${group.kitName}</strong>
                             <span style="color: #666; margin-left: 8px;">(Kit com ${group.items.length} itens)</span>
@@ -1234,13 +1234,29 @@ class ExitOrdersManager {
     }
 
     // Alternar expansão de kit
-    toggleKitExpansion(kitId) {
+    toggleKitExpansion(kitId, orderId = null, context = 'new') {
         if (this.expandedKits.has(kitId)) {
             this.expandedKits.delete(kitId);
         } else {
             this.expandedKits.add(kitId);
         }
-        this.renderNewOrderItems();
+
+        console.log('🔄 Toggle kit:', kitId, 'context:', context, 'orderId:', orderId);
+
+        // Determinar qual função de renderização usar
+        if (context === 'expanded') {
+            // Visualização expandida na lista
+            this.loadOrderDetails(orderId);
+        } else if (context === 'modal') {
+            // Modal de visualização
+            const container = document.getElementById('exitOrderItemsContainer');
+            if (container && this.currentEditingOrder) {
+                container.innerHTML = this.renderOrderItems(this.currentEditingOrder.items, this.isEditMode);
+            }
+        } else {
+            // Nova ordem sendo criada
+            this.renderNewOrderItems();
+        }
     }
 
     // Detectar kits automaticamente em ordens existentes
@@ -2022,15 +2038,14 @@ class ExitOrdersManager {
 
                 if (editMode) {
                     html += `
-                        <tr style="background: #f5f5f5; cursor: pointer;" onclick="exitOrdersManager.toggleKitExpansion('${group.kitId}')">
+                        <tr style="background: #f5f5f5; cursor: pointer;" onclick="exitOrdersManager.toggleKitExpansion('${group.kitId}', null, 'modal')">
                             <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">
                                 <strong>📦 ${group.kitName}</strong> <span style="color: #666; font-size: 0.9em;">(Kit com ${group.items.length} itens)</span>
                             </td>
                             <td style="padding: 10px; text-align: center; border-bottom: 1px solid #e0e0e0;">
                                 <strong>${group.kitQuantity} kit${group.kitQuantity > 1 ? 's' : ''}</strong>
-                                <button
-                                    style="margin-left: 8px; padding: 2px 6px; font-size: 11px; border: 1px solid #ccc; background: white; border-radius: 3px;"
-                                    onclick="event.stopPropagation();">
+                                <button type="button"
+                                    style="margin-left: 8px; padding: 2px 6px; font-size: 11px; border: 1px solid #ccc; background: white; border-radius: 3px;">
                                     ${expandIcon}
                                 </button>
                             </td>
@@ -2040,12 +2055,11 @@ class ExitOrdersManager {
                     `;
                 } else {
                     html += `
-                        <tr style="background: #f5f5f5; cursor: pointer;" onclick="exitOrdersManager.toggleKitExpansion('${group.kitId}')">
+                        <tr style="background: #f5f5f5; cursor: pointer;" onclick="exitOrdersManager.toggleKitExpansion('${group.kitId}', null, 'modal')">
                             <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">
                                 <strong>📦 ${group.kitName}</strong> <span style="color: #666; font-size: 0.9em;">(Kit com ${group.items.length} itens)</span>
-                                <button
-                                    style="margin-left: 8px; padding: 2px 6px; font-size: 11px; border: 1px solid #ccc; background: white; border-radius: 3px;"
-                                    onclick="event.stopPropagation();">
+                                <button type="button"
+                                    style="margin-left: 8px; padding: 2px 6px; font-size: 11px; border: 1px solid #ccc; background: white; border-radius: 3px;">
                                     ${expandIcon}
                                 </button>
                             </td>
