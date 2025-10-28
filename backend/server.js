@@ -86,8 +86,8 @@ app.use((req, res, next) => {
     next();
 });
 
-// Middleware para garantir UTF-8 em todas as respostas
-app.use((req, res, next) => {
+// Middleware para garantir UTF-8 apenas nas rotas da API
+app.use('/api', (req, res, next) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     next();
 });
