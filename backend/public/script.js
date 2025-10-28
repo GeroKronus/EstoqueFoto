@@ -1342,6 +1342,24 @@ function closeModal(modalId) {
     }
 }
 
+// Prevenir fechamento de modal ao clicar fora
+function preventModalCloseOnBackdropClick(modal) {
+    if (!modal) return;
+
+    modal.addEventListener('click', (e) => {
+        // Prevenir fechamento ao clicar no backdrop (fundo)
+        e.stopPropagation();
+    });
+
+    // Permitir clique no modal-content sem fechar
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent) {
+        modalContent.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+    }
+}
+
 function selectItemForEntry(itemId) {
     document.getElementById('entryItem').value = itemId;
     showModal('entryModal');
