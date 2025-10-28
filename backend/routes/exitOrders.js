@@ -1,6 +1,6 @@
 const express = require('express');
 const { query, transaction } = require('../database/connection');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
