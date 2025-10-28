@@ -90,11 +90,6 @@ class ServiceOrderManager {
                                 </button>
                             </div>
                         </div>
-                        ${window.currentUser?.role === 'admin' ? `
-                            <button class="btn-new-os" style="background: #f44336; margin-left: 20px;" onclick="serviceOrderManager.showClearTestDataModal()" title="Limpar dados de teste">
-                                🗑️ Limpar Testes
-                            </button>
-                        ` : ''}
                     </div>
                 </div>
                 <div id="serviceOrdersContent"></div>
@@ -1207,97 +1202,6 @@ class ServiceOrderManager {
         } catch (error) {
             console.error('Erro ao registrar pagamento:', error);
             window.notify.error(error.message || 'Erro ao registrar pagamento');
-        }
-    }
-
-    // ========== MODAL LIMPAR DADOS DE TESTE (ADMIN ONLY) ==========
-    showClearTestDataModal() {
-        if (window.currentUser?.role !== 'admin') {
-            window.notify.error('Apenas administradores podem limpar dados de teste');
-            return;
-        }
-
-        const modalHtml = `
-            <div class="modal" id="clearTestDataModal" data-dynamic="true" style="display: flex;">
-                <div class="modal-content" style="max-width: 600px;">
-                    <h2 style="color: #f44336;">⚠️ DELETAR TODAS AS ORDENS DE SERVIÇO</h2>
-                    <div style="background: #ffebee; padding: 15px; border-radius: 5px; border-left: 4px solid #d32f2f; margin: 20px 0;">
-                        <strong style="color: #d32f2f; font-size: 18px;">⚠️ PERIGO - ATENÇÃO!</strong>
-                        <p style="margin: 10px 0; font-weight: bold;">Esta ação irá deletar TODAS as Ordens de Serviço do sistema, incluindo:</p>
-                        <ul style="margin: 10px 0; padding-left: 20px;">
-                            <li>Histórico de alterações</li>
-                            <li>Peças utilizadas</li>
-                            <li>Pagamentos registrados</li>
-                        </ul>
-                        <p style="margin: 10px 0; color: #d32f2f; font-weight: bold; font-size: 16px;">Esta ação NÃO PODE ser desfeita!</p>
-                    </div>
-                    <div style="margin: 20px 0;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="confirmClearTest" style="width: auto; transform: scale(1.5);">
-                            <span style="font-weight: bold;">Sim, eu entendo e quero deletar TODAS as ordens de serviço do sistema</span>
-                        </label>
-                    </div>
-                    <div class="modal-actions">
-                        <button type="button" onclick="closeModal('clearTestDataModal')">Cancelar</button>
-                        <button type="button" onclick="serviceOrderManager.handleClearTestData()" style="background: #d32f2f;" id="btnConfirmClearTest" disabled>
-                            🗑️ DELETAR TODAS AS ORDENS
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-        // Habilitar botão somente se checkbox marcado
-        document.getElementById('confirmClearTest').addEventListener('change', (e) => {
-            document.getElementById('btnConfirmClearTest').disabled = !e.target.checked;
-        });
-
-        // Prevenir fechamento ao clicar fora do modal
-        const modal = document.getElementById('clearTestDataModal');
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                e.stopPropagation();
-                e.preventDefault();
-            }
-        });
-    }
-
-    async handleClearTestData() {
-        const confirmed = document.getElementById('confirmClearTest').checked;
-        if (!confirmed) {
-            window.notify.error('Por favor, confirme a ação marcando o checkbox');
-            return;
-        }
-
-        try {
-            // Desabilitar botão durante a operação
-            const btn = document.getElementById('btnConfirmClearTest');
-            btn.disabled = true;
-            btn.textContent = '⏳ Deletando...';
-
-            const response = await window.api.request('/service-orders/test-data', {
-                method: 'DELETE'
-            });
-
-            window.notify.success(`${response.deletedCount || 0} ordens de serviço foram deletadas com sucesso!`);
-            closeModal('clearTestDataModal');
-
-            // Recarregar lista
-            await this.loadOrders();
-            this.renderOrdersList();
-
-        } catch (error) {
-            console.error('Erro ao limpar dados de teste:', error);
-            window.notify.error(error.message || 'Erro ao limpar dados de teste');
-
-            // Reabilitar botão em caso de erro
-            const btn = document.getElementById('btnConfirmClearTest');
-            if (btn) {
-                btn.disabled = false;
-                btn.textContent = '🗑️ DELETAR TODAS AS ORDENS';
-            }
         }
     }
 
