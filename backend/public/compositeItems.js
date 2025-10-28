@@ -28,20 +28,39 @@ class CompositeItemsManager {
 
     async loadEquipmentList() {
         try {
-            const inventory = window.photoInventory || {};
-            this.equipmentList = inventory.items || [];
+            // Carregar direto da API ao invés de depender do window.photoInventory
+            const response = await window.api.getEquipment({ limit: 1000 });
+            if (response && response.equipment) {
+                this.equipmentList = response.equipment.map(eq => ({
+                    id: eq.id,
+                    name: eq.name,
+                    quantity: eq.quantity,
+                    unit: eq.unit,
+                    active: eq.active || true
+                }));
+            } else {
+                this.equipmentList = [];
+            }
             console.log(`✅ ${this.equipmentList.length} equipamentos disponíveis`);
         } catch (error) {
             console.error('Erro ao carregar equipamentos:', error);
+            this.equipmentList = [];
         }
     }
 
     async loadCategories() {
         try {
-            const inventory = window.photoInventory || {};
-            this.categories = inventory.categories || [];
+            // Carregar direto da API ao invés de depender do window.photoInventory
+            const response = await window.api.getCategories();
+            if (response && response.categories) {
+                this.categories = response.categories;
+            } else {
+                this.categories = [];
+            }
+            console.log(`✅ ${this.categories.length} categorias carregadas`);
         } catch (error) {
             console.error('Erro ao carregar categorias:', error);
+            this.categories = [];
         }
     }
 
