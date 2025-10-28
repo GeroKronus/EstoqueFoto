@@ -509,6 +509,13 @@ class ExitOrdersManager {
                         </tr>
                     </tfoot>
                 </table>
+                ${isEditable && window.currentUser?.role === 'admin' ? `
+                    <div style="margin-top: 15px; text-align: right;">
+                        <button class="btn-add-item" onclick="exitOrdersManager.showAddItemModal('${order.id}')" title="Adicionar novo item à ordem">
+                            ➕ Adicionar Item
+                        </button>
+                    </div>
+                ` : ''}
             </div>
         `;
 
@@ -1109,6 +1116,124 @@ class ExitOrdersManager {
     // Fechar modal de nova ordem
     closeNewOrderModal() {
         const modal = document.getElementById('newExitOrderModal');
+        if (modal) modal.remove();
+    }
+
+    // Modal para adicionar item a ordem existente (apenas admin)
+    showAddItemModal(orderId) {
+        if (window.currentUser?.role !== 'admin') {
+            window.notify.error('Apenas administradores podem adicionar itens');
+            return;
+        }
+
+        const modalHtml = `
+            <div id="addItemToOrderModal" class="modal" style="display: flex;">
+                <div class="modal-content" style="max-width: 600px;">
+                    <h2>➕ Adicionar Item à Ordem</h2>
+
+                    <div class="add-item-form" style="display: flex; flex-direction: column; gap: 15px; margin: 20px 0;">
+                        <select id="addItemEquipmentSelect" style="padding: 10px;">
+                            <option value="">Selecione um equipamento</option>
+                        </select>
+                        <input type="number" id="addItemQuantity" placeholder="Quantidade" min="1" step="1" style="padding: 10px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="addItemConditional" style="width: auto; transform: scale(1.5);">
+                            <span>🔄 Marcar como condicional (pode ser devolvido)</span>
+                        </label>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" onclick="exitOrdersManager.closeAddItemModal()">Cancelar</button>
+                        <button type="button" class="btn-primary" onclick="exitOrdersManager.addItemToExistingOrder('${orderId}')">
+                            ➕ Adicionar Item
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remover modal existente se houver
+        const existingModal = document.getElementById('addItemToOrderModal');
+        if (existingModal) existingModal.remove();
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Povoar select de equipamentos
+        this.populateAddItemEquipmentSelect();
+    }
+
+    // Povoar select de equipamentos para adicionar item
+    populateAddItemEquipmentSelect() {
+        const select = document.getElementById('addItemEquipmentSelect');
+        if (!select) return;
+
+        const currentInventory = window.photoInventory || this.photoInventory;
+
+        const availableItems = currentInventory.items
+            .filter(item => item.quantity > 0)
+            .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+
+        select.innerHTML = '<option value="">Selecione um equipamento</option>' +
+            availableItems.map(item =>
+                `<option value="${item.id}" data-quantity="${item.quantity}" data-unit="${item.unit}" data-cost="${item.currentCost}">
+                    ${item.name} (${item.quantity} ${item.unit} disponíveis)
+                </option>`
+            ).join('');
+    }
+
+    // Adicionar item a ordem existente
+    async addItemToExistingOrder(orderId) {
+        const select = document.getElementById('addItemEquipmentSelect');
+        const quantityInput = document.getElementById('addItemQuantity');
+        const conditionalCheckbox = document.getElementById('addItemConditional');
+
+        if (!select.value) {
+            window.notify.warning('Selecione um equipamento');
+            return;
+        }
+
+        const quantity = parseFloat(quantityInput.value);
+        if (!quantity || quantity <= 0) {
+            window.notify.warning('Informe uma quantidade válida');
+            return;
+        }
+
+        const option = select.options[select.selectedIndex];
+        const equipmentId = option.value;
+        const availableQuantity = parseFloat(option.dataset.quantity);
+        const unit = option.dataset.unit;
+
+        // Verificar estoque
+        if (quantity > availableQuantity) {
+            window.notify.error(`Quantidade insuficiente! Disponível: ${availableQuantity} ${unit}`);
+            return;
+        }
+
+        try {
+            const response = await window.api.request(`/exit-orders/${orderId}/items`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    equipmentId,
+                    quantity,
+                    isConditional: conditionalCheckbox.checked
+                })
+            });
+
+            window.notify.success('Item adicionado com sucesso!');
+            this.closeAddItemModal();
+
+            // Recarregar lista de ordens
+            await this.loadOrders();
+            this.renderOrders();
+
+        } catch (error) {
+            console.error('Erro ao adicionar item:', error);
+            window.notify.error(error.message || 'Erro ao adicionar item');
+        }
+    }
+
+    closeAddItemModal() {
+        const modal = document.getElementById('addItemToOrderModal');
         if (modal) modal.remove();
     }
 

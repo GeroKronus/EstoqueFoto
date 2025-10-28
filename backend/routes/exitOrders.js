@@ -576,6 +576,140 @@ router.post('/:id/cancel', authenticateToken, async (req, res) => {
     }
 });
 
+// POST /api/exit-orders/:orderId/items - Adicionar novo item a ordem existente (ADMIN ONLY)
+router.post('/:orderId/items', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { equipmentId, quantity, isConditional } = req.body;
+
+        // Validações
+        if (!equipmentId) {
+            return res.status(400).json({ error: 'ID do equipamento é obrigatório' });
+        }
+
+        if (quantity === undefined || quantity === null || parseFloat(quantity) <= 0) {
+            return res.status(400).json({ error: 'Quantidade deve ser maior que zero' });
+        }
+
+        const result = await transaction(async (client) => {
+            // Buscar ordem
+            const orderResult = await client.query(
+                'SELECT * FROM exit_orders WHERE id = $1',
+                [orderId]
+            );
+
+            if (orderResult.rows.length === 0) {
+                throw new Error('Ordem de saída não encontrada');
+            }
+
+            const order = orderResult.rows[0];
+
+            if (order.status !== 'ativa') {
+                throw new Error('Apenas ordens ativas podem receber novos itens');
+            }
+
+            // Buscar equipamento
+            const equipmentResult = await client.query(
+                'SELECT * FROM equipment WHERE id = $1 AND deleted_at IS NULL',
+                [equipmentId]
+            );
+
+            if (equipmentResult.rows.length === 0) {
+                throw new Error('Equipamento não encontrado');
+            }
+
+            const equipment = equipmentResult.rows[0];
+            const requestedQty = parseFloat(quantity);
+            const availableQty = parseFloat(equipment.quantity);
+
+            // Verificar se já existe este item na ordem
+            const existingItemResult = await client.query(
+                'SELECT id FROM exit_order_items WHERE exit_order_id = $1 AND equipment_id = $2',
+                [orderId, equipmentId]
+            );
+
+            if (existingItemResult.rows.length > 0) {
+                throw new Error('Este equipamento já está na ordem. Use a edição para alterar a quantidade.');
+            }
+
+            // Verificar estoque
+            if (requestedQty > availableQty) {
+                throw new Error(`Quantidade insuficiente em estoque! Disponível: ${availableQty} ${equipment.unit}`);
+            }
+
+            // Calcular custos
+            const unitCost = parseFloat(equipment.current_cost);
+            const totalCost = requestedQty * unitCost;
+
+            // Adicionar item à ordem
+            const newItemResult = await client.query(`
+                INSERT INTO exit_order_items (
+                    exit_order_id, equipment_id, quantity, unit,
+                    unit_cost, total_cost, is_conditional
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                RETURNING *
+            `, [orderId, equipmentId, requestedQty, equipment.unit, unitCost, totalCost, isConditional || false]);
+
+            const newItem = newItemResult.rows[0];
+
+            // Atualizar estoque
+            const newStockQuantity = availableQty - requestedQty;
+            const newTotalValue = newStockQuantity * unitCost;
+
+            await client.query(`
+                UPDATE equipment
+                SET quantity = $1, total_value = $2, updated_at = NOW()
+                WHERE id = $3
+            `, [newStockQuantity, newTotalValue, equipmentId]);
+
+            // Registrar transação
+            await client.query(`
+                INSERT INTO transactions (
+                    type, equipment_id, equipment_name, category_name,
+                    quantity, unit, cost, total_cost, reason, destination,
+                    notes, created_by, user_name
+                )
+                SELECT
+                    'saida', $1, e.name, c.name,
+                    $2, e.unit, e.current_cost, $3,
+                    $4, $5, $6, $7, $8
+                FROM equipment e
+                LEFT JOIN categories c ON e.category_id = c.id
+                WHERE e.id = $1
+            `, [
+                equipmentId,
+                requestedQty,
+                totalCost,
+                order.reason,
+                order.destination || '',
+                `Item adicionado à Ordem #${order.order_number} por ${req.user.name}${isConditional ? ' (condicional)' : ''}`,
+                req.user.id,
+                req.user.name
+            ]);
+
+            return {
+                newItem,
+                equipment: {
+                    name: equipment.name,
+                    newStockQuantity,
+                    unit: equipment.unit
+                }
+            };
+        });
+
+        res.json({
+            message: 'Item adicionado com sucesso',
+            item: result.newItem,
+            equipment: result.equipment
+        });
+
+    } catch (error) {
+        console.error('Erro ao adicionar item à ordem:', error);
+        res.status(400).json({ error: error.message || 'Erro ao adicionar item à ordem' });
+    }
+});
+
 // PUT /api/exit-orders/:orderId/items/:itemId - Editar quantidade de um item da ordem
 router.put('/:orderId/items/:itemId', authenticateToken, async (req, res) => {
     try {
