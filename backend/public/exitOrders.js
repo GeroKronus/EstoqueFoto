@@ -1197,39 +1197,72 @@ class ExitOrdersManager {
 
     // Remover kit de ordem existente (expandida)
     async removeKitFromExpandedOrder(orderId, kitId) {
-        if (!confirm('Tem certeza que deseja excluir este kit completo da ordem?')) {
+        // Buscar a ordem para identificar os itens do kit
+        const response = await window.api.getExitOrder(orderId);
+        const order = response.order;
+
+        // Identificar todos os itens que pertencem ao kit
+        const kitItems = order.items.filter(item => item.kitId === kitId);
+
+        if (kitItems.length === 0) {
+            window.notify.warning('Nenhum item do kit encontrado.');
             return;
         }
 
+        // Obter nome do kit
+        const kitName = kitItems[0]?.fromComposite || 'Kit';
+
+        const confirmed = await window.notify.confirm({
+            title: 'Excluir Kit Completo da Ordem',
+            message: `Tem certeza que deseja excluir o kit "${kitName}" completo?\n\n${kitItems.length} ${kitItems.length === 1 ? 'item será devolvido' : 'itens serão devolvidos'} ao estoque.`,
+            type: 'warning',
+            confirmText: 'Excluir',
+            cancelText: 'Cancelar'
+        });
+
+        if (!confirmed) return;
+
         try {
-            // Buscar a ordem para identificar os itens do kit
-            const response = await window.api.getExitOrder(orderId);
-            const order = response.order;
-
-            // Identificar todos os itens que pertencem ao kit
-            const kitItemIds = order.items
-                .filter(item => item.kitId === kitId)
-                .map(item => item.id);
-
-            if (kitItemIds.length === 0) {
-                window.notify.warning('Nenhum item do kit encontrado.');
-                return;
-            }
-
             // Excluir todos os itens do kit
-            for (const itemId of kitItemIds) {
-                await window.api.deleteExitOrderItem(orderId, itemId);
+            for (const item of kitItems) {
+                await window.api.deleteExitOrderItem(orderId, item.id);
             }
 
             this.expandedKits.delete(kitId);
-            window.notify.success(`Kit excluído com sucesso (${kitItemIds.length} itens removidos)`);
+            window.notify.success(`Kit "${kitName}" excluído com sucesso (${kitItems.length} ${kitItems.length === 1 ? 'item removido' : 'itens removidos'})`);
 
             // Recarregar a ordem
             await this.loadOrderDetails(orderId);
 
+            // Atualizar a ordem na lista em memória
+            if (this.currentOrders) {
+                const orderIndex = this.currentOrders.findIndex(o => o.id === orderId);
+                if (orderIndex !== -1) {
+                    const updatedOrderResponse = await window.api.getExitOrder(orderId);
+                    const updatedOrder = updatedOrderResponse.order;
+                    this.currentOrders[orderIndex].totalItems = updatedOrder.totalItems;
+                    this.currentOrders[orderIndex].totalValue = updatedOrder.totalValue;
+
+                    // Atualizar apenas os valores na tabela
+                    const orderRow = document.querySelector(`[data-order-id="${orderId}"]`);
+                    if (orderRow) {
+                        const itemsCell = orderRow.querySelector('td:nth-child(7)');
+                        const valueCell = orderRow.querySelector('td:nth-child(8)');
+                        if (itemsCell) itemsCell.textContent = updatedOrder.totalItems;
+                        if (valueCell) valueCell.innerHTML = `<strong>R$ ${updatedOrder.totalValue.toFixed(2)}</strong>`;
+                    }
+                }
+            }
+
+            // Recarregar estoque
+            this.photoInventory.items = await this.photoInventory.loadItems();
+            this.photoInventory.renderAllItems();
+            this.photoInventory.updateSummary();
+            this.photoInventory.populateModalSelects();
+
         } catch (error) {
             console.error('Erro ao excluir kit:', error);
-            window.notify.error('Erro ao excluir kit da ordem');
+            window.notify.error('Erro ao excluir kit da ordem: ' + error.message);
         }
     }
 
