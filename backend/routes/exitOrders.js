@@ -610,7 +610,7 @@ router.post('/:orderId/items', authenticateToken, requireAdmin, async (req, res)
 
             // Buscar equipamento
             const equipmentResult = await client.query(
-                'SELECT * FROM equipment WHERE id = $1 AND deleted_at IS NULL',
+                'SELECT * FROM equipment WHERE id = $1 AND active = true',
                 [equipmentId]
             );
 
