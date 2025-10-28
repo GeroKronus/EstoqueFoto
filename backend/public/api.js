@@ -302,6 +302,41 @@ class ApiService {
         });
     }
 
+    // === ITENS COMPOSTOS ===
+    async getCompositeItems(params = {}) {
+        const queryString = new URLSearchParams(params).toString();
+        const endpoint = queryString ? `/composite-items?${queryString}` : '/composite-items';
+        return this.request(endpoint);
+    }
+
+    async getCompositeItem(id) {
+        return this.request(`/composite-items/${id}`);
+    }
+
+    async createCompositeItem(compositeData) {
+        return this.request('/composite-items', {
+            method: 'POST',
+            body: JSON.stringify(compositeData)
+        });
+    }
+
+    async updateCompositeItem(id, compositeData) {
+        return this.request(`/composite-items/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(compositeData)
+        });
+    }
+
+    async deleteCompositeItem(id) {
+        return this.request(`/composite-items/${id}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async getCompositeItemAvailability(id) {
+        return this.request(`/composite-items/${id}/availability`);
+    }
+
     // === CLIENTES ===
     async getCustomers(params = {}) {
         const queryString = new URLSearchParams(params).toString();

@@ -1101,6 +1101,7 @@ Carregando sistema...`);
                     <button class="nav-btn active" data-section="inventory">Estoque</button>
                     <button class="nav-btn" data-section="exit-orders">📋 Ordens de Saída</button>
                     <button class="nav-btn" data-section="service-orders">🔧 Ordens de Serviço</button>
+                    <button class="nav-btn" data-section="composite-items">📦 Itens Compostos</button>
                     <button class="nav-btn" data-section="transactions">Movimentações</button>
                     <button class="nav-btn" data-section="customers">👥 Clientes</button>
                     <button class="nav-btn" data-section="reports">Relatórios</button>
@@ -1185,6 +1186,12 @@ Carregando sistema...`);
 
                 <div id="service-orders-section" class="section">
                     <!-- Conteúdo será carregado por serviceOrders.js -->
+                </div>
+
+                <div id="composite-items-section" class="section">
+                    <div id="mainContent">
+                        <!-- Conteúdo será carregado por compositeItems.js -->
+                    </div>
                 </div>
 
                 <div id="reports-section" class="section">

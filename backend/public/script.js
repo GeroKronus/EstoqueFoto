@@ -302,6 +302,11 @@ class PhotoInventoryManager {
             window.exitOrdersManager.renderSection();
         } else if (sectionName === 'customers') {
             loadCustomers();
+        } else if (sectionName === 'composite-items') {
+            if (!window.compositeItemsManager) {
+                window.compositeItemsManager = new CompositeItemsManager();
+            }
+            window.compositeItemsManager.init();
         }
     }
 
