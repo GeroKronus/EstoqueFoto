@@ -338,6 +338,29 @@ class ExitOrdersManager {
 
             console.log('📦 Ordem carregada com', order.items.length, 'itens');
 
+            // Detectar kits automaticamente nos itens da ordem
+            console.log('🔍 Iniciando detecção de kits para visualização expandida...');
+            const { detectedKits, processedItemIds } = await this.detectKitsInItems(order.items);
+            console.log('✅ Detecção concluída:', detectedKits.length, 'kits detectados');
+
+            // Adicionar metadata de kits aos itens detectados
+            if (detectedKits.length > 0) {
+                console.log('🏷️ Adicionando metadata de kits aos itens...');
+                detectedKits.forEach(kit => {
+                    kit.items.forEach(kitItem => {
+                        const orderItem = order.items.find(i => i.equipmentId === kitItem.equipmentId);
+                        if (orderItem) {
+                            orderItem.kitId = kit.kitId;
+                            orderItem.fromComposite = kit.kitName;
+                            orderItem.kitQuantity = kit.kitQuantity;
+                            orderItem.componentBaseQuantity = kitItem.componentBaseQuantity;
+                            console.log('  ✓ Item', orderItem.equipmentName, 'marcado como parte do kit', kit.kitName);
+                        }
+                    });
+                });
+                console.log('✅ Metadata aplicada a', processedItemIds.size, 'itens');
+            }
+
             // Renderizar detalhes expandidos
             container.innerHTML = this.renderExpandedOrderDetails(order);
 
