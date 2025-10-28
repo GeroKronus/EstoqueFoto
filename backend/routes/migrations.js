@@ -23,7 +23,8 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
             '017': '017_fix_status_constraint_and_remove_item_document.sql',
             '018': '018_create_service_orders.sql',
             '019': '019_add_invoice_to_payments.sql',
-            '020': '020_add_role_alterada_transaction_type.sql'
+            '020': '020_add_role_alterada_transaction_type.sql',
+            '021': '021_create_composite_items.sql'
         };
 
         const migrationFile = migrationFiles[String(migrationNumber).padStart(3, '0')];
@@ -81,6 +82,8 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
             tablesToCheck = ['service_order_payments']; // Verifica se a tabela service_order_payments existe (a migration adiciona coluna numero_nota_fiscal)
         } else if (migrationNumber == '020') {
             tablesToCheck = ['transactions']; // Verifica se a tabela transactions existe (a migration atualiza constraint)
+        } else if (migrationNumber == '021') {
+            tablesToCheck = ['composite_items', 'composite_item_components']; // Verifica se as tabelas de itens compostos foram criadas
         }
 
         const result = await query(`
