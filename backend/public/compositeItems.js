@@ -5,6 +5,7 @@ class CompositeItemsManager {
         this.categories = [];
         this.currentEditingItem = null;
         this.tempComponents = [];
+        this.viewMode = 'cards'; // 'cards' ou 'table'
     }
 
     async init() {
@@ -71,13 +72,34 @@ class CompositeItemsManager {
         container.innerHTML = `
             <div class="composite-items-container">
                 <div class="page-header">
-                    <h1>📦 Itens Compostos (Kits)</h1>
-                    <p>Crie kits formados por múltiplos equipamentos. Ao dar saída de um kit, todos os componentes são baixados automaticamente.</p>
-                    ${photoAuthManager.isAdmin() ? `
-                        <button class="btn-primary" onclick="compositeItemsManager.showCreateModal()">
-                            ➕ Novo Item Composto
-                        </button>
-                    ` : ''}
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                        <div>
+                            <h1>📦 Itens Compostos (Kits)</h1>
+                            <p>Crie kits formados por múltiplos equipamentos. Ao dar saída de um kit, todos os componentes são baixados automaticamente.</p>
+                        </div>
+                        ${photoAuthManager.isAdmin() ? `
+                            <button class="btn-primary" onclick="compositeItemsManager.showCreateModal()">
+                                ➕ Novo Item Composto
+                            </button>
+                        ` : ''}
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 20px;">
+                        <div style="display: flex; gap: 5px; background: #f5f5f5; padding: 4px; border-radius: 8px;">
+                            <button
+                                class="btn-view-mode ${this.viewMode === 'cards' ? 'active' : ''}"
+                                onclick="compositeItemsManager.setViewMode('cards')"
+                                style="padding: 8px 16px; border: none; background: ${this.viewMode === 'cards' ? '#4CAF50' : 'transparent'}; color: ${this.viewMode === 'cards' ? 'white' : '#666'}; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+                                🔲 Cards
+                            </button>
+                            <button
+                                class="btn-view-mode ${this.viewMode === 'table' ? 'active' : ''}"
+                                onclick="compositeItemsManager.setViewMode('table')"
+                                style="padding: 8px 16px; border: none; background: ${this.viewMode === 'table' ? '#4CAF50' : 'transparent'}; color: ${this.viewMode === 'table' ? 'white' : '#666'}; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+                                📋 Tabela
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="compositeItemsList" class="composite-items-list">
@@ -85,6 +107,11 @@ class CompositeItemsManager {
                 </div>
             </div>
         `;
+    }
+
+    setViewMode(mode) {
+        this.viewMode = mode;
+        this.render();
     }
 
     renderList() {
@@ -101,6 +128,10 @@ class CompositeItemsManager {
             `;
         }
 
+        return this.viewMode === 'cards' ? this.renderCards() : this.renderTable();
+    }
+
+    renderCards() {
         return this.compositeItems.map(item => `
             <div class="composite-item-card ${!item.active ? 'inactive' : ''}">
                 <div class="composite-item-header">
@@ -132,6 +163,53 @@ class CompositeItemsManager {
                 </div>
             </div>
         `).join('');
+    }
+
+    renderTable() {
+        return `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Nome do Kit</th>
+                        <th>Categoria</th>
+                        <th>Descrição</th>
+                        <th style="text-align: center;">Componentes</th>
+                        <th>Criado por</th>
+                        <th>Status</th>
+                        <th style="text-align: center; width: 150px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${this.compositeItems.map(item => `
+                        <tr class="${!item.active ? 'inactive-row' : ''}">
+                            <td><strong>${item.name}</strong></td>
+                            <td>${item.category_name ? `<span class="category-badge">${item.category_name}</span>` : '-'}</td>
+                            <td>${item.description || '-'}</td>
+                            <td style="text-align: center;">${item.component_count}</td>
+                            <td>${item.created_by_name || 'N/A'}</td>
+                            <td>
+                                ${item.active
+                                    ? '<span style="color: #4CAF50; font-weight: 600;">✓ Ativo</span>'
+                                    : '<span style="color: #f44336; font-weight: 600;">✗ Inativo</span>'}
+                            </td>
+                            <td style="text-align: center;">
+                                <button class="btn-icon" onclick="compositeItemsManager.viewDetails('${item.id}')" title="Ver detalhes">
+                                    👁️
+                                </button>
+                                ${photoAuthManager.isAdmin() && item.active ? `
+                                    <button class="btn-icon" onclick="compositeItemsManager.showEditModal('${item.id}')" title="Editar">
+                                        ✏️
+                                    </button>
+                                    <button class="btn-icon btn-danger" onclick="compositeItemsManager.deleteItem('${item.id}', '${item.name}')" title="Excluir">
+                                        🗑️
+                                    </button>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
     }
 
     showCreateModal() {
