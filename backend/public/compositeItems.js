@@ -247,7 +247,17 @@ class CompositeItemsManager {
 
     removeComponent(equipmentId) {
         this.tempComponents = this.tempComponents.filter(c => c.equipmentId !== equipmentId);
-        document.getElementById('componentsList').innerHTML = this.renderComponentsList();
+
+        // Atualizar tanto o modal de criação quanto o de edição
+        const createList = document.getElementById('componentsList');
+        const editList = document.getElementById('editComponentsList');
+
+        if (createList) {
+            createList.innerHTML = this.renderComponentsList();
+        }
+        if (editList) {
+            editList.innerHTML = this.renderComponentsList();
+        }
     }
 
     renderComponentsList() {
@@ -369,6 +379,172 @@ class CompositeItemsManager {
         } catch (error) {
             console.error('Erro ao visualizar item composto:', error);
             window.notify.error('Erro ao carregar detalhes');
+        }
+    }
+
+    async showEditModal(itemId) {
+        if (!photoAuthManager.isAdmin()) {
+            window.notify.error('Apenas administradores podem editar itens compostos');
+            return;
+        }
+
+        try {
+            // Buscar item composto com componentes
+            const response = await window.api.getCompositeItem(itemId);
+            const item = response.compositeItem;
+
+            this.currentEditingItem = item;
+            this.tempComponents = item.components.map(comp => ({
+                equipmentId: comp.equipment_id,
+                equipmentName: comp.equipment_name,
+                quantity: parseFloat(comp.quantity),
+                unit: comp.unit
+            }));
+
+            const modalHtml = `
+                <div class="modal" id="editCompositeItemModal" data-dynamic="true" style="display: flex;">
+                    <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+                        <h2>✏️ Editar Item Composto</h2>
+
+                        <form id="editCompositeItemForm" style="display: flex; flex-direction: column; gap: 15px;">
+                            <div>
+                                <label>Nome do Item Composto *</label>
+                                <input type="text" id="editCompositeName" required value="${item.name}" style="width: 100%; padding: 10px;">
+                            </div>
+
+                            <div>
+                                <label>Categoria</label>
+                                <select id="editCompositeCategory" style="width: 100%; padding: 10px;">
+                                    <option value="">Sem categoria</option>
+                                    ${this.categories.map(cat => `
+                                        <option value="${cat.id}" ${item.category_id === cat.id ? 'selected' : ''}>
+                                            ${cat.name}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label>Descrição</label>
+                                <textarea id="editCompositeDescription" placeholder="Descrição opcional do kit..." style="width: 100%; padding: 10px; min-height: 60px;">${item.description || ''}</textarea>
+                            </div>
+
+                            <div style="border-top: 2px solid #e0e0e0; padding-top: 15px;">
+                                <label style="font-size: 16px; font-weight: 600;">Componentes do Kit *</label>
+                                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                                    <select id="editComponentEquipment" style="flex: 1; padding: 10px;">
+                                        <option value="">Selecione um equipamento</option>
+                                        ${this.equipmentList.filter(e => e.quantity > 0).map(e =>
+                                            `<option value="${e.id}">${e.name} (${e.quantity} ${e.unit})</option>`
+                                        ).join('')}
+                                    </select>
+                                    <input type="number" id="editComponentQuantity" placeholder="Qtd" min="0.001" step="0.001" style="width: 100px; padding: 10px;">
+                                    <button type="button" class="btn-primary" onclick="compositeItemsManager.addComponentToEdit()">
+                                        ➕ Adicionar
+                                    </button>
+                                </div>
+
+                                <div id="editComponentsList" style="margin-top: 15px;">
+                                    ${this.renderComponentsList()}
+                                </div>
+                            </div>
+
+                            <div class="modal-actions">
+                                <button type="button" onclick="closeModal('editCompositeItemModal')">Cancelar</button>
+                                <button type="submit" class="btn-primary">💾 Salvar Alterações</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Prevenir fechamento ao clicar fora do modal
+            const modal = document.getElementById('editCompositeItemModal');
+            if (modal && typeof preventModalCloseOnBackdropClick === 'function') {
+                preventModalCloseOnBackdropClick(modal);
+            }
+
+            document.getElementById('editCompositeItemForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.updateCompositeItem();
+            });
+
+        } catch (error) {
+            console.error('Erro ao carregar item para edição:', error);
+            window.notify.error('Erro ao carregar item composto');
+        }
+    }
+
+    addComponentToEdit() {
+        const equipmentId = document.getElementById('editComponentEquipment').value;
+        const quantity = parseFloat(document.getElementById('editComponentQuantity').value);
+
+        if (!equipmentId) {
+            window.notify.warning('Selecione um equipamento');
+            return;
+        }
+
+        if (!quantity || quantity <= 0) {
+            window.notify.warning('Informe uma quantidade válida');
+            return;
+        }
+
+        // Verificar se já foi adicionado
+        if (this.tempComponents.find(c => c.equipmentId === equipmentId)) {
+            window.notify.warning('Este equipamento já foi adicionado');
+            return;
+        }
+
+        const equipment = this.equipmentList.find(e => e.id === equipmentId);
+        if (!equipment) return;
+
+        this.tempComponents.push({
+            equipmentId,
+            equipmentName: equipment.name,
+            quantity,
+            unit: equipment.unit
+        });
+
+        document.getElementById('editComponentEquipment').value = '';
+        document.getElementById('editComponentQuantity').value = '';
+        document.getElementById('editComponentsList').innerHTML = this.renderComponentsList();
+    }
+
+    async updateCompositeItem() {
+        const name = document.getElementById('editCompositeName').value.trim();
+        const categoryId = document.getElementById('editCompositeCategory').value || null;
+        const description = document.getElementById('editCompositeDescription').value.trim() || null;
+
+        if (!name) {
+            window.notify.error('Nome é obrigatório');
+            return;
+        }
+
+        if (this.tempComponents.length === 0) {
+            window.notify.error('Adicione pelo menos um componente');
+            return;
+        }
+
+        try {
+            await window.api.updateCompositeItem(this.currentEditingItem.id, {
+                name,
+                categoryId,
+                description,
+                components: this.tempComponents.map(c => ({
+                    equipmentId: c.equipmentId,
+                    quantity: c.quantity
+                }))
+            });
+
+            window.notify.success('Item composto atualizado com sucesso!');
+            closeModal('editCompositeItemModal');
+            await this.loadCompositeItems();
+            this.render();
+        } catch (error) {
+            console.error('Erro ao atualizar item composto:', error);
+            window.notify.error(error.message || 'Erro ao atualizar item composto');
         }
     }
 
