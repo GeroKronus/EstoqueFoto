@@ -1069,6 +1069,77 @@ class ExitOrdersManager {
         this.renderNewOrderItems();
     }
 
+    // Detectar kits automaticamente em ordens existentes
+    async detectKitsInItems(items) {
+        try {
+            // Buscar todos os kits ativos
+            const response = await window.api.getCompositeItems({ active: 'true' });
+            const compositeItems = response.compositeItems || [];
+
+            const detectedKits = [];
+            const processedItemIds = new Set();
+
+            // Para cada kit, tentar encontrar seus componentes nos itens
+            for (const kit of compositeItems) {
+                // Buscar detalhes do kit com componentes
+                const kitDetails = await window.api.getCompositeItem(kit.id);
+                const components = kitDetails.compositeItem.components;
+
+                // Tentar encontrar todos os componentes deste kit nos itens
+                const matchedItems = [];
+                let allComponentsFound = true;
+
+                for (const component of components) {
+                    const item = items.find(i =>
+                        i.equipmentId === component.equipment_id &&
+                        !processedItemIds.has(i.id || i.equipmentId)
+                    );
+
+                    if (item) {
+                        matchedItems.push({
+                            ...item,
+                            componentBaseQuantity: parseFloat(component.quantity)
+                        });
+                    } else {
+                        allComponentsFound = false;
+                        break;
+                    }
+                }
+
+                // Se encontrou todos componentes, é um kit
+                if (allComponentsFound && matchedItems.length === components.length) {
+                    // Calcular quantos kits completos
+                    const kitQuantity = Math.min(...matchedItems.map(item =>
+                        Math.floor(item.quantity / item.componentBaseQuantity)
+                    ));
+
+                    if (kitQuantity > 0) {
+                        const kitId = `detected-kit-${kit.id}`;
+                        detectedKits.push({
+                            kitId,
+                            kitName: kit.name,
+                            kitQuantity,
+                            items: matchedItems.map(item => ({
+                                ...item,
+                                kitId,
+                                fromComposite: kit.name,
+                                kitQuantity
+                            }))
+                        });
+
+                        // Marcar itens como processados
+                        matchedItems.forEach(item => processedItemIds.add(item.id || item.equipmentId));
+                    }
+                }
+            }
+
+            return { detectedKits, processedItemIds };
+        } catch (error) {
+            console.error('Erro ao detectar kits:', error);
+            return { detectedKits: [], processedItemIds: new Set() };
+        }
+    }
+
     // Agrupar itens por kit
     groupItemsByKit(items) {
         const grouped = [];
@@ -1588,6 +1659,24 @@ class ExitOrdersManager {
             this.currentEditingOrder = order; // Armazenar ordem atual
             this.isEditMode = false; // Modo de edição
 
+            // Detectar kits automaticamente nos itens da ordem
+            const { detectedKits, processedItemIds } = await this.detectKitsInItems(order.items);
+
+            // Adicionar metadados de kit aos itens detectados
+            if (detectedKits.length > 0) {
+                detectedKits.forEach(kit => {
+                    kit.items.forEach(kitItem => {
+                        const orderItem = order.items.find(i => i.equipmentId === kitItem.equipmentId);
+                        if (orderItem) {
+                            orderItem.kitId = kit.kitId;
+                            orderItem.fromComposite = kit.kitName;
+                            orderItem.kitQuantity = kit.kitQuantity;
+                            orderItem.componentBaseQuantity = kitItem.componentBaseQuantity;
+                        }
+                    });
+                });
+            }
+
             const totalItems = order.items.length;
             const totalValue = order.items.reduce((sum, item) => sum + item.totalCost, 0);
 
@@ -1733,7 +1822,72 @@ class ExitOrdersManager {
     renderOrderItems(items, editMode) {
         let html = '';
 
-        items.forEach(item => {
+        // Agrupar itens por kit
+        const grouped = this.groupItemsByKit(items);
+
+        grouped.forEach(group => {
+            if (group.type === 'kit') {
+                // Renderizar kit agrupado
+                const isExpanded = this.expandedKits.has(group.kitId);
+                const expandIcon = isExpanded ? '▼' : '▶';
+
+                if (editMode) {
+                    html += `
+                        <tr style="background: #f5f5f5; cursor: pointer;" onclick="exitOrdersManager.toggleKitExpansion('${group.kitId}')">
+                            <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">
+                                <strong>📦 ${group.kitName}</strong> <span style="color: #666; font-size: 0.9em;">(Kit com ${group.items.length} itens)</span>
+                            </td>
+                            <td style="padding: 10px; text-align: center; border-bottom: 1px solid #e0e0e0;">
+                                <strong>${group.kitQuantity} kit${group.kitQuantity > 1 ? 's' : ''}</strong>
+                                <button
+                                    style="margin-left: 8px; padding: 2px 6px; font-size: 11px; border: 1px solid #ccc; background: white; border-radius: 3px;"
+                                    onclick="event.stopPropagation();">
+                                    ${expandIcon}
+                                </button>
+                            </td>
+                            <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;"></td>
+                            <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e0e0e0; font-weight: 600;">R$ ${group.totalCost.toFixed(2)}</td>
+                        </tr>
+                    `;
+                } else {
+                    html += `
+                        <tr style="background: #f5f5f5; cursor: pointer;" onclick="exitOrdersManager.toggleKitExpansion('${group.kitId}')">
+                            <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">
+                                <strong>📦 ${group.kitName}</strong> <span style="color: #666; font-size: 0.9em;">(Kit com ${group.items.length} itens)</span>
+                                <button
+                                    style="margin-left: 8px; padding: 2px 6px; font-size: 11px; border: 1px solid #ccc; background: white; border-radius: 3px;"
+                                    onclick="event.stopPropagation();">
+                                    ${expandIcon}
+                                </button>
+                            </td>
+                            <td style="padding: 10px; text-align: center; border-bottom: 1px solid #e0e0e0;">${group.kitQuantity} kit${group.kitQuantity > 1 ? 's' : ''}</td>
+                            <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e0e0e0;">-</td>
+                            <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e0e0e0; font-weight: 600;">R$ ${group.totalCost.toFixed(2)}</td>
+                        </tr>
+                    `;
+                }
+
+                // Renderizar componentes se expandido
+                if (isExpanded) {
+                    group.items.forEach(item => {
+                        html += `
+                            <tr style="background: #fafafa;">
+                                <td style="padding: 10px; padding-left: 40px; border-bottom: 1px solid #e0e0e0;">↳ ${item.equipmentName || item.currentEquipmentName}</td>
+                                <td style="padding: 10px; text-align: center; border-bottom: 1px solid #e0e0e0;">
+                                    ${item.quantity} ${item.unit}
+                                    <span style="color: #888; font-size: 0.85em;">(${item.componentBaseQuantity} × ${group.kitQuantity})</span>
+                                </td>
+                                <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e0e0e0;">R$ ${item.unitCost.toFixed(2)}</td>
+                                <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e0e0e0;">R$ ${item.totalCost.toFixed(2)}</td>
+                            </tr>
+                        `;
+                    });
+                }
+                return; // Skip resto do forEach para este grupo
+            }
+
+            // Item standalone
+            const item = group.item;
             const isModified = item.isModified || false;
             const isConditional = item.isConditional || false;
             const rowStyle = isModified ? 'background: #fff3e0;' : (isConditional ? 'background: #e3f2fd;' : '');
