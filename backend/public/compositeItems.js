@@ -172,9 +172,12 @@ class CompositeItemsManager {
                             <div style="display: flex; gap: 10px; margin-top: 10px;">
                                 <select id="componentEquipment" style="flex: 1; padding: 10px;">
                                     <option value="">Selecione um equipamento</option>
-                                    ${this.equipmentList.filter(e => e.active).map(e =>
-                                        `<option value="${e.id}">${e.name} (${e.quantity} ${e.unit})</option>`
-                                    ).join('')}
+                                    ${this.equipmentList.filter(e => e.active !== false).map(e => {
+                                        const stockInfo = e.quantity > 0
+                                            ? `${e.quantity} ${e.unit}`
+                                            : `SEM ESTOQUE`;
+                                        return `<option value="${e.id}">${e.name} (${stockInfo})</option>`;
+                                    }).join('')}
                                 </select>
                                 <input type="number" id="componentQuantity" placeholder="Qtd" min="0.001" step="0.001" style="width: 100px; padding: 10px;">
                                 <button type="button" class="btn-primary" onclick="compositeItemsManager.addComponent()">
@@ -434,9 +437,12 @@ class CompositeItemsManager {
                                 <div style="display: flex; gap: 10px; margin-top: 10px;">
                                     <select id="editComponentEquipment" style="flex: 1; padding: 10px;">
                                         <option value="">Selecione um equipamento</option>
-                                        ${this.equipmentList.filter(e => e.quantity > 0).map(e =>
-                                            `<option value="${e.id}">${e.name} (${e.quantity} ${e.unit})</option>`
-                                        ).join('')}
+                                        ${this.equipmentList.filter(e => e.active !== false).map(e => {
+                                            const stockInfo = e.quantity > 0
+                                                ? `${e.quantity} ${e.unit}`
+                                                : `SEM ESTOQUE`;
+                                            return `<option value="${e.id}">${e.name} (${stockInfo})</option>`;
+                                        }).join('')}
                                     </select>
                                     <input type="number" id="editComponentQuantity" placeholder="Qtd" min="0.001" step="0.001" style="width: 100px; padding: 10px;">
                                     <button type="button" class="btn-primary" onclick="compositeItemsManager.addComponentToEdit()">
