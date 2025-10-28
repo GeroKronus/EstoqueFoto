@@ -455,69 +455,182 @@ class ExitOrdersManager {
                     <tbody>
         `;
 
-        order.items.forEach(item => {
-            const isModified = item.isModified || false;
-            const isConditional = item.isConditional || false;
-            const rowClass = isModified ? 'modified-item-row' : (isConditional ? 'conditional-item-row' : '');
+        // Agrupar itens por kit antes de renderizar
+        const grouped = this.groupItemsByKit(order.items);
+        console.log('📊 Itens agrupados para renderização:', grouped.length, 'grupos');
 
-            html += `
-                <tr class="${rowClass}" data-item-id="${item.id}">
-                    <td>
-                        ${item.equipmentName}
-                        ${isModified ? '<span class="modified-badge">✏️ Modificado</span>' : ''}
-                        ${isConditional ? '<span class="conditional-badge">🔄 Condicional</span>' : ''}
-                    </td>
-                    <td>
+        grouped.forEach(group => {
+            if (group.type === 'kit') {
+                // Renderizar linha do kit agrupado
+                const isExpanded = this.expandedKits.has(group.kitId);
+                const expandIcon = isExpanded ? '▼' : '▶';
+
+                html += `
+                    <tr style="background: #f5f5f5; cursor: pointer;"
+                        onclick="exitOrdersManager.toggleKitExpansion('${group.kitId}')">
+                        <td>
+                            <strong>📦 ${group.kitName}</strong>
+                            <span style="color: #666; margin-left: 8px;">(Kit com ${group.items.length} itens)</span>
+                        </td>
+                        <td>
+                            <strong>${group.kitQuantity} kit${group.kitQuantity > 1 ? 's' : ''}</strong>
+                            <button type="button" class="btn-expand-kit" style="margin-left: 10px; padding: 4px 8px; font-size: 0.85rem;">
+                                ${expandIcon} ${isExpanded ? 'Ocultar' : 'Expandir'}
+                            </button>
+                        </td>
+                        <td style="color: #666;">-</td>
+                        <td><strong>R$ ${group.totalCost.toFixed(2)}</strong></td>
+                        ${isEditable ? '<td></td>' : ''}
                         ${isEditable ? `
-                            <input
-                                type="number"
-                                id="inline-qty-${item.id}"
-                                value="${item.quantity}"
-                                min="0"
-                                step="1"
-                                class="inline-edit-input"
-                            />
-                            <span class="item-unit">${item.unit}</span>
-                        ` : `${item.quantity} ${item.unit}`}
-                    </td>
-                    <td>R$ ${item.unitCost.toFixed(2)}</td>
-                    <td><strong>R$ ${item.totalCost.toFixed(2)}</strong></td>
-                    ${isEditable ? `
-                        <td class="conditional-cell" style="text-align: center;">
-                            <input
-                                type="checkbox"
-                                id="conditional-${item.id}"
-                                ${isConditional ? 'checked' : ''}
-                                onchange="exitOrdersManager.toggleConditional('${order.id}', '${item.id}', this.checked)"
-                                class="conditional-checkbox"
-                                title="Marcar como condicional (pode ser devolvido)"
-                            />
-                        </td>
-                        <td class="item-actions">
-                            <button
-                                class="btn-save-inline"
-                                onclick="exitOrdersManager.saveInlineEdit('${order.id}', '${item.id}')"
-                                title="Salvar alteração">
-                                💾
-                            </button>
-                            <button
-                                class="btn-delete-inline"
-                                onclick="exitOrdersManager.deleteOrderItem('${order.id}', '${item.id}')"
-                                title="Excluir item">
-                                🗑️
-                            </button>
-                            ${isModified ? `
+                            <td class="item-actions">
                                 <button
-                                    class="btn-history-inline"
-                                    onclick="exitOrdersManager.showItemHistoryInline('${order.id}', '${item.id}')"
-                                    title="Ver histórico">
-                                    📜
+                                    class="btn-delete-inline"
+                                    onclick="event.stopPropagation(); exitOrdersManager.removeKitFromExpandedOrder('${order.id}', '${group.kitId}')"
+                                    title="Excluir kit completo">
+                                    🗑️
                                 </button>
-                            ` : ''}
+                            </td>
+                        ` : ''}
+                    </tr>
+                `;
+
+                // Renderizar componentes do kit se expandido
+                if (isExpanded) {
+                    group.items.forEach(item => {
+                        const isModified = item.isModified || false;
+                        const isConditional = item.isConditional || false;
+                        const rowClass = isModified ? 'modified-item-row' : (isConditional ? 'conditional-item-row' : '');
+
+                        html += `
+                            <tr class="${rowClass}" data-item-id="${item.id}" style="background: #fafafa;">
+                                <td style="padding-left: 40px;">
+                                    ↳ ${item.equipmentName}
+                                    ${isModified ? '<span class="modified-badge">✏️ Modificado</span>' : ''}
+                                    ${isConditional ? '<span class="conditional-badge">🔄 Condicional</span>' : ''}
+                                </td>
+                                <td>
+                                    ${isEditable ? `
+                                        <input
+                                            type="number"
+                                            id="inline-qty-${item.id}"
+                                            value="${item.quantity}"
+                                            min="0"
+                                            step="1"
+                                            class="inline-edit-input"
+                                        />
+                                        <span class="item-unit">${item.unit}</span>
+                                    ` : `${item.quantity} ${item.unit}`}
+                                    <span style="color: #888; font-size: 0.85rem; margin-left: 8px;">
+                                        (${item.componentBaseQuantity} × ${group.kitQuantity})
+                                    </span>
+                                </td>
+                                <td>R$ ${item.unitCost.toFixed(2)}</td>
+                                <td><strong>R$ ${item.totalCost.toFixed(2)}</strong></td>
+                                ${isEditable ? `
+                                    <td class="conditional-cell" style="text-align: center;">
+                                        <input
+                                            type="checkbox"
+                                            id="conditional-${item.id}"
+                                            ${isConditional ? 'checked' : ''}
+                                            onchange="exitOrdersManager.toggleConditional('${order.id}', '${item.id}', this.checked)"
+                                            class="conditional-checkbox"
+                                            title="Marcar como condicional (pode ser devolvido)"
+                                        />
+                                    </td>
+                                    <td class="item-actions">
+                                        <button
+                                            class="btn-save-inline"
+                                            onclick="exitOrdersManager.saveInlineEdit('${order.id}', '${item.id}')"
+                                            title="Salvar alteração">
+                                            💾
+                                        </button>
+                                        <button
+                                            class="btn-delete-inline"
+                                            onclick="exitOrdersManager.deleteOrderItem('${order.id}', '${item.id}')"
+                                            title="Excluir item">
+                                            🗑️
+                                        </button>
+                                        ${isModified ? `
+                                            <button
+                                                class="btn-history-inline"
+                                                onclick="exitOrdersManager.showItemHistoryInline('${order.id}', '${item.id}')"
+                                                title="Ver histórico">
+                                                📜
+                                            </button>
+                                        ` : ''}
+                                    </td>
+                                ` : ''}
+                            </tr>
+                        `;
+                    });
+                }
+
+            } else {
+                // Renderizar item standalone normalmente
+                const item = group.item;
+                const isModified = item.isModified || false;
+                const isConditional = item.isConditional || false;
+                const rowClass = isModified ? 'modified-item-row' : (isConditional ? 'conditional-item-row' : '');
+
+                html += `
+                    <tr class="${rowClass}" data-item-id="${item.id}">
+                        <td>
+                            ${item.equipmentName}
+                            ${isModified ? '<span class="modified-badge">✏️ Modificado</span>' : ''}
+                            ${isConditional ? '<span class="conditional-badge">🔄 Condicional</span>' : ''}
                         </td>
-                    ` : ''}
-                </tr>
-            `;
+                        <td>
+                            ${isEditable ? `
+                                <input
+                                    type="number"
+                                    id="inline-qty-${item.id}"
+                                    value="${item.quantity}"
+                                    min="0"
+                                    step="1"
+                                    class="inline-edit-input"
+                                />
+                                <span class="item-unit">${item.unit}</span>
+                            ` : `${item.quantity} ${item.unit}`}
+                        </td>
+                        <td>R$ ${item.unitCost.toFixed(2)}</td>
+                        <td><strong>R$ ${item.totalCost.toFixed(2)}</strong></td>
+                        ${isEditable ? `
+                            <td class="conditional-cell" style="text-align: center;">
+                                <input
+                                    type="checkbox"
+                                    id="conditional-${item.id}"
+                                    ${isConditional ? 'checked' : ''}
+                                    onchange="exitOrdersManager.toggleConditional('${order.id}', '${item.id}', this.checked)"
+                                    class="conditional-checkbox"
+                                    title="Marcar como condicional (pode ser devolvido)"
+                                />
+                            </td>
+                            <td class="item-actions">
+                                <button
+                                    class="btn-save-inline"
+                                    onclick="exitOrdersManager.saveInlineEdit('${order.id}', '${item.id}')"
+                                    title="Salvar alteração">
+                                    💾
+                                </button>
+                                <button
+                                    class="btn-delete-inline"
+                                    onclick="exitOrdersManager.deleteOrderItem('${order.id}', '${item.id}')"
+                                    title="Excluir item">
+                                    🗑️
+                                </button>
+                                ${isModified ? `
+                                    <button
+                                        class="btn-history-inline"
+                                        onclick="exitOrdersManager.showItemHistoryInline('${order.id}', '${item.id}')"
+                                        title="Ver histórico">
+                                        📜
+                                    </button>
+                                ` : ''}
+                            </td>
+                        ` : ''}
+                    </tr>
+                `;
+            }
         });
 
         const totalValue = order.items.reduce((sum, item) => sum + item.totalCost, 0);
@@ -1080,6 +1193,44 @@ class ExitOrdersManager {
         this.expandedKits.delete(kitId);
         this.renderNewOrderItems();
         this.updateOrderSummary();
+    }
+
+    // Remover kit de ordem existente (expandida)
+    async removeKitFromExpandedOrder(orderId, kitId) {
+        if (!confirm('Tem certeza que deseja excluir este kit completo da ordem?')) {
+            return;
+        }
+
+        try {
+            // Buscar a ordem para identificar os itens do kit
+            const response = await window.api.getExitOrder(orderId);
+            const order = response.order;
+
+            // Identificar todos os itens que pertencem ao kit
+            const kitItemIds = order.items
+                .filter(item => item.kitId === kitId)
+                .map(item => item.id);
+
+            if (kitItemIds.length === 0) {
+                window.notify.warning('Nenhum item do kit encontrado.');
+                return;
+            }
+
+            // Excluir todos os itens do kit
+            for (const itemId of kitItemIds) {
+                await window.api.deleteExitOrderItem(orderId, itemId);
+            }
+
+            this.expandedKits.delete(kitId);
+            window.notify.success(`Kit excluído com sucesso (${kitItemIds.length} itens removidos)`);
+
+            // Recarregar a ordem
+            await this.loadOrderDetails(orderId);
+
+        } catch (error) {
+            console.error('Erro ao excluir kit:', error);
+            window.notify.error('Erro ao excluir kit da ordem');
+        }
     }
 
     // Alternar expansão de kit
