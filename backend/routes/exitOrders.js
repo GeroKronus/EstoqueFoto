@@ -644,12 +644,12 @@ router.post('/:orderId/items', authenticateToken, requireAdmin, async (req, res)
             // Adicionar item à ordem
             const newItemResult = await client.query(`
                 INSERT INTO exit_order_items (
-                    exit_order_id, equipment_id, quantity, unit,
-                    unit_cost, total_cost, is_conditional
+                    exit_order_id, equipment_id, equipment_name,
+                    quantity, unit, unit_cost, total_cost, is_conditional
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 RETURNING *
-            `, [orderId, equipmentId, requestedQty, equipment.unit, unitCost, totalCost, isConditional || false]);
+            `, [orderId, equipmentId, equipment.name, requestedQty, equipment.unit, unitCost, totalCost, isConditional || false]);
 
             const newItem = newItemResult.rows[0];
 

@@ -78,7 +78,12 @@ class PhotoAuthManager {
                         </div>
                         <div class="form-group">
                             <label>Senha:</label>
-                            <input type="password" id="loginPassword" required placeholder="Digite sua senha" autocomplete="current-password">
+                            <div style="position: relative;">
+                                <input type="password" id="loginPassword" required placeholder="Digite sua senha" autocomplete="current-password" style="padding-right: 45px;">
+                                <button type="button" onclick="photoAuthManager.togglePasswordVisibility('loginPassword', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 20px; padding: 0; color: #666;" title="Mostrar/Ocultar senha">
+                                    👁️
+                                </button>
+                            </div>
                         </div>
                         <button type="submit" class="auth-btn-primary">Entrar no Sistema</button>
                     </form>
@@ -127,6 +132,21 @@ class PhotoAuthManager {
         } catch (error) {
             console.error('❌ Erro no login:', error);
             alert('❌ ' + (error.message || 'Erro ao fazer login. Verifique suas credenciais.'));
+        }
+    }
+
+    togglePasswordVisibility(inputId, buttonElement) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+
+        if (input.type === 'password') {
+            input.type = 'text';
+            buttonElement.textContent = '🙈';
+            buttonElement.title = 'Ocultar senha';
+        } else {
+            input.type = 'password';
+            buttonElement.textContent = '👁️';
+            buttonElement.title = 'Mostrar senha';
         }
     }
 
