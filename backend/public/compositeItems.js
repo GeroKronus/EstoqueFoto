@@ -167,32 +167,33 @@ class CompositeItemsManager {
 
     renderTable() {
         return `
-            <table class="data-table">
+            <table class="data-table" style="width: 100%;">
                 <thead>
                     <tr>
-                        <th>Nome do Kit</th>
-                        <th>Categoria</th>
-                        <th>Descrição</th>
-                        <th style="text-align: center;">Componentes</th>
-                        <th>Criado por</th>
-                        <th>Status</th>
-                        <th style="text-align: center; width: 150px;">Ações</th>
+                        <th style="width: 25%;">Nome do Kit</th>
+                        <th style="width: 15%;">Categoria</th>
+                        <th style="width: 30%;">Descrição</th>
+                        <th style="width: 8%; text-align: center;">Componentes</th>
+                        <th style="width: 12%;">Criado por</th>
+                        <th style="width: 10%; text-align: center;">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${this.compositeItems.map(item => `
                         <tr class="${!item.active ? 'inactive-row' : ''}">
-                            <td><strong>${item.name}</strong></td>
-                            <td>${item.category_name ? `<span class="category-badge">${item.category_name}</span>` : '-'}</td>
-                            <td>${item.description || '-'}</td>
-                            <td style="text-align: center;">${item.component_count}</td>
-                            <td>${item.created_by_name || 'N/A'}</td>
-                            <td>
-                                ${item.active
-                                    ? '<span style="color: #4CAF50; font-weight: 600;">✓ Ativo</span>'
-                                    : '<span style="color: #f44336; font-weight: 600;">✗ Inativo</span>'}
+                            <td style="width: 25%;">
+                                <strong>${item.name}</strong>
+                                ${!item.active ? '<br><span style="color: #f44336; font-size: 0.85em;">✗ Inativo</span>' : ''}
                             </td>
-                            <td style="text-align: center;">
+                            <td style="width: 15%;">
+                                ${item.category_name ? `<span class="category-badge">${item.category_name}</span>` : '-'}
+                            </td>
+                            <td style="width: 30%;">${item.description || '-'}</td>
+                            <td style="width: 8%; text-align: center;">
+                                <strong style="font-size: 1.1em;">${item.component_count}</strong>
+                            </td>
+                            <td style="width: 12%;">${item.created_by_name || 'N/A'}</td>
+                            <td style="width: 10%; text-align: center;">
                                 <button class="btn-icon" onclick="compositeItemsManager.viewDetails('${item.id}')" title="Ver detalhes">
                                     👁️
                                 </button>
