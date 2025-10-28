@@ -1197,14 +1197,45 @@ class ExitOrdersManager {
 
     // Remover kit de ordem existente (expandida)
     async removeKitFromExpandedOrder(orderId, kitId) {
+        console.log('🗑️ Excluindo kit:', kitId, 'da ordem:', orderId);
+
         // Buscar a ordem para identificar os itens do kit
         const response = await window.api.getExitOrder(orderId);
         const order = response.order;
 
+        console.log('📋 Ordem possui', order.items.length, 'itens');
+        console.log('🔍 Procurando itens com kitId:', kitId);
+
+        // Primeiro detectar kits novamente para ter os metadados atualizados
+        const { detectedKits, processedItemIds } = await this.detectKitsInItems(order.items);
+
+        // Adicionar metadata de kits aos itens detectados
+        if (detectedKits.length > 0) {
+            detectedKits.forEach(kit => {
+                kit.items.forEach(kitItem => {
+                    const orderItem = order.items.find(i => i.equipmentId === kitItem.equipmentId);
+                    if (orderItem) {
+                        orderItem.kitId = kit.kitId;
+                        orderItem.fromComposite = kit.kitName;
+                        orderItem.kitQuantity = kit.kitQuantity;
+                        orderItem.componentBaseQuantity = kitItem.componentBaseQuantity;
+                    }
+                });
+            });
+        }
+
         // Identificar todos os itens que pertencem ao kit
         const kitItems = order.items.filter(item => item.kitId === kitId);
 
+        console.log('✅ Encontrados', kitItems.length, 'itens do kit');
+        console.log('Itens:', kitItems.map(i => i.equipmentName));
+
         if (kitItems.length === 0) {
+            console.error('❌ Nenhum item encontrado com kitId:', kitId);
+            console.log('IDs disponíveis nos itens:', order.items.map(i => ({
+                name: i.equipmentName,
+                kitId: i.kitId
+            })));
             window.notify.warning('Nenhum item do kit encontrado.');
             return;
         }
