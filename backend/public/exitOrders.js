@@ -1245,62 +1245,124 @@ class ExitOrdersManager {
             this.currentEditingOrder = order; // Armazenar ordem atual
             this.isEditMode = false; // Modo de edição
 
+            const totalItems = order.items.length;
+            const totalValue = order.items.reduce((sum, item) => sum + item.totalCost, 0);
+
             const modalHtml = `
                 <div id="viewExitOrderModal" class="modal" style="display: flex;">
-                    <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
-                        <h2>📋 Ordem de Saída #${order.orderNumber}</h2>
+                    <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
 
-                        <div class="exit-order-details">
-                            <div class="detail-row">
-                                <strong>Status:</strong>
-                                <span class="exit-order-status status-${order.status}">${order.status.toUpperCase()}</span>
-                            </div>
-                            <div class="detail-row">
-                                <strong>Data de Criação:</strong> ${this.formatDateTime(order.createdAt)}
-                            </div>
-                            <div class="detail-row">
-                                <strong>Criado por:</strong> ${order.createdBy.name}
-                            </div>
-                            <div class="detail-row">
-                                <strong>Motivo:</strong> ${this.translateReason(order.reason)}
-                            </div>
-                            <div class="detail-row">
-                                <strong>Destino/Local:</strong> ${order.destination || '-'}
-                            </div>
-                            ${(order.customer?.razaoSocial || order.customerName) ? `<div class="detail-row"><strong>Cliente:</strong> ${order.customer?.razaoSocial || order.customerName}</div>` : ''}
-                            ${order.customerDocument ? `<div class="detail-row"><strong>Documento:</strong> ${order.customerDocument}</div>` : ''}
-                            <div class="detail-row">
-                                <strong>Observações:</strong> ${order.notes || '-'}
-                            </div>
+                        <!-- Cabeçalho -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #e0e0e0;">
+                            <h2 style="margin: 0;">📋 Ordem de Saída #${order.orderNumber}</h2>
+                            <span class="exit-order-status status-${order.status}" style="font-size: 16px; padding: 8px 16px;">
+                                ${order.status.toUpperCase()}
+                            </span>
+                        </div>
 
-                            ${order.status === 'cancelada' ? `
-                                <div class="cancellation-info">
+                        <!-- Informações Principais em Cards -->
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
+                            <div style="background: #f5f5f5; padding: 12px; border-radius: 6px;">
+                                <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Data de Criação</div>
+                                <div style="font-weight: 600;">${this.formatDateTime(order.createdAt)}</div>
+                            </div>
+                            <div style="background: #f5f5f5; padding: 12px; border-radius: 6px;">
+                                <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Criado por</div>
+                                <div style="font-weight: 600;">${order.createdBy.name}</div>
+                            </div>
+                            <div style="background: #f5f5f5; padding: 12px; border-radius: 6px;">
+                                <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Motivo</div>
+                                <div style="font-weight: 600;">${this.translateReason(order.reason)}</div>
+                            </div>
+                        </div>
+
+                        <!-- Detalhes Adicionais -->
+                        <div style="background: #fafafa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                ${order.destination ? `
+                                    <tr>
+                                        <td style="padding: 6px 0; width: 150px; color: #666;">Destino/Local:</td>
+                                        <td style="padding: 6px 0; font-weight: 500;">${order.destination}</td>
+                                    </tr>
+                                ` : ''}
+                                ${(order.customer?.razaoSocial || order.customerName) ? `
+                                    <tr>
+                                        <td style="padding: 6px 0; color: #666;">Cliente:</td>
+                                        <td style="padding: 6px 0; font-weight: 500;">${order.customer?.razaoSocial || order.customerName}</td>
+                                    </tr>
+                                ` : ''}
+                                ${order.customerDocument ? `
+                                    <tr>
+                                        <td style="padding: 6px 0; color: #666;">Documento:</td>
+                                        <td style="padding: 6px 0; font-weight: 500;">${order.customerDocument}</td>
+                                    </tr>
+                                ` : ''}
+                                ${order.notes ? `
+                                    <tr>
+                                        <td style="padding: 6px 0; color: #666; vertical-align: top;">Observações:</td>
+                                        <td style="padding: 6px 0;">${order.notes}</td>
+                                    </tr>
+                                ` : ''}
+                            </table>
+                        </div>
+
+                        ${order.status === 'cancelada' ? `
+                            <div style="background: #ffebee; padding: 15px; border-radius: 6px; border-left: 4px solid #f44336; margin-bottom: 20px;">
+                                <strong style="color: #c62828;">❌ Ordem Cancelada</strong><br>
+                                <div style="margin-top: 8px; font-size: 14px;">
                                     <strong>Cancelado em:</strong> ${this.formatDateTime(order.cancelledAt)}<br>
-                                    <strong>Cancelado por:</strong> ${order.cancelledBy.name}<br>
-                                    ${order.cancellationReason ? `<strong>Motivo:</strong> ${order.cancellationReason}` : ''}
+                                    <strong>Cancelado por:</strong> ${order.cancelledBy.name}
+                                    ${order.cancellationReason ? `<br><strong>Motivo:</strong> ${order.cancellationReason}` : ''}
                                 </div>
-                            ` : ''}
+                            </div>
+                        ` : ''}
 
-                            ${order.status === 'finalizada' && order.documentNumber ? `
-                                <div class="finalization-info" style="margin-top: 15px; padding: 10px; background: #e8f5e9; border-left: 4px solid #4CAF50; border-radius: 4px;">
+                        ${order.status === 'finalizada' && order.documentNumber ? `
+                            <div style="background: #e8f5e9; padding: 15px; border-radius: 6px; border-left: 4px solid #4CAF50; margin-bottom: 20px;">
+                                <strong style="color: #2e7d32;">✅ Ordem Finalizada</strong><br>
+                                <div style="margin-top: 8px; font-size: 14px;">
                                     <strong>Documento Saída:</strong> ${order.documentNumber}<br>
                                     <strong>Finalizada em:</strong> ${this.formatDateTime(order.finalizedAt)}<br>
                                     <strong>Finalizada por:</strong> ${order.finalizedBy?.name || '-'}
                                 </div>
-                            ` : ''}
+                            </div>
+                        ` : ''}
 
-                            <h3>Itens da Ordem
+                        <!-- Tabela de Itens -->
+                        <div style="margin-bottom: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <h3 style="margin: 0;">Itens da Ordem</h3>
                                 ${order.status === 'ativa' ? `
-                                    <button id="toggleEditModeBtn" class="btn-secondary btn-small" onclick="exitOrdersManager.toggleEditMode()" style="margin-left: 10px;">
+                                    <button id="toggleEditModeBtn" class="btn-secondary btn-small" onclick="exitOrdersManager.toggleEditMode()">
                                         ✏️ Editar
                                     </button>
                                 ` : ''}
-                            </h3>
-                            <div id="exitOrderItemsContainer" class="exit-order-items-table">
-                                ${this.renderOrderItems(order.items, false)}
                             </div>
+
+                            <table style="width: 100%; border-collapse: collapse; background: white; border: 1px solid #e0e0e0;">
+                                <thead>
+                                    <tr style="background: #f5f5f5; border-bottom: 2px solid #e0e0e0;">
+                                        <th style="padding: 12px; text-align: left; font-weight: 600;">Equipamento</th>
+                                        <th style="padding: 12px; text-align: center; width: 120px; font-weight: 600;">Quantidade</th>
+                                        <th style="padding: 12px; text-align: right; width: 120px; font-weight: 600;">Custo Unit.</th>
+                                        <th style="padding: 12px; text-align: right; width: 120px; font-weight: 600;">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="exitOrderItemsContainer">
+                                    ${this.renderOrderItems(order.items, false)}
+                                </tbody>
+                                <tfoot>
+                                    <tr style="background: #fafafa; border-top: 2px solid #e0e0e0; font-weight: 600;">
+                                        <td style="padding: 12px;">TOTAL</td>
+                                        <td style="padding: 12px; text-align: center;">${totalItems} ${totalItems === 1 ? 'item' : 'itens'}</td>
+                                        <td style="padding: 12px;"></td>
+                                        <td style="padding: 12px; text-align: right; color: #2e7d32; font-size: 16px;">R$ ${totalValue.toFixed(2)}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
                         </div>
 
+                        <!-- Botões de Ação -->
                         <div class="modal-actions">
                             <button type="button" onclick="exitOrdersManager.closeViewOrderModal()">Fechar</button>
                             ${order.status === 'ativa' ? `
@@ -1330,56 +1392,52 @@ class ExitOrdersManager {
 
         items.forEach(item => {
             const isModified = item.isModified || false;
-            const rowClass = isModified ? 'exit-order-item-row modified-item' : 'exit-order-item-row';
+            const isConditional = item.isConditional || false;
+            const rowStyle = isModified ? 'background: #fff3e0;' : (isConditional ? 'background: #e3f2fd;' : '');
 
             if (editMode) {
                 // Modo de edição com inputs
                 html += `
-                    <div class="${rowClass}" ${isModified ? `onclick="exitOrdersManager.showItemHistory('${item.id}')"` : ''} style="${isModified ? 'cursor: pointer;' : ''}">
-                        <div>${item.equipmentName} ${isModified ? '<span class="modified-badge">✏️ Modificado</span>' : ''}</div>
-                        <div>
+                    <tr style="${rowStyle} ${isModified ? 'cursor: pointer;' : ''}" ${isModified ? `onclick="exitOrdersManager.showItemHistory('${item.id}')"` : ''}>
+                        <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">
+                            ${item.equipmentName}
+                            ${isModified ? '<span style="background: #ff9800; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-left: 8px;">✏️ Modificado</span>' : ''}
+                            ${isConditional ? '<span style="background: #2196F3; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-left: 8px;">🔄 Condicional</span>' : ''}
+                        </td>
+                        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #e0e0e0;">
                             <input
                                 type="number"
                                 id="item-qty-${item.id}"
                                 value="${item.quantity}"
                                 min="1"
                                 step="1"
-                                style="width: 80px; padding: 4px;"
+                                style="width: 70px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px;"
                             />
                             ${item.unit}
-                            <button class="btn-primary btn-small" onclick="exitOrdersManager.updateItemQuantity('${item.id}', document.getElementById('item-qty-${item.id}').value); event.stopPropagation();" style="margin-left: 5px;">
-                                💾 Salvar
+                            <button class="btn-primary btn-small" onclick="exitOrdersManager.updateItemQuantity('${item.id}', document.getElementById('item-qty-${item.id}').value); event.stopPropagation();" style="margin-left: 8px; padding: 4px 8px; font-size: 12px;">
+                                💾
                             </button>
-                        </div>
-                        <div>R$ ${item.unitCost.toFixed(2)}</div>
-                        <div>R$ ${item.totalCost.toFixed(2)}</div>
-                    </div>
+                        </td>
+                        <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e0e0e0;">R$ ${item.unitCost.toFixed(2)}</td>
+                        <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e0e0e0; font-weight: 600;">R$ ${item.totalCost.toFixed(2)}</td>
+                    </tr>
                 `;
             } else {
                 // Modo visualização normal
                 html += `
-                    <div class="${rowClass}" ${isModified ? `onclick="exitOrdersManager.showItemHistory('${item.id}')"` : ''} style="${isModified ? 'cursor: pointer;' : ''}">
-                        <div>${item.equipmentName} ${isModified ? '<span class="modified-badge">✏️ Modificado</span>' : ''}</div>
-                        <div>${item.quantity} ${item.unit}</div>
-                        <div>R$ ${item.unitCost.toFixed(2)}</div>
-                        <div>R$ ${item.totalCost.toFixed(2)}</div>
-                    </div>
+                    <tr style="${rowStyle} ${isModified ? 'cursor: pointer;' : ''}" ${isModified ? `onclick="exitOrdersManager.showItemHistory('${item.id}')"` : ''}>
+                        <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">
+                            ${item.equipmentName}
+                            ${isModified ? '<span style="background: #ff9800; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-left: 8px;">✏️ Modificado</span>' : ''}
+                            ${isConditional ? '<span style="background: #2196F3; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-left: 8px;">🔄 Condicional</span>' : ''}
+                        </td>
+                        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #e0e0e0;">${item.quantity} ${item.unit}</td>
+                        <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e0e0e0;">R$ ${item.unitCost.toFixed(2)}</td>
+                        <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e0e0e0; font-weight: 600;">R$ ${item.totalCost.toFixed(2)}</td>
+                    </tr>
                 `;
             }
         });
-
-        // Total
-        const totalItems = items.length;
-        const totalValue = items.reduce((sum, item) => sum + item.totalCost, 0);
-
-        html += `
-            <div class="exit-order-total-row">
-                <div><strong>TOTAL</strong></div>
-                <div><strong>${totalItems} itens</strong></div>
-                <div></div>
-                <div><strong>R$ ${totalValue.toFixed(2)}</strong></div>
-            </div>
-        `;
 
         return html;
     }
