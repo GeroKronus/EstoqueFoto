@@ -68,10 +68,12 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutos
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // máximo 100 requests por IP
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 500, // máximo 500 requests por IP (aumentado)
     message: {
         error: 'Muitas tentativas. Tente novamente em alguns minutos.'
-    }
+    },
+    standardHeaders: true, // Retorna info no header `RateLimit-*`
+    legacyHeaders: false, // Desabilita headers `X-RateLimit-*`
 });
 
 app.use('/api/', limiter);
