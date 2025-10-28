@@ -321,10 +321,7 @@ class ExitOrdersManager {
         const container = document.getElementById(`order-details-content-${orderId}`);
 
         try {
-            console.log('🔍 Carregando detalhes da ordem:', orderId);
             const response = await window.api.getExitOrder(orderId);
-            console.log('✅ Resposta recebida:', response);
-
             const order = response.order;
 
             if (!order) {
@@ -332,20 +329,14 @@ class ExitOrdersManager {
             }
 
             if (!order.items || !Array.isArray(order.items)) {
-                console.warn('⚠️ Ordem sem itens ou itens inválidos:', order);
                 order.items = [];
             }
 
-            console.log('📦 Ordem carregada com', order.items.length, 'itens');
-
             // Detectar kits automaticamente nos itens da ordem
-            console.log('🔍 Iniciando detecção de kits para visualização expandida...');
             const { detectedKits, processedItemIds } = await this.detectKitsInItems(order.items);
-            console.log('✅ Detecção concluída:', detectedKits.length, 'kits detectados');
 
             // Adicionar metadata de kits aos itens detectados
             if (detectedKits.length > 0) {
-                console.log('🏷️ Adicionando metadata de kits aos itens...');
                 detectedKits.forEach(kit => {
                     kit.items.forEach(kitItem => {
                         const orderItem = order.items.find(i => i.equipmentId === kitItem.equipmentId);
@@ -354,17 +345,13 @@ class ExitOrdersManager {
                             orderItem.fromComposite = kit.kitName;
                             orderItem.kitQuantity = kit.kitQuantity;
                             orderItem.componentBaseQuantity = kitItem.componentBaseQuantity;
-                            console.log('  ✓ Item', orderItem.equipmentName, 'marcado como parte do kit', kit.kitName);
                         }
                     });
                 });
-                console.log('✅ Metadata aplicada a', processedItemIds.size, 'itens');
             }
 
             // Renderizar detalhes expandidos
             container.innerHTML = this.renderExpandedOrderDetails(order);
-
-            console.log('✅ Detalhes renderizados com sucesso');
 
         } catch (error) {
             console.error('❌ Erro ao carregar detalhes da ordem:', error);
@@ -457,7 +444,6 @@ class ExitOrdersManager {
 
         // Agrupar itens por kit antes de renderizar
         const grouped = this.groupItemsByKit(order.items);
-        console.log('📊 Itens agrupados para renderização:', grouped.length, 'grupos');
 
         grouped.forEach(group => {
             if (group.type === 'kit') {
@@ -1197,14 +1183,9 @@ class ExitOrdersManager {
 
     // Remover kit de ordem existente (expandida)
     async removeKitFromExpandedOrder(orderId, kitId) {
-        console.log('🗑️ Excluindo kit:', kitId, 'da ordem:', orderId);
-
         // Buscar a ordem para identificar os itens do kit
         const response = await window.api.getExitOrder(orderId);
         const order = response.order;
-
-        console.log('📋 Ordem possui', order.items.length, 'itens');
-        console.log('🔍 Procurando itens com kitId:', kitId);
 
         // Primeiro detectar kits novamente para ter os metadados atualizados
         const { detectedKits, processedItemIds } = await this.detectKitsInItems(order.items);
@@ -1227,15 +1208,7 @@ class ExitOrdersManager {
         // Identificar todos os itens que pertencem ao kit
         const kitItems = order.items.filter(item => item.kitId === kitId);
 
-        console.log('✅ Encontrados', kitItems.length, 'itens do kit');
-        console.log('Itens:', kitItems.map(i => i.equipmentName));
-
         if (kitItems.length === 0) {
-            console.error('❌ Nenhum item encontrado com kitId:', kitId);
-            console.log('IDs disponíveis nos itens:', order.items.map(i => ({
-                name: i.equipmentName,
-                kitId: i.kitId
-            })));
             window.notify.warning('Nenhum item do kit encontrado.');
             return;
         }
@@ -1305,8 +1278,6 @@ class ExitOrdersManager {
             this.expandedKits.add(kitId);
         }
 
-        console.log('🔄 Toggle kit:', kitId, 'context:', context, 'orderId:', orderId);
-
         // Determinar qual função de renderização usar
         if (context === 'expanded') {
             // Visualização expandida na lista
@@ -1326,26 +1297,18 @@ class ExitOrdersManager {
     // Detectar kits automaticamente em ordens existentes
     async detectKitsInItems(items) {
         try {
-            console.log('🔍 Detectando kits em', items.length, 'itens...');
-
             // Buscar todos os kits ativos
             const response = await window.api.getCompositeItems({ active: 'true' });
             const compositeItems = response.compositeItems || [];
-
-            console.log('📦 Kits disponíveis:', compositeItems.length);
 
             const detectedKits = [];
             const processedItemIds = new Set();
 
             // Para cada kit, tentar encontrar seus componentes nos itens
             for (const kit of compositeItems) {
-                console.log(`\n🔎 Verificando kit: ${kit.name}`);
-
                 // Buscar detalhes do kit com componentes
                 const kitDetails = await window.api.getCompositeItem(kit.id);
                 const components = kitDetails.compositeItem.components;
-
-                console.log(`  Componentes do kit:`, components.map(c => c.equipment_name));
 
                 // Tentar encontrar todos os componentes deste kit nos itens
                 const matchedItems = [];
@@ -1358,15 +1321,11 @@ class ExitOrdersManager {
                     );
 
                     if (item) {
-                        console.log(`  ✅ Encontrado: ${item.equipmentName || item.currentEquipmentName}`);
                         matchedItems.push({
                             ...item,
                             componentBaseQuantity: parseFloat(component.quantity)
                         });
                     } else {
-                        console.log(`  ❌ NÃO encontrado: ${component.equipment_name}`);
-                        console.log(`     Procurando por equipmentId: ${component.equipment_id}`);
-                        console.log(`     IDs disponíveis:`, items.map(i => ({ id: i.equipmentId, name: i.equipmentName || i.currentEquipmentName })));
                         allComponentsFound = false;
                         break;
                     }
@@ -1378,8 +1337,6 @@ class ExitOrdersManager {
                     const kitQuantity = Math.min(...matchedItems.map(item =>
                         Math.floor(item.quantity / item.componentBaseQuantity)
                     ));
-
-                    console.log(`  🎉 Kit completo detectado! ${kitQuantity} kit(s)`);
 
                     if (kitQuantity > 0) {
                         const kitId = `detected-kit-${kit.id}`;
@@ -1401,7 +1358,6 @@ class ExitOrdersManager {
                 }
             }
 
-            console.log(`\n✅ Detecção concluída: ${detectedKits.length} kit(s) detectado(s)`);
             return { detectedKits, processedItemIds };
         } catch (error) {
             console.error('Erro ao detectar kits:', error);
