@@ -327,6 +327,10 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
             notes
         } = req.body;
 
+        console.log('PUT /api/equipment/:id - Request body:', {
+            name, categoryId, unit, quantity, minStock, avgCost, location, notes
+        });
+
         if (!name || !categoryId) {
             return res.status(400).json({
                 error: 'Nome e categoria são obrigatórios'
@@ -377,7 +381,17 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
                     WHERE id = $9 AND active = true
                     RETURNING *
                 `;
-                updateParams = [name, categoryId, unit, quantity, minStock, avgCost, location, notes, id];
+                updateParams = [
+                    name,
+                    categoryId,
+                    unit,
+                    quantity,
+                    minStock,
+                    avgCost || 0,
+                    location || null,
+                    notes || null,
+                    id
+                ];
             } else {
                 updateQuery = `
                     UPDATE equipment
@@ -393,7 +407,16 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
                     WHERE id = $8 AND active = true
                     RETURNING *
                 `;
-                updateParams = [name, categoryId, unit, minStock, avgCost, location, notes, id];
+                updateParams = [
+                    name,
+                    categoryId,
+                    unit,
+                    minStock,
+                    avgCost || 0,
+                    location || null,
+                    notes || null,
+                    id
+                ];
             }
 
             const updateResult = await client.query(updateQuery, updateParams);
@@ -449,8 +472,9 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
 
     } catch (error) {
         console.error('Erro ao atualizar equipamento:', error);
+        console.error('Stack trace:', error.stack);
         res.status(500).json({
-            error: 'Erro interno do servidor'
+            error: error.message || 'Erro interno do servidor'
         });
     }
 });

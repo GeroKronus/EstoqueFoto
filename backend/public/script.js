@@ -583,7 +583,7 @@ class PhotoInventoryManager {
         const category = document.getElementById('editProductCategory').value;
         const name = document.getElementById('editProductName').value.trim();
         const unit = document.getElementById('editProductUnit').value.trim();
-        const quantity = parseFloat(document.getElementById('editProductQuantity').value);
+        const quantity = parseInt(document.getElementById('editProductQuantity').value);
         const minStock = parseInt(document.getElementById('editProductMinStock').value);
         const cost = parseFloat(document.getElementById('editProductCost').value) || 0;
         const location = document.getElementById('editProductLocation').value.trim();
