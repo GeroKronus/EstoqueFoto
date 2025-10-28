@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migration 020 - Tipo role_alterada</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .migration-number {
+            color: #667eea;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .description {
+            background: #f7fafc;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+        }
+
+        .description h3 {
+            color: #2d3748;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .description p {
+            color: #4a5568;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .warning {
+            background: #fff5f5;
+            border-left: 4px solid #f56565;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+        }
+
+        .warning p {
+            color: #742a2a;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-execute {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-execute:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-execute:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-cancel {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-cancel:hover {
+            background: #cbd5e0;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        #result.success {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            color: #22543d;
+        }
+
+        #result.error {
+            background: #fff5f5;
+            border: 1px solid #fc8181;
+            color: #742a2a;
+        }
+
+        #result.loading {
+            background: #ebf8ff;
+            border: 1px solid #90cdf4;
+            color: #2c5282;
+        }
+
+        .result-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .result-content {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #90cdf4;
+            border-top-color: #2c5282;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Executar Migration</h1>
+        <div class="migration-number">MIGRATION 020</div>
+
+        <div class="description">
+            <h3>Descrição da Migration</h3>
+            <p>
+                <strong>Adicionar tipo 'role_alterada' ao histórico de transações</strong><br>
+                Esta migration atualiza a constraint CHECK da coluna <code>type</code>
+                na tabela <code>transactions</code>, adicionando o tipo <code>'role_alterada'</code>
+                para permitir registrar alterações de função (admin/usuário) dos usuários.
+            </p>
+        </div>
+
+        <div class="warning">
+            <p>
+                <strong>⚠️ ATENÇÃO:</strong> Esta operação irá modificar a estrutura do banco de dados.
+                A migration é idempotente (pode ser executada múltiplas vezes sem causar erros),
+                mas certifique-se de que tem um backup recente antes de prosseguir.
+            </p>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-execute" id="executeBtn" onclick="executeMigration()">
+                Executar Migration
+            </button>
+            <button class="btn-cancel" onclick="window.location.href='/'">
+                Cancelar
+            </button>
+        </div>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function executeMigration() {
+            const resultDiv = document.getElementById('result');
+            const executeBtn = document.getElementById('executeBtn');
+
+            // Mostrar loading
+            resultDiv.className = 'loading';
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <div class="result-title">
+                    <span class="spinner"></span>
+                    Executando migration...
+                </div>
+                <div class="result-content">Conectando ao banco de dados e executando SQL...</div>
+            `;
+            executeBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/migrations/run/020', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('photo_auth_token')}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.className = 'success';
+                    resultDiv.innerHTML = `
+                        <div class="result-title">✅ Migration executada com sucesso!</div>
+                        <div class="result-content">${data.message || 'Tipo "role_alterada" adicionado ao histórico de transações.'}\n\nDetalhes:\n${JSON.stringify(data.details || {}, null, 2)}</div>
+                    `;
+                } else {
+                    throw new Error(data.error || 'Erro desconhecido');
+                }
+
+            } catch (error) {
+                resultDiv.className = 'error';
+                resultDiv.innerHTML = `
+                    <div class="result-title">❌ Erro ao executar migration</div>
+                    <div class="result-content">${error.message}\n\nVerifique os logs do servidor para mais detalhes.</div>
+                `;
+                executeBtn.disabled = false;
+            }
+        }
+
+        // Verificar autenticação e executar automaticamente
+        window.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('photo_auth_token');
+            console.log('Token encontrado:', token ? 'SIM' : 'NÃO');
+            console.log('Token value:', token ? token.substring(0, 20) + '...' : 'null');
+
+            if (!token) {
+                // Mostrar aviso mas permitir que usuário veja a página
+                const resultDiv = document.getElementById('result');
+                resultDiv.className = 'error';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <div class="result-title">⚠️ Não autenticado</div>
+                    <div class="result-content">
+                        Você precisa estar logado como administrador para executar migrations.<br><br>
+                        <button onclick="window.open('/', '_blank')" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                            Abrir página de login
+                        </button>
+                        <button onclick="location.reload()" style="background: #48bb78; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600; margin-left: 10px;">
+                            Já fiz login - Recarregar
+                        </button>
+                    </div>
+                `;
+                document.getElementById('executeBtn').disabled = true;
+            } else {
+                // Token encontrado - executar migration automaticamente
+                console.log('Executando migration automaticamente...');
+                setTimeout(() => {
+                    executeMigration();
+                }, 500); // Pequeno delay para garantir que a página carregou completamente
+            }
+        });
+    </script>
+</body>
+</html>

@@ -22,7 +22,8 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
             '016': '016_add_document_and_finalize.sql',
             '017': '017_fix_status_constraint_and_remove_item_document.sql',
             '018': '018_create_service_orders.sql',
-            '019': '019_add_invoice_to_payments.sql'
+            '019': '019_add_invoice_to_payments.sql',
+            '020': '020_add_role_alterada_transaction_type.sql'
         };
 
         const migrationFile = migrationFiles[String(migrationNumber).padStart(3, '0')];
@@ -78,6 +79,8 @@ router.post('/run/:migrationNumber', authenticateToken, requireAdmin, async (req
             tablesToCheck = ['service_orders', 'service_order_items', 'service_order_history', 'service_order_payments']; // Verifica se as tabelas de OS foram criadas
         } else if (migrationNumber == '019') {
             tablesToCheck = ['service_order_payments']; // Verifica se a tabela service_order_payments existe (a migration adiciona coluna numero_nota_fiscal)
+        } else if (migrationNumber == '020') {
+            tablesToCheck = ['transactions']; // Verifica se a tabela transactions existe (a migration atualiza constraint)
         }
 
         const result = await query(`
