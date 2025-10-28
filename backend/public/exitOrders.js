@@ -778,8 +778,8 @@ class ExitOrdersManager {
         this.updateOrderSummary();
     }
 
-    // Povoar select de equipamentos
-    populateEquipmentSelect() {
+    // Povoar select de equipamentos (incluindo itens compostos)
+    async populateEquipmentSelect() {
         const select = document.getElementById('newExitOrderItemSelect');
         if (!select) return;
 
@@ -791,12 +791,38 @@ class ExitOrdersManager {
             .filter(item => item.quantity > 0)
             .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
-        select.innerHTML = '<option value="">Selecione um equipamento</option>' +
-            availableItems.map(item =>
-                `<option value="${item.id}" data-quantity="${item.quantity}" data-unit="${item.unit}" data-cost="${item.currentCost}">
-                    ${item.name} (${item.quantity} ${item.unit} disponíveis)
-                </option>`
-            ).join('');
+        // Buscar itens compostos ativos
+        let compositeItems = [];
+        try {
+            const response = await window.api.getCompositeItems({ active: 'true' });
+            compositeItems = response.compositeItems || [];
+        } catch (error) {
+            console.error('Erro ao carregar itens compostos:', error);
+        }
+
+        let html = '<option value="">Selecione um equipamento ou kit</option>';
+
+        // Adicionar itens compostos primeiro (com ícone especial)
+        if (compositeItems.length > 0) {
+            html += '<optgroup label="📦 Kits / Itens Compostos">';
+            compositeItems.forEach(item => {
+                html += `<option value="composite-${item.id}" data-type="composite">
+                    📦 ${item.name} (Kit com ${item.component_count} componentes)
+                </option>`;
+            });
+            html += '</optgroup>';
+        }
+
+        // Adicionar equipamentos normais
+        html += '<optgroup label="Equipamentos Individuais">';
+        html += availableItems.map(item =>
+            `<option value="${item.id}" data-quantity="${item.quantity}" data-unit="${item.unit}" data-cost="${item.currentCost}" data-type="equipment">
+                ${item.name} (${item.quantity} ${item.unit} disponíveis)
+            </option>`
+        ).join('');
+        html += '</optgroup>';
+
+        select.innerHTML = html;
     }
 
     // Povoar select de clientes
@@ -868,8 +894,8 @@ class ExitOrdersManager {
         }
     }
 
-    // Adicionar item à ordem
-    addItemToOrder() {
+    // Adicionar item à ordem (com suporte a itens compostos)
+    async addItemToOrder() {
         const select = document.getElementById('newExitOrderItemSelect');
         const quantityInput = document.getElementById('newExitOrderItemQuantity');
 
@@ -885,7 +911,24 @@ class ExitOrdersManager {
         }
 
         const option = select.options[select.selectedIndex];
-        const equipmentId = option.value;
+        const selectedValue = option.value;
+        const itemType = option.dataset.type;
+
+        // Verificar se é um item composto
+        if (itemType === 'composite') {
+            await this.addCompositeItemToOrder(selectedValue, quantity);
+        } else {
+            // Item normal (equipamento)
+            this.addEquipmentToOrder(selectedValue, quantity, option);
+        }
+
+        // Limpar formulário
+        select.value = '';
+        quantityInput.value = '';
+    }
+
+    // Adicionar equipamento normal à ordem
+    addEquipmentToOrder(equipmentId, quantity, option) {
         const equipmentName = option.text.split('(')[0].trim();
         const availableQuantity = parseFloat(option.dataset.quantity);
         const unit = option.dataset.unit;
@@ -913,13 +956,88 @@ class ExitOrdersManager {
             totalCost: quantity * unitCost
         });
 
-        // Limpar formulário
-        select.value = '';
-        quantityInput.value = '';
-
         // Atualizar lista
         this.renderNewOrderItems();
         this.updateOrderSummary();
+    }
+
+    // Adicionar item composto à ordem (expandindo componentes)
+    async addCompositeItemToOrder(compositeValue, kitQuantity) {
+        try {
+            // Extrair ID do item composto
+            const compositeId = compositeValue.replace('composite-', '');
+
+            window.notify.info(`⏳ Carregando componentes do kit...`);
+
+            // Buscar detalhes do item composto
+            const response = await window.api.getCompositeItem(compositeId);
+            const compositeItem = response.compositeItem;
+
+            if (!compositeItem.components || compositeItem.components.length === 0) {
+                window.notify.error('Este kit não possui componentes configurados');
+                return;
+            }
+
+            // Verificar disponibilidade de cada componente
+            let canAddAll = true;
+            const insufficientItems = [];
+
+            for (const component of compositeItem.components) {
+                const requiredQuantity = component.quantity * kitQuantity;
+                if (requiredQuantity > component.available_quantity) {
+                    canAddAll = false;
+                    insufficientItems.push(
+                        `${component.equipment_name}: necessário ${requiredQuantity} ${component.unit}, disponível ${component.available_quantity} ${component.unit}`
+                    );
+                }
+            }
+
+            if (!canAddAll) {
+                window.notify.error(
+                    `Estoque insuficiente para montar ${kitQuantity} kit(s):\n\n${insufficientItems.join('\n')}`
+                );
+                return;
+            }
+
+            // Adicionar todos os componentes
+            let addedCount = 0;
+            for (const component of compositeItem.components) {
+                const componentQuantity = component.quantity * kitQuantity;
+
+                // Verificar se componente já está na lista
+                const existingItem = this.currentOrder.items.find(item => item.equipmentId === component.equipment_id);
+
+                if (existingItem) {
+                    // Se já existe, somar a quantidade
+                    existingItem.quantity += componentQuantity;
+                    existingItem.totalCost = existingItem.quantity * existingItem.unitCost;
+                } else {
+                    // Adicionar novo componente
+                    this.currentOrder.items.push({
+                        equipmentId: component.equipment_id,
+                        equipmentName: `${component.equipment_name} (do kit: ${compositeItem.name})`,
+                        quantity: componentQuantity,
+                        unit: component.unit,
+                        unitCost: component.current_cost || 0,
+                        totalCost: componentQuantity * (component.current_cost || 0),
+                        fromComposite: compositeItem.name // Marcar que veio de um kit
+                    });
+                }
+                addedCount++;
+            }
+
+            window.notify.success(
+                `✅ Kit "${compositeItem.name}" expandido! ${addedCount} componente(s) adicionado(s) à ordem`
+            );
+
+            // Atualizar lista
+            this.renderNewOrderItems();
+            this.updateOrderSummary();
+
+        } catch (error) {
+            console.error('Erro ao adicionar item composto:', error);
+            window.notify.error(`Erro ao processar kit: ${error.message}`);
+        }
     }
 
     // Remover item da ordem
@@ -1162,8 +1280,8 @@ class ExitOrdersManager {
         this.populateAddItemEquipmentSelect();
     }
 
-    // Povoar select de equipamentos para adicionar item
-    populateAddItemEquipmentSelect() {
+    // Povoar select de equipamentos para adicionar item (incluindo itens compostos)
+    async populateAddItemEquipmentSelect() {
         const select = document.getElementById('addItemEquipmentSelect');
         if (!select) return;
 
@@ -1173,15 +1291,41 @@ class ExitOrdersManager {
             .filter(item => item.quantity > 0)
             .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
-        select.innerHTML = '<option value="">Selecione um equipamento</option>' +
-            availableItems.map(item =>
-                `<option value="${item.id}" data-quantity="${item.quantity}" data-unit="${item.unit}" data-cost="${item.currentCost}">
-                    ${item.name} (${item.quantity} ${item.unit} disponíveis)
-                </option>`
-            ).join('');
+        // Buscar itens compostos ativos
+        let compositeItems = [];
+        try {
+            const response = await window.api.getCompositeItems({ active: 'true' });
+            compositeItems = response.compositeItems || [];
+        } catch (error) {
+            console.error('Erro ao carregar itens compostos:', error);
+        }
+
+        let html = '<option value="">Selecione um equipamento ou kit</option>';
+
+        // Adicionar itens compostos primeiro (com ícone especial)
+        if (compositeItems.length > 0) {
+            html += '<optgroup label="📦 Kits / Itens Compostos">';
+            compositeItems.forEach(item => {
+                html += `<option value="composite-${item.id}" data-type="composite">
+                    📦 ${item.name} (Kit com ${item.component_count} componentes)
+                </option>`;
+            });
+            html += '</optgroup>';
+        }
+
+        // Adicionar equipamentos normais
+        html += '<optgroup label="Equipamentos Individuais">';
+        html += availableItems.map(item =>
+            `<option value="${item.id}" data-quantity="${item.quantity}" data-unit="${item.unit}" data-cost="${item.currentCost}" data-type="equipment">
+                ${item.name} (${item.quantity} ${item.unit} disponíveis)
+            </option>`
+        ).join('');
+        html += '</optgroup>';
+
+        select.innerHTML = html;
     }
 
-    // Adicionar item a ordem existente
+    // Adicionar item a ordem existente (com suporte a itens compostos)
     async addItemToExistingOrder(orderId) {
         const select = document.getElementById('addItemEquipmentSelect');
         const quantityInput = document.getElementById('addItemQuantity');
@@ -1199,7 +1343,20 @@ class ExitOrdersManager {
         }
 
         const option = select.options[select.selectedIndex];
-        const equipmentId = option.value;
+        const selectedValue = option.value;
+        const itemType = option.dataset.type;
+
+        // Verificar se é um item composto
+        if (itemType === 'composite') {
+            await this.addCompositeItemToExistingOrder(orderId, selectedValue, quantity, conditionalCheckbox.checked);
+        } else {
+            // Item normal (equipamento)
+            await this.addEquipmentToExistingOrder(orderId, selectedValue, quantity, conditionalCheckbox.checked, option);
+        }
+    }
+
+    // Adicionar equipamento normal a ordem existente
+    async addEquipmentToExistingOrder(orderId, equipmentId, quantity, isConditional, option) {
         const availableQuantity = parseFloat(option.dataset.quantity);
         const unit = option.dataset.unit;
 
@@ -1215,7 +1372,7 @@ class ExitOrdersManager {
                 body: JSON.stringify({
                     equipmentId,
                     quantity,
-                    isConditional: conditionalCheckbox.checked
+                    isConditional
                 })
             });
 
@@ -1228,6 +1385,88 @@ class ExitOrdersManager {
         } catch (error) {
             console.error('Erro ao adicionar item:', error);
             window.notify.error(error.message || 'Erro ao adicionar item');
+        }
+    }
+
+    // Adicionar item composto a ordem existente (expandindo componentes)
+    async addCompositeItemToExistingOrder(orderId, compositeValue, kitQuantity, isConditional) {
+        try {
+            // Extrair ID do item composto
+            const compositeId = compositeValue.replace('composite-', '');
+
+            window.notify.info(`⏳ Processando kit...`);
+
+            // Buscar detalhes do item composto
+            const response = await window.api.getCompositeItem(compositeId);
+            const compositeItem = response.compositeItem;
+
+            if (!compositeItem.components || compositeItem.components.length === 0) {
+                window.notify.error('Este kit não possui componentes configurados');
+                return;
+            }
+
+            // Verificar disponibilidade de cada componente
+            let canAddAll = true;
+            const insufficientItems = [];
+
+            for (const component of compositeItem.components) {
+                const requiredQuantity = component.quantity * kitQuantity;
+                if (requiredQuantity > component.available_quantity) {
+                    canAddAll = false;
+                    insufficientItems.push(
+                        `${component.equipment_name}: necessário ${requiredQuantity} ${component.unit}, disponível ${component.available_quantity} ${component.unit}`
+                    );
+                }
+            }
+
+            if (!canAddAll) {
+                window.notify.error(
+                    `Estoque insuficiente para montar ${kitQuantity} kit(s):\n\n${insufficientItems.join('\n')}`
+                );
+                return;
+            }
+
+            // Adicionar todos os componentes via API
+            let successCount = 0;
+            let failedCount = 0;
+
+            for (const component of compositeItem.components) {
+                const componentQuantity = component.quantity * kitQuantity;
+
+                try {
+                    await window.api.request(`/exit-orders/${orderId}/items`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            equipmentId: component.equipment_id,
+                            quantity: componentQuantity,
+                            isConditional
+                        })
+                    });
+                    successCount++;
+                } catch (error) {
+                    console.error(`Erro ao adicionar componente ${component.equipment_name}:`, error);
+                    failedCount++;
+                }
+            }
+
+            if (failedCount === 0) {
+                window.notify.success(
+                    `✅ Kit "${compositeItem.name}" expandido! ${successCount} componente(s) adicionado(s) à ordem`
+                );
+            } else {
+                window.notify.warning(
+                    `⚠️ Kit parcialmente adicionado: ${successCount} sucesso(s), ${failedCount} falha(s)`
+                );
+            }
+
+            this.closeAddItemModal();
+
+            // Recarregar lista de ordens
+            await this.loadOrders();
+
+        } catch (error) {
+            console.error('Erro ao adicionar item composto:', error);
+            window.notify.error(`Erro ao processar kit: ${error.message}`);
         }
     }
 
