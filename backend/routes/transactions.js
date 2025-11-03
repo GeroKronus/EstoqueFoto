@@ -190,6 +190,14 @@ router.post('/entry', authenticateToken, async (req, res) => {
             let newCurrentCost = parseFloat(equipment.current_cost);
             let newAvgCost = parseFloat(equipment.avg_cost);
 
+            console.log('📊 Cálculo de custo médio:', {
+                oldQuantity,
+                newQuantity,
+                costInformado: cost,
+                avgCostAntigo: equipment.avg_cost,
+                currentCostAntigo: equipment.current_cost
+            });
+
             if (cost > 0 && newQuantity > 0) {
                 const totalOldValue = oldQuantity * parseFloat(equipment.current_cost);
                 const totalNewValue = parseFloat(quantity) * parseFloat(cost);
@@ -198,6 +206,13 @@ router.post('/entry', authenticateToken, async (req, res) => {
                 // Atualizar avg_cost também (média ponderada)
                 const totalOldAvgValue = oldQuantity * parseFloat(equipment.avg_cost);
                 newAvgCost = (totalOldAvgValue + totalNewValue) / newQuantity;
+
+                console.log('💰 Novo custo calculado:', {
+                    totalOldAvgValue,
+                    totalNewValue,
+                    newAvgCost,
+                    newCurrentCost
+                });
             }
 
             const newTotalValue = newQuantity * newCurrentCost;
