@@ -941,7 +941,7 @@ class ExitOrdersManager {
         // Adicionar equipamentos normais
         html += '<optgroup label="Equipamentos Individuais">';
         html += availableItems.map(item =>
-            `<option value="${item.id}" data-quantity="${item.quantity}" data-unit="${item.unit}" data-cost="${item.currentCost}" data-type="equipment">
+            `<option value="${item.id}" data-quantity="${item.quantity}" data-unit="${item.unit}" data-cost="${item.avgCost || 0}" data-type="equipment">
                 ${item.name} (${item.quantity} ${item.unit} disponíveis)
             </option>`
         ).join('');
@@ -1718,7 +1718,7 @@ class ExitOrdersManager {
         // Adicionar equipamentos normais
         html += '<optgroup label="Equipamentos Individuais">';
         html += availableItems.map(item =>
-            `<option value="${item.id}" data-quantity="${item.quantity}" data-unit="${item.unit}" data-cost="${item.currentCost}" data-type="equipment">
+            `<option value="${item.id}" data-quantity="${item.quantity}" data-unit="${item.unit}" data-cost="${item.avgCost || 0}" data-type="equipment">
                 ${item.name} (${item.quantity} ${item.unit} disponíveis)
             </option>`
         ).join('');
