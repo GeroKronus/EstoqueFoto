@@ -193,16 +193,12 @@ router.post('/entry', authenticateToken, async (req, res) => {
             if (cost > 0) {
                 // avgCost recebe o custo da última entrada
                 newAvgCost = parseFloat(cost);
-
-                // currentCost continua sendo a média ponderada para cálculo do valor total
-                if (newQuantity > 0) {
-                    const totalOldValue = oldQuantity * parseFloat(equipment.current_cost);
-                    const totalNewValue = parseFloat(quantity) * parseFloat(cost);
-                    newCurrentCost = (totalOldValue + totalNewValue) / newQuantity;
-                }
+                // currentCost também recebe o mesmo valor (simplificar)
+                newCurrentCost = parseFloat(cost);
             }
 
-            const newTotalValue = newQuantity * newCurrentCost;
+            // Valor total = avgCost × quantidade
+            const newTotalValue = newQuantity * newAvgCost;
 
             // Atualizar equipamento
             const updateParams = [newQuantity, newCurrentCost, newAvgCost, newTotalValue, equipmentId];
