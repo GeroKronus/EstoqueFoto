@@ -602,7 +602,14 @@ class PhotoInventoryManager {
                 return;
             }
 
-            console.log('Atualizando equipamento no PostgreSQL...', { productId, name, categoryId: categoryObj.id });
+            console.log('Atualizando equipamento no PostgreSQL...', {
+                productId,
+                name,
+                categoryId: categoryObj.id,
+                avgCost: cost,
+                costValue: cost,
+                costType: typeof cost
+            });
 
             const response = await window.api.updateEquipment(productId, {
                 name,
