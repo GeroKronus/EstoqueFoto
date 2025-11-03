@@ -5,7 +5,7 @@ class CompositeItemsManager {
         this.categories = [];
         this.currentEditingItem = null;
         this.tempComponents = [];
-        this.viewMode = 'cards'; // 'cards' ou 'table'
+        this.viewMode = 'table'; // 'cards' ou 'table' - padrão: table
     }
 
     async init() {
