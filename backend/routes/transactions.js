@@ -200,6 +200,14 @@ router.post('/entry', authenticateToken, async (req, res) => {
             // Valor total = avgCost × quantidade
             const newTotalValue = newQuantity * newAvgCost;
 
+            console.log('=== DEBUG ENTRADA ===');
+            console.log('Equipment:', equipment.name);
+            console.log('Cost recebido:', cost);
+            console.log('newAvgCost:', newAvgCost);
+            console.log('newQuantity:', newQuantity);
+            console.log('newTotalValue:', newTotalValue);
+            console.log('updateParams:', [newQuantity, newCurrentCost, newAvgCost, newTotalValue, equipmentId]);
+
             // Atualizar equipamento
             const updateParams = [newQuantity, newCurrentCost, newAvgCost, newTotalValue, equipmentId];
             let paramIndex = 5;
@@ -340,7 +348,9 @@ router.post('/exit', authenticateToken, async (req, res) => {
             }
 
             const newQuantity = currentQuantity - parseFloat(quantity);
-            const newTotalValue = newQuantity * parseFloat(equipment.current_cost);
+            // Usar avgCost (custo da última entrada) para cálculos
+            const unitCost = parseFloat(equipment.avg_cost);
+            const newTotalValue = newQuantity * unitCost;
 
             // Atualizar equipamento
             await client.query(`
@@ -358,7 +368,7 @@ router.post('/exit', authenticateToken, async (req, res) => {
                 [equipment.category_id]
             );
 
-            // Registrar transação
+            // Registrar transação com avgCost (custo da última entrada)
             const transactionResult = await client.query(`
                 INSERT INTO transactions (
                     type, equipment_id, equipment_name, category_name,
@@ -374,8 +384,8 @@ router.post('/exit', authenticateToken, async (req, res) => {
                 categoryResult.rows[0]?.name || '',
                 quantity,
                 equipment.unit,
-                equipment.current_cost,
-                parseFloat(quantity) * parseFloat(equipment.current_cost),
+                unitCost,
+                parseFloat(quantity) * unitCost,
                 reason,
                 destination,
                 notes,
