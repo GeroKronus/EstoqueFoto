@@ -188,21 +188,28 @@ router.post('/entry', authenticateToken, async (req, res) => {
 
             // Calcular novo custo médio se custo foi informado
             let newCurrentCost = parseFloat(equipment.current_cost);
+            let newAvgCost = parseFloat(equipment.avg_cost);
+
             if (cost > 0 && newQuantity > 0) {
                 const totalOldValue = oldQuantity * parseFloat(equipment.current_cost);
                 const totalNewValue = parseFloat(quantity) * parseFloat(cost);
                 newCurrentCost = (totalOldValue + totalNewValue) / newQuantity;
+
+                // Atualizar avg_cost também (média ponderada)
+                const totalOldAvgValue = oldQuantity * parseFloat(equipment.avg_cost);
+                newAvgCost = (totalOldAvgValue + totalNewValue) / newQuantity;
             }
 
             const newTotalValue = newQuantity * newCurrentCost;
 
             // Atualizar equipamento
-            const updateParams = [newQuantity, newCurrentCost, newTotalValue, equipmentId];
-            let paramIndex = 4;
+            const updateParams = [newQuantity, newCurrentCost, newAvgCost, newTotalValue, equipmentId];
+            let paramIndex = 5;
             let updateFields = `
                 quantity = $1,
                 current_cost = $2,
-                total_value = $3,
+                avg_cost = $3,
+                total_value = $4,
             `;
 
             if (expiryDate) {
@@ -222,7 +229,7 @@ router.post('/entry', authenticateToken, async (req, res) => {
             await client.query(`
                 UPDATE equipment
                 SET ${updateFields}
-                WHERE id = $4
+                WHERE id = $5
             `, updateParams);
 
             // Buscar categoria para o log
