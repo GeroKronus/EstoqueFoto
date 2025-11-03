@@ -1117,7 +1117,7 @@ class PhotoInventoryManager {
             tr.innerHTML = `
                 <td class="item-name-cell">${item.name}</td>
                 <td class="quantity-cell">${item.quantity} ${item.unit}</td>
-                <td class="cost-cell">R$ ${item.currentCost.toFixed(2)}</td>
+                <td class="cost-cell">R$ ${(item.avgCost || 0).toFixed(2)}</td>
                 <td class="value-cell">R$ ${item.totalValue.toFixed(2)}</td>
                 <td class="status-cell">${stockStatus}</td>
                 <td class="actions-cell">
