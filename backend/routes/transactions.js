@@ -186,33 +186,20 @@ router.post('/entry', authenticateToken, async (req, res) => {
             const oldQuantity = parseFloat(equipment.quantity);
             const newQuantity = oldQuantity + parseFloat(quantity);
 
-            // Calcular novo custo médio se custo foi informado
+            // Atualizar custo com o valor da última entrada (se informado)
             let newCurrentCost = parseFloat(equipment.current_cost);
             let newAvgCost = parseFloat(equipment.avg_cost);
 
-            console.log('📊 Cálculo de custo médio:', {
-                oldQuantity,
-                newQuantity,
-                costInformado: cost,
-                avgCostAntigo: equipment.avg_cost,
-                currentCostAntigo: equipment.current_cost
-            });
+            if (cost > 0) {
+                // avgCost recebe o custo da última entrada
+                newAvgCost = parseFloat(cost);
 
-            if (cost > 0 && newQuantity > 0) {
-                const totalOldValue = oldQuantity * parseFloat(equipment.current_cost);
-                const totalNewValue = parseFloat(quantity) * parseFloat(cost);
-                newCurrentCost = (totalOldValue + totalNewValue) / newQuantity;
-
-                // Atualizar avg_cost também (média ponderada)
-                const totalOldAvgValue = oldQuantity * parseFloat(equipment.avg_cost);
-                newAvgCost = (totalOldAvgValue + totalNewValue) / newQuantity;
-
-                console.log('💰 Novo custo calculado:', {
-                    totalOldAvgValue,
-                    totalNewValue,
-                    newAvgCost,
-                    newCurrentCost
-                });
+                // currentCost continua sendo a média ponderada para cálculo do valor total
+                if (newQuantity > 0) {
+                    const totalOldValue = oldQuantity * parseFloat(equipment.current_cost);
+                    const totalNewValue = parseFloat(quantity) * parseFloat(cost);
+                    newCurrentCost = (totalOldValue + totalNewValue) / newQuantity;
+                }
             }
 
             const newTotalValue = newQuantity * newCurrentCost;
