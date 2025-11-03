@@ -1652,9 +1652,11 @@ class ExitOrdersManager {
                     <h2>➕ Adicionar Item à Ordem</h2>
 
                     <div class="add-item-form" style="display: flex; flex-direction: column; gap: 15px; margin: 20px 0;">
-                        <select id="addItemEquipmentSelect" style="padding: 10px;">
-                            <option value="">Selecione um equipamento</option>
-                        </select>
+                        <div style="position: relative;">
+                            <input type="text" id="addItemEquipmentSearch" placeholder="🔍 Buscar equipamento..." autocomplete="off" oninput="searchAddItemEquipment(this.value)" style="padding: 10px; width: 100%;">
+                            <input type="hidden" id="addItemEquipmentSelect">
+                            <div id="addItemEquipmentResults" class="autocomplete-results" style="display: none;"></div>
+                        </div>
                         <input type="number" id="addItemQuantity" placeholder="Quantidade" min="1" step="1" style="padding: 10px;">
                         <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
                             <input type="checkbox" id="addItemConditional" style="width: auto; transform: scale(1.5);">
@@ -2394,3 +2396,96 @@ class ExitOrdersManager {
 
 // Inicializar globalmente quando o PhotoInventoryManager estiver pronto
 window.exitOrdersManager = null;
+
+// Autocomplete para adicionar item a ordem existente
+let searchAddItemEquipmentTimeout;
+
+function searchAddItemEquipment(query) {
+    clearTimeout(searchAddItemEquipmentTimeout);
+
+    const resultsDiv = document.getElementById('addItemEquipmentResults');
+
+    if (!query || query.length < 1) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+
+    searchAddItemEquipmentTimeout = setTimeout(() => {
+        try {
+            const currentInventory = window.photoInventory;
+            if (!currentInventory || !currentInventory.items) {
+                resultsDiv.innerHTML = '<div class="autocomplete-item">Nenhum equipamento disponível</div>';
+                resultsDiv.style.display = 'block';
+                return;
+            }
+
+            // Incluir itens normais e compostos com estoque > 0
+            const availableItems = currentInventory.items
+                .filter(item => item.quantity > 0)
+                .map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    unit: item.unit,
+                    avgCost: item.avgCost,
+                    type: 'regular'
+                }));
+
+            // Adicionar itens compostos
+            const compositeManager = window.compositeItemsManager;
+            if (compositeManager && compositeManager.compositeItems) {
+                compositeManager.compositeItems
+                    .filter(comp => comp.quantity > 0)
+                    .forEach(comp => {
+                        availableItems.push({
+                            id: `composite-${comp.id}`,
+                            name: `${comp.name} (Kit)`,
+                            quantity: comp.quantity,
+                            unit: 'UN',
+                            avgCost: comp.total_value || 0,
+                            type: 'composite',
+                            compositeId: comp.id
+                        });
+                    });
+            }
+
+            // Filtrar por qualquer parte do nome (case-insensitive)
+            const searchLower = query.toLowerCase();
+            const filteredItems = availableItems.filter(item =>
+                item.name.toLowerCase().includes(searchLower)
+            );
+
+            if (filteredItems.length > 0) {
+                const sortedItems = filteredItems.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+                resultsDiv.innerHTML = sortedItems.map(item => `
+                    <div class="autocomplete-item" onclick="selectAddItemEquipment('${item.id}', '${item.name.replace(/'/g, "\\'")}', '${item.type}')">
+                        <strong>${item.name}</strong>
+                        <br><small>${item.quantity} ${item.unit} disponível - R$ ${(item.avgCost || 0).toFixed(2)}</small>
+                    </div>
+                `).join('');
+                resultsDiv.style.display = 'block';
+            } else {
+                resultsDiv.innerHTML = '<div class="autocomplete-item">Nenhum equipamento encontrado</div>';
+                resultsDiv.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Erro ao buscar equipamentos:', error);
+        }
+    }, 200);
+}
+
+function selectAddItemEquipment(id, name, type) {
+    document.getElementById('addItemEquipmentSelect').value = id;
+    document.getElementById('addItemEquipmentSearch').value = name;
+    document.getElementById('addItemEquipmentResults').style.display = 'none';
+}
+
+// Fechar autocomplete ao clicar fora
+document.addEventListener('click', function(e) {
+    const addItemResultsDiv = document.getElementById('addItemEquipmentResults');
+    const addItemSearchInput = document.getElementById('addItemEquipmentSearch');
+
+    if (addItemResultsDiv && addItemSearchInput && e.target !== addItemSearchInput && !addItemResultsDiv.contains(e.target)) {
+        addItemResultsDiv.style.display = 'none';
+    }
+});

@@ -249,15 +249,11 @@ class CompositeItemsManager {
                         <div style="border-top: 2px solid #e0e0e0; padding-top: 15px;">
                             <label style="font-size: 16px; font-weight: 600;">Componentes do Kit *</label>
                             <div style="display: flex; gap: 10px; margin-top: 10px;">
-                                <select id="componentEquipment" style="flex: 1; padding: 10px;">
-                                    <option value="">Selecione um equipamento</option>
-                                    ${this.equipmentList.filter(e => e.active !== false).map(e => {
-                                        const stockInfo = e.quantity > 0
-                                            ? `${e.quantity} ${e.unit}`
-                                            : `SEM ESTOQUE`;
-                                        return `<option value="${e.id}">${e.name} (${stockInfo})</option>`;
-                                    }).join('')}
-                                </select>
+                                <div style="flex: 1; position: relative;">
+                                    <input type="text" id="componentEquipmentSearch" placeholder="🔍 Buscar equipamento..." autocomplete="off" oninput="searchComponentEquipment(this.value)" style="width: 100%; padding: 10px;">
+                                    <input type="hidden" id="componentEquipment">
+                                    <div id="componentEquipmentResults" class="autocomplete-results" style="display: none;"></div>
+                                </div>
                                 <input type="number" id="componentQuantity" placeholder="Qtd" min="0.001" step="0.001" style="width: 100px; padding: 10px;">
                                 <button type="button" class="btn-primary" onclick="compositeItemsManager.addComponent()">
                                     ➕ Adicionar
@@ -514,15 +510,11 @@ class CompositeItemsManager {
                             <div style="border-top: 2px solid #e0e0e0; padding-top: 15px;">
                                 <label style="font-size: 16px; font-weight: 600;">Componentes do Kit *</label>
                                 <div style="display: flex; gap: 10px; margin-top: 10px;">
-                                    <select id="editComponentEquipment" style="flex: 1; padding: 10px;">
-                                        <option value="">Selecione um equipamento</option>
-                                        ${this.equipmentList.filter(e => e.active !== false).map(e => {
-                                            const stockInfo = e.quantity > 0
-                                                ? `${e.quantity} ${e.unit}`
-                                                : `SEM ESTOQUE`;
-                                            return `<option value="${e.id}">${e.name} (${stockInfo})</option>`;
-                                        }).join('')}
-                                    </select>
+                                    <div style="flex: 1; position: relative;">
+                                        <input type="text" id="editComponentEquipmentSearch" placeholder="🔍 Buscar equipamento..." autocomplete="off" oninput="searchEditComponentEquipment(this.value)" style="width: 100%; padding: 10px;">
+                                        <input type="hidden" id="editComponentEquipment">
+                                        <div id="editComponentEquipmentResults" class="autocomplete-results" style="display: none;"></div>
+                                    </div>
                                     <input type="number" id="editComponentQuantity" placeholder="Qtd" min="0.001" step="0.001" style="width: 100px; padding: 10px;">
                                     <button type="button" class="btn-primary" onclick="compositeItemsManager.addComponentToEdit()">
                                         ➕ Adicionar
@@ -658,3 +650,133 @@ class CompositeItemsManager {
 
 // Instância global
 window.compositeItemsManager = new CompositeItemsManager();
+
+// Autocomplete para componentes - CRIAR
+let searchComponentEquipmentTimeout;
+
+function searchComponentEquipment(query) {
+    clearTimeout(searchComponentEquipmentTimeout);
+
+    const resultsDiv = document.getElementById('componentEquipmentResults');
+
+    if (!query || query.length < 1) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+
+    searchComponentEquipmentTimeout = setTimeout(() => {
+        try {
+            if (!window.compositeItemsManager || !window.compositeItemsManager.equipmentList) {
+                resultsDiv.innerHTML = '<div class="autocomplete-item">Nenhum equipamento disponível</div>';
+                resultsDiv.style.display = 'block';
+                return;
+            }
+
+            // Filtrar equipamentos por qualquer parte do nome (case-insensitive)
+            const searchLower = query.toLowerCase();
+            const filteredItems = window.compositeItemsManager.equipmentList.filter(item =>
+                item.active !== false && item.name.toLowerCase().includes(searchLower)
+            );
+
+            if (filteredItems.length > 0) {
+                const sortedItems = filteredItems.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+                resultsDiv.innerHTML = sortedItems.map(item => {
+                    const stockInfo = item.quantity > 0
+                        ? `${item.quantity} ${item.unit}`
+                        : 'SEM ESTOQUE';
+                    return `
+                        <div class="autocomplete-item" onclick="selectComponentEquipment('${item.id}', '${item.name.replace(/'/g, "\\'")}')">
+                            <strong>${item.name}</strong>
+                            <br><small>${stockInfo}</small>
+                        </div>
+                    `;
+                }).join('');
+                resultsDiv.style.display = 'block';
+            } else {
+                resultsDiv.innerHTML = '<div class="autocomplete-item">Nenhum equipamento encontrado</div>';
+                resultsDiv.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Erro ao buscar equipamentos:', error);
+        }
+    }, 200);
+}
+
+function selectComponentEquipment(id, name) {
+    document.getElementById('componentEquipment').value = id;
+    document.getElementById('componentEquipmentSearch').value = name;
+    document.getElementById('componentEquipmentResults').style.display = 'none';
+}
+
+// Autocomplete para componentes - EDITAR
+let searchEditComponentEquipmentTimeout;
+
+function searchEditComponentEquipment(query) {
+    clearTimeout(searchEditComponentEquipmentTimeout);
+
+    const resultsDiv = document.getElementById('editComponentEquipmentResults');
+
+    if (!query || query.length < 1) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+
+    searchEditComponentEquipmentTimeout = setTimeout(() => {
+        try {
+            if (!window.compositeItemsManager || !window.compositeItemsManager.equipmentList) {
+                resultsDiv.innerHTML = '<div class="autocomplete-item">Nenhum equipamento disponível</div>';
+                resultsDiv.style.display = 'block';
+                return;
+            }
+
+            // Filtrar equipamentos por qualquer parte do nome (case-insensitive)
+            const searchLower = query.toLowerCase();
+            const filteredItems = window.compositeItemsManager.equipmentList.filter(item =>
+                item.active !== false && item.name.toLowerCase().includes(searchLower)
+            );
+
+            if (filteredItems.length > 0) {
+                const sortedItems = filteredItems.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+                resultsDiv.innerHTML = sortedItems.map(item => {
+                    const stockInfo = item.quantity > 0
+                        ? `${item.quantity} ${item.unit}`
+                        : 'SEM ESTOQUE';
+                    return `
+                        <div class="autocomplete-item" onclick="selectEditComponentEquipment('${item.id}', '${item.name.replace(/'/g, "\\'")}')">
+                            <strong>${item.name}</strong>
+                            <br><small>${stockInfo}</small>
+                        </div>
+                    `;
+                }).join('');
+                resultsDiv.style.display = 'block';
+            } else {
+                resultsDiv.innerHTML = '<div class="autocomplete-item">Nenhum equipamento encontrado</div>';
+                resultsDiv.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Erro ao buscar equipamentos:', error);
+        }
+    }, 200);
+}
+
+function selectEditComponentEquipment(id, name) {
+    document.getElementById('editComponentEquipment').value = id;
+    document.getElementById('editComponentEquipmentSearch').value = name;
+    document.getElementById('editComponentEquipmentResults').style.display = 'none';
+}
+
+// Fechar autocomplete ao clicar fora
+document.addEventListener('click', function(e) {
+    const componentResultsDiv = document.getElementById('componentEquipmentResults');
+    const componentSearchInput = document.getElementById('componentEquipmentSearch');
+    const editComponentResultsDiv = document.getElementById('editComponentEquipmentResults');
+    const editComponentSearchInput = document.getElementById('editComponentEquipmentSearch');
+
+    if (componentResultsDiv && componentSearchInput && e.target !== componentSearchInput && !componentResultsDiv.contains(e.target)) {
+        componentResultsDiv.style.display = 'none';
+    }
+
+    if (editComponentResultsDiv && editComponentSearchInput && e.target !== editComponentSearchInput && !editComponentResultsDiv.contains(e.target)) {
+        editComponentResultsDiv.style.display = 'none';
+    }
+});
