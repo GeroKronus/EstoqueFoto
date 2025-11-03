@@ -982,28 +982,9 @@ class PhotoInventoryManager {
     }
 
     populateModalSelects() {
-        const entrySelect = document.getElementById('entryItem');
-        const exitSelect = document.getElementById('exitItem');
-
-        if (!entrySelect || !exitSelect) {
-            console.log('Aguardando selects dos modais');
-            return;
-        }
-
-        entrySelect.innerHTML = '<option value="">Selecione o equipamento</option>';
-        exitSelect.innerHTML = '<option value="">Selecione o equipamento</option>';
-
-        const sortedItems = [...this.items].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-
-        sortedItems.forEach(item => {
-            const entryOption = new Option(item.name, item.id);
-            entrySelect.add(entryOption);
-
-            if (item.quantity > 0) {
-                const exitOption = new Option(`${item.name} (${item.quantity} ${item.unit})`, item.id);
-                exitSelect.add(exitOption);
-            }
-        });
+        // Função mantida para compatibilidade
+        // Os campos agora usam autocomplete dinâmico
+        console.log('✅ Autocomplete de equipamentos ativo');
     }
 
     toggleViewMode() {
@@ -1442,6 +1423,22 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = 'none';
+
+        // Limpar campos de autocomplete ao fechar modais
+        if (modalId === 'entryModal') {
+            const searchInput = document.getElementById('entryItemSearch');
+            const hiddenInput = document.getElementById('entryItem');
+            if (searchInput) searchInput.value = '';
+            if (hiddenInput) hiddenInput.value = '';
+        }
+
+        if (modalId === 'exitModal') {
+            const searchInput = document.getElementById('exitItemSearch');
+            const hiddenInput = document.getElementById('exitItem');
+            if (searchInput) searchInput.value = '';
+            if (hiddenInput) hiddenInput.value = '';
+        }
+
         // Não remover modais estáticos do DOM
         // Apenas modais criados dinamicamente com atributo data-dynamic devem ser removidos
         if (modal.dataset.dynamic === 'true' && modal.parentNode) {
@@ -1469,12 +1466,16 @@ function preventModalCloseOnBackdropClick(modal) {
 }
 
 function selectItemForEntry(itemId) {
+    const item = window.photoInventory?.items.find(i => i.id === itemId);
     document.getElementById('entryItem').value = itemId;
+    document.getElementById('entryItemSearch').value = item ? item.name : '';
     showModal('entryModal');
 }
 
 function selectItemForExit(itemId) {
+    const item = window.photoInventory?.items.find(i => i.id === itemId);
     document.getElementById('exitItem').value = itemId;
+    document.getElementById('exitItemSearch').value = item ? item.name : '';
     showModal('exitModal');
 }
 
@@ -3474,13 +3475,129 @@ function selectExitCustomer(id, name) {
     document.getElementById('exitCustomerResults').style.display = 'none';
 }
 
+// Autocomplete para equipamentos - ENTRADA
+let searchEntryItemTimeout;
+
+function searchEntryItem(query) {
+    clearTimeout(searchEntryItemTimeout);
+
+    const resultsDiv = document.getElementById('entryItemResults');
+
+    if (!query || query.length < 1) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+
+    searchEntryItemTimeout = setTimeout(() => {
+        try {
+            if (!window.photoInventory || !window.photoInventory.items) {
+                resultsDiv.innerHTML = '<div class="autocomplete-item">Nenhum equipamento disponível</div>';
+                resultsDiv.style.display = 'block';
+                return;
+            }
+
+            // Filtrar itens por qualquer parte do nome (case-insensitive)
+            const searchLower = query.toLowerCase();
+            const filteredItems = window.photoInventory.items.filter(item =>
+                item.name.toLowerCase().includes(searchLower)
+            );
+
+            if (filteredItems.length > 0) {
+                const sortedItems = filteredItems.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+                resultsDiv.innerHTML = sortedItems.map(item => `
+                    <div class="autocomplete-item" onclick="selectEntryItem('${item.id}', '${item.name.replace(/'/g, "\\'")}')">
+                        <strong>${item.name}</strong>
+                        <br><small>${item.quantity} ${item.unit} disponível</small>
+                    </div>
+                `).join('');
+                resultsDiv.style.display = 'block';
+            } else {
+                resultsDiv.innerHTML = '<div class="autocomplete-item">Nenhum equipamento encontrado</div>';
+                resultsDiv.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Erro ao buscar equipamentos:', error);
+        }
+    }, 200);
+}
+
+function selectEntryItem(id, name) {
+    document.getElementById('entryItem').value = id;
+    document.getElementById('entryItemSearch').value = name;
+    document.getElementById('entryItemResults').style.display = 'none';
+}
+
+// Autocomplete para equipamentos - SAÍDA
+let searchExitItemTimeout;
+
+function searchExitItem(query) {
+    clearTimeout(searchExitItemTimeout);
+
+    const resultsDiv = document.getElementById('exitItemResults');
+
+    if (!query || query.length < 1) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+
+    searchExitItemTimeout = setTimeout(() => {
+        try {
+            if (!window.photoInventory || !window.photoInventory.items) {
+                resultsDiv.innerHTML = '<div class="autocomplete-item">Nenhum equipamento disponível</div>';
+                resultsDiv.style.display = 'block';
+                return;
+            }
+
+            // Filtrar itens por qualquer parte do nome (case-insensitive) e com estoque > 0
+            const searchLower = query.toLowerCase();
+            const filteredItems = window.photoInventory.items.filter(item =>
+                item.name.toLowerCase().includes(searchLower) && item.quantity > 0
+            );
+
+            if (filteredItems.length > 0) {
+                const sortedItems = filteredItems.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+                resultsDiv.innerHTML = sortedItems.map(item => `
+                    <div class="autocomplete-item" onclick="selectExitItem('${item.id}', '${item.name.replace(/'/g, "\\'")}')">
+                        <strong>${item.name}</strong>
+                        <br><small>${item.quantity} ${item.unit} disponível</small>
+                    </div>
+                `).join('');
+                resultsDiv.style.display = 'block';
+            } else {
+                resultsDiv.innerHTML = '<div class="autocomplete-item">Nenhum equipamento encontrado</div>';
+                resultsDiv.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Erro ao buscar equipamentos:', error);
+        }
+    }, 200);
+}
+
+function selectExitItem(id, name) {
+    document.getElementById('exitItem').value = id;
+    document.getElementById('exitItemSearch').value = name;
+    document.getElementById('exitItemResults').style.display = 'none';
+}
+
 // Fechar autocomplete ao clicar fora
 document.addEventListener('click', function(e) {
     const exitResultsDiv = document.getElementById('exitCustomerResults');
     const exitSearchInput = document.getElementById('exitCustomerSearch');
+    const entryItemResultsDiv = document.getElementById('entryItemResults');
+    const entryItemSearchInput = document.getElementById('entryItemSearch');
+    const exitItemResultsDiv = document.getElementById('exitItemResults');
+    const exitItemSearchInput = document.getElementById('exitItemSearch');
 
     if (exitResultsDiv && exitSearchInput && e.target !== exitSearchInput && e.target !== exitResultsDiv) {
         exitResultsDiv.style.display = 'none';
+    }
+
+    if (entryItemResultsDiv && entryItemSearchInput && e.target !== entryItemSearchInput && !entryItemResultsDiv.contains(e.target)) {
+        entryItemResultsDiv.style.display = 'none';
+    }
+
+    if (exitItemResultsDiv && exitItemSearchInput && e.target !== exitItemSearchInput && !exitItemResultsDiv.contains(e.target)) {
+        exitItemResultsDiv.style.display = 'none';
     }
 });
 

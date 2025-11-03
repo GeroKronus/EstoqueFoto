@@ -602,9 +602,11 @@ Carregando sistema...`);
                     <div class="modal-content">
                         <h2>📥 Entrada de Equipamentos</h2>
                         <form id="entryForm">
-                            <select id="entryItem" required>
-                                <option value="">Selecione o equipamento</option>
-                            </select>
+                            <div style="position: relative;">
+                                <input type="text" id="entryItemSearch" placeholder="🔍 Buscar equipamento..." autocomplete="off" oninput="searchEntryItem(this.value)" required>
+                                <input type="hidden" id="entryItem">
+                                <div id="entryItemResults" class="autocomplete-results" style="display: none;"></div>
+                            </div>
                             <input type="number" id="entryQuantity" placeholder="Quantidade" required min="1" step="1">
                             <input type="number" id="entryCost" placeholder="Preço unitário (R$)" min="0" step="0.01">
                             <input type="text" id="entrySupplier" placeholder="Fornecedor">
@@ -621,9 +623,11 @@ Carregando sistema...`);
                     <div class="modal-content">
                         <h2>📤 Saída de Equipamentos</h2>
                         <form id="exitForm">
-                            <select id="exitItem" required>
-                                <option value="">Selecione o equipamento</option>
-                            </select>
+                            <div style="position: relative;">
+                                <input type="text" id="exitItemSearch" placeholder="🔍 Buscar equipamento..." autocomplete="off" oninput="searchExitItem(this.value)" required>
+                                <input type="hidden" id="exitItem">
+                                <div id="exitItemResults" class="autocomplete-results" style="display: none;"></div>
+                            </div>
                             <input type="number" id="exitQuantity" placeholder="Quantidade" required min="1" step="1">
                             <select id="exitReason" required>
                                 <option value="">Motivo da saída</option>
@@ -1297,9 +1301,11 @@ Carregando sistema...`);
                     <div class="modal-content">
                         <h2>📥 Entrada de Equipamentos</h2>
                         <form id="entryForm">
-                            <select id="entryItem" required>
-                                <option value="">Selecione o equipamento</option>
-                            </select>
+                            <div style="position: relative;">
+                                <input type="text" id="entryItemSearch" placeholder="🔍 Buscar equipamento..." autocomplete="off" oninput="searchEntryItem(this.value)" required>
+                                <input type="hidden" id="entryItem">
+                                <div id="entryItemResults" class="autocomplete-results" style="display: none;"></div>
+                            </div>
                             <input type="number" id="entryQuantity" placeholder="Quantidade" required min="1" step="1">
                             <input type="number" id="entryCost" placeholder="Preço unitário (R$)" min="0" step="0.01">
                             <input type="text" id="entrySupplier" placeholder="Fornecedor">
@@ -1316,9 +1322,11 @@ Carregando sistema...`);
                     <div class="modal-content">
                         <h2>📤 Saída de Equipamentos</h2>
                         <form id="exitForm">
-                            <select id="exitItem" required>
-                                <option value="">Selecione o equipamento</option>
-                            </select>
+                            <div style="position: relative;">
+                                <input type="text" id="exitItemSearch" placeholder="🔍 Buscar equipamento..." autocomplete="off" oninput="searchExitItem(this.value)" required>
+                                <input type="hidden" id="exitItem">
+                                <div id="exitItemResults" class="autocomplete-results" style="display: none;"></div>
+                            </div>
                             <input type="number" id="exitQuantity" placeholder="Quantidade" required min="1" step="1">
                             <select id="exitReason" required>
                                 <option value="">Motivo da saída</option>
