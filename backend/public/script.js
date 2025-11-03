@@ -1085,7 +1085,7 @@ class PhotoInventoryManager {
                 <tr>
                     <th>Equipamento</th>
                     <th>Quantidade</th>
-                    <th>Custo</th>
+                    <th>Preço</th>
                     <th>Valor Total</th>
                     <th>Status</th>
                     <th>Ações</th>
@@ -1168,7 +1168,7 @@ class PhotoInventoryManager {
         itemDiv.innerHTML = `
             <div class="item-name">${item.name}</div>
             <div class="item-quantity">${item.quantity} ${item.unit}</div>
-            <div class="item-cost">Custo: R$ ${item.currentCost.toFixed(2)}</div>
+            <div class="item-cost">Preço: R$ ${item.currentCost.toFixed(2)}</div>
             ${valueInfo}
             ${stockStatus ? `<div class="item-status">${stockStatus}</div>` : ''}
             <div class="item-actions">

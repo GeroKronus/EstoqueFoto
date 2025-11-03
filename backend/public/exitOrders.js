@@ -433,7 +433,7 @@ class ExitOrdersManager {
                         <tr>
                             <th>Equipamento</th>
                             <th style="width: 200px;">Quantidade</th>
-                            <th>Custo Unit.</th>
+                            <th>Preço Unit.</th>
                             <th>Total</th>
                             ${isEditable ? '<th style="width: 100px;">Condicional</th>' : ''}
                             ${isEditable ? '<th style="width: 80px;"></th>' : ''}
@@ -1422,7 +1422,7 @@ class ExitOrdersManager {
                     <tr>
                         <th>Equipamento</th>
                         <th style="width: 180px;">Quantidade</th>
-                        <th style="width: 100px;">Custo Unit.</th>
+                        <th style="width: 100px;">Preço Unit.</th>
                         <th style="width: 100px;">Total</th>
                         <th style="width: 80px;">Ações</th>
                     </tr>
@@ -2003,7 +2003,7 @@ class ExitOrdersManager {
                                     <tr style="background: #f5f5f5; border-bottom: 2px solid #e0e0e0;">
                                         <th style="padding: 12px; text-align: left; font-weight: 600;">Equipamento</th>
                                         <th style="padding: 12px; text-align: center; width: 120px; font-weight: 600;">Quantidade</th>
-                                        <th style="padding: 12px; text-align: right; width: 120px; font-weight: 600;">Custo Unit.</th>
+                                        <th style="padding: 12px; text-align: right; width: 120px; font-weight: 600;">Preço Unit.</th>
                                         <th style="padding: 12px; text-align: right; width: 120px; font-weight: 600;">Total</th>
                                     </tr>
                                 </thead>

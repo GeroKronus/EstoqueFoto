@@ -606,7 +606,7 @@ Carregando sistema...`);
                                 <option value="">Selecione o equipamento</option>
                             </select>
                             <input type="number" id="entryQuantity" placeholder="Quantidade" required min="1" step="1">
-                            <input type="number" id="entryCost" placeholder="Custo unitário (R$)" min="0" step="0.01">
+                            <input type="number" id="entryCost" placeholder="Preço unitário (R$)" min="0" step="0.01">
                             <input type="text" id="entrySupplier" placeholder="Fornecedor">
                             <textarea id="entryNotes" placeholder="Observações"></textarea>
                             <div class="modal-actions">
@@ -668,7 +668,7 @@ Carregando sistema...`);
                             <label for="newProductMinStock">⚠️ Estoque Mínimo (alerta) *</label>
                             <input type="number" id="newProductMinStock" placeholder="Ex: 5" required min="1" step="1">
 
-                            <label for="newProductCost">💰 Custo Médio Unitário (R$)</label>
+                            <label for="newProductCost">💰 Preço Médio Unitário (R$)</label>
                             <input type="number" id="newProductCost" placeholder="Ex: 1500.00" min="0" step="0.01">
 
                             <label for="newProductLocation">📍 Localização (opcional)</label>
@@ -709,7 +709,7 @@ Carregando sistema...`);
                             <label for="editProductMinStock">⚠️ Estoque Mínimo (alerta) *</label>
                             <input type="number" id="editProductMinStock" placeholder="Ex: 5" required min="1" step="1">
 
-                            <label for="editProductCost">💰 Custo Médio Unitário (R$)</label>
+                            <label for="editProductCost">💰 Preço Médio Unitário (R$)</label>
                             <input type="number" id="editProductCost" placeholder="Ex: 1500.00" min="0" step="0.01">
 
                             <label for="editProductLocation">📍 Localização (opcional)</label>
@@ -1301,7 +1301,7 @@ Carregando sistema...`);
                                 <option value="">Selecione o equipamento</option>
                             </select>
                             <input type="number" id="entryQuantity" placeholder="Quantidade" required min="1" step="1">
-                            <input type="number" id="entryCost" placeholder="Custo unitário (R$)" min="0" step="0.01">
+                            <input type="number" id="entryCost" placeholder="Preço unitário (R$)" min="0" step="0.01">
                             <input type="text" id="entrySupplier" placeholder="Fornecedor">
                             <textarea id="entryNotes" placeholder="Observações"></textarea>
                             <div class="modal-actions">
@@ -1363,7 +1363,7 @@ Carregando sistema...`);
                             <label for="newProductMinStock">⚠️ Estoque Mínimo (alerta) *</label>
                             <input type="number" id="newProductMinStock" placeholder="Ex: 5" required min="1" step="1">
 
-                            <label for="newProductCost">💰 Custo Médio Unitário (R$)</label>
+                            <label for="newProductCost">💰 Preço Médio Unitário (R$)</label>
                             <input type="number" id="newProductCost" placeholder="Ex: 1500.00" min="0" step="0.01">
 
                             <label for="newProductLocation">📍 Localização (opcional)</label>
@@ -1404,7 +1404,7 @@ Carregando sistema...`);
                             <label for="editProductMinStock">⚠️ Estoque Mínimo (alerta) *</label>
                             <input type="number" id="editProductMinStock" placeholder="Ex: 5" required min="1" step="1">
 
-                            <label for="editProductCost">💰 Custo Médio Unitário (R$)</label>
+                            <label for="editProductCost">💰 Preço Médio Unitário (R$)</label>
                             <input type="number" id="editProductCost" placeholder="Ex: 1500.00" min="0" step="0.01">
 
                             <label for="editProductLocation">📍 Localização (opcional)</label>
