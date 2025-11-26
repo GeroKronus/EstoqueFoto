@@ -856,9 +856,11 @@ class ExitOrdersManager {
                         <div class="form-section">
                             <h3>Itens da Ordem</h3>
                             <div class="add-item-form">
-                                <select id="newExitOrderItemSelect">
-                                    <option value="">Selecione um equipamento</option>
-                                </select>
+                                <div style="position: relative; flex: 1;">
+                                    <input type="text" id="newExitOrderItemSearch" placeholder="🔍 Buscar equipamento ou kit..." autocomplete="off" oninput="searchNewOrderItem(this.value)" style="padding: 10px; width: 100%;">
+                                    <input type="hidden" id="newExitOrderItemSelect">
+                                    <div id="newExitOrderItemResults" class="autocomplete-results" style="display: none;"></div>
+                                </div>
                                 <input type="number" id="newExitOrderItemQuantity" placeholder="Quantidade" min="1" step="1">
                                 <button type="button" class="btn-primary" onclick="exitOrdersManager.addItemToOrder()">
                                     ➕ Adicionar Item
@@ -891,9 +893,6 @@ class ExitOrdersManager {
         if (existingModal) existingModal.remove();
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-        // Povoar select de equipamentos
-        this.populateEquipmentSelect();
 
         // Povoar select de clientes
         this.populateCustomersSelect();
@@ -1021,10 +1020,11 @@ class ExitOrdersManager {
 
     // Adicionar item à ordem (com suporte a itens compostos)
     async addItemToOrder() {
-        const select = document.getElementById('newExitOrderItemSelect');
+        const hiddenInput = document.getElementById('newExitOrderItemSelect');
+        const searchInput = document.getElementById('newExitOrderItemSearch');
         const quantityInput = document.getElementById('newExitOrderItemQuantity');
 
-        if (!select.value) {
+        if (!hiddenInput.value) {
             window.notify.warning('Selecione um equipamento');
             return;
         }
@@ -1035,20 +1035,29 @@ class ExitOrdersManager {
             return;
         }
 
-        const option = select.options[select.selectedIndex];
-        const selectedValue = option.value;
-        const itemType = option.dataset.type;
+        const selectedValue = hiddenInput.value;
+        const itemType = hiddenInput.dataset.type;
+        const itemName = hiddenInput.dataset.name;
+        const availableQuantity = parseFloat(hiddenInput.dataset.quantity);
+        const unit = hiddenInput.dataset.unit;
+        const unitCost = parseFloat(hiddenInput.dataset.cost) || 0;
 
         // Verificar se é um item composto
         if (itemType === 'composite') {
             await this.addCompositeItemToOrder(selectedValue, quantity);
         } else {
             // Item normal (equipamento)
-            this.addEquipmentToOrder(selectedValue, quantity, option);
+            this.addEquipmentToOrderFromAutocomplete(selectedValue, quantity, itemName, availableQuantity, unit, unitCost);
         }
 
         // Limpar formulário
-        select.value = '';
+        hiddenInput.value = '';
+        hiddenInput.dataset.type = '';
+        hiddenInput.dataset.name = '';
+        hiddenInput.dataset.quantity = '';
+        hiddenInput.dataset.unit = '';
+        hiddenInput.dataset.cost = '';
+        searchInput.value = '';
         quantityInput.value = '';
     }
 
@@ -1059,6 +1068,35 @@ class ExitOrdersManager {
         const unit = option.dataset.unit;
         const unitCost = parseFloat(option.dataset.cost);
 
+        // Verificar se já está na lista
+        if (this.currentOrder.items.find(item => item.equipmentId === equipmentId)) {
+            window.notify.warning('Este equipamento já foi adicionado');
+            return;
+        }
+
+        // Verificar estoque
+        if (quantity > availableQuantity) {
+            window.notify.error(`Quantidade insuficiente! Disponível: ${availableQuantity} ${unit}`);
+            return;
+        }
+
+        // Adicionar item
+        this.currentOrder.items.push({
+            equipmentId,
+            equipmentName,
+            quantity,
+            unit,
+            unitCost,
+            totalCost: quantity * unitCost
+        });
+
+        // Atualizar lista
+        this.renderNewOrderItems();
+        this.updateOrderSummary();
+    }
+
+    // Adicionar equipamento normal à ordem (versão autocomplete)
+    addEquipmentToOrderFromAutocomplete(equipmentId, quantity, equipmentName, availableQuantity, unit, unitCost) {
         // Verificar se já está na lista
         if (this.currentOrder.items.find(item => item.equipmentId === equipmentId)) {
             window.notify.warning('Este equipamento já foi adicionado');
@@ -1731,11 +1769,11 @@ class ExitOrdersManager {
 
     // Adicionar item a ordem existente (com suporte a itens compostos)
     async addItemToExistingOrder(orderId) {
-        const select = document.getElementById('addItemEquipmentSelect');
+        const hiddenInput = document.getElementById('addItemEquipmentSelect');
         const quantityInput = document.getElementById('addItemQuantity');
         const conditionalCheckbox = document.getElementById('addItemConditional');
 
-        if (!select.value) {
+        if (!hiddenInput.value) {
             window.notify.warning('Selecione um equipamento');
             return;
         }
@@ -1746,24 +1784,23 @@ class ExitOrdersManager {
             return;
         }
 
-        const option = select.options[select.selectedIndex];
-        const selectedValue = option.value;
-        const itemType = option.dataset.type;
+        const selectedValue = hiddenInput.value;
+        const itemType = hiddenInput.dataset.type;
+        const availableQuantity = parseFloat(hiddenInput.dataset.quantity);
+        const unit = hiddenInput.dataset.unit;
+        const avgCost = parseFloat(hiddenInput.dataset.avgCost) || 0;
 
         // Verificar se é um item composto
         if (itemType === 'composite') {
             await this.addCompositeItemToExistingOrder(orderId, selectedValue, quantity, conditionalCheckbox.checked);
         } else {
             // Item normal (equipamento)
-            await this.addEquipmentToExistingOrder(orderId, selectedValue, quantity, conditionalCheckbox.checked, option);
+            await this.addEquipmentToExistingOrder(orderId, selectedValue, quantity, conditionalCheckbox.checked, availableQuantity, unit);
         }
     }
 
     // Adicionar equipamento normal a ordem existente
-    async addEquipmentToExistingOrder(orderId, equipmentId, quantity, isConditional, option) {
-        const availableQuantity = parseFloat(option.dataset.quantity);
-        const unit = option.dataset.unit;
-
+    async addEquipmentToExistingOrder(orderId, equipmentId, quantity, isConditional, availableQuantity, unit) {
         // Verificar estoque
         if (quantity > availableQuantity) {
             window.notify.error(`Quantidade insuficiente! Disponível: ${availableQuantity} ${unit}`);
@@ -2458,7 +2495,7 @@ function searchAddItemEquipment(query) {
             if (filteredItems.length > 0) {
                 const sortedItems = filteredItems.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
                 resultsDiv.innerHTML = sortedItems.map(item => `
-                    <div class="autocomplete-item" onclick="selectAddItemEquipment('${item.id}', '${item.name.replace(/'/g, "\\'")}', '${item.type}')">
+                    <div class="autocomplete-item" onclick="selectAddItemEquipment('${item.id}', '${item.name.replace(/'/g, "\\'")}', '${item.type}', ${item.quantity}, '${item.unit}', ${item.avgCost || 0})">
                         <strong>${item.name}</strong>
                         <br><small>${item.quantity} ${item.unit} disponível - R$ ${(item.avgCost || 0).toFixed(2)}</small>
                     </div>
@@ -2474,8 +2511,13 @@ function searchAddItemEquipment(query) {
     }, 200);
 }
 
-function selectAddItemEquipment(id, name, type) {
-    document.getElementById('addItemEquipmentSelect').value = id;
+function selectAddItemEquipment(id, name, type, quantity, unit, avgCost) {
+    const hiddenInput = document.getElementById('addItemEquipmentSelect');
+    hiddenInput.value = id;
+    hiddenInput.dataset.type = type;
+    hiddenInput.dataset.quantity = quantity;
+    hiddenInput.dataset.unit = unit;
+    hiddenInput.dataset.avgCost = avgCost || 0;
     document.getElementById('addItemEquipmentSearch').value = name;
     document.getElementById('addItemEquipmentResults').style.display = 'none';
 }
@@ -2488,4 +2530,108 @@ document.addEventListener('click', function(e) {
     if (addItemResultsDiv && addItemSearchInput && e.target !== addItemSearchInput && !addItemResultsDiv.contains(e.target)) {
         addItemResultsDiv.style.display = 'none';
     }
+
+    // Fechar autocomplete da nova ordem também
+    const newOrderResultsDiv = document.getElementById('newExitOrderItemResults');
+    const newOrderSearchInput = document.getElementById('newExitOrderItemSearch');
+
+    if (newOrderResultsDiv && newOrderSearchInput && e.target !== newOrderSearchInput && !newOrderResultsDiv.contains(e.target)) {
+        newOrderResultsDiv.style.display = 'none';
+    }
 });
+
+// Autocomplete para nova ordem de saída
+let searchNewOrderItemTimeout;
+
+function searchNewOrderItem(query) {
+    clearTimeout(searchNewOrderItemTimeout);
+
+    const resultsDiv = document.getElementById('newExitOrderItemResults');
+
+    if (!query || query.length < 1) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+
+    searchNewOrderItemTimeout = setTimeout(async () => {
+        try {
+            const currentInventory = window.photoInventory;
+            if (!currentInventory || !currentInventory.items) {
+                resultsDiv.innerHTML = '<div class="autocomplete-item">Nenhum equipamento disponível</div>';
+                resultsDiv.style.display = 'block';
+                return;
+            }
+
+            // Incluir itens normais com estoque > 0
+            const availableItems = currentInventory.items
+                .filter(item => item.quantity > 0)
+                .map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    unit: item.unit,
+                    avgCost: item.avgCost,
+                    type: 'equipment'
+                }));
+
+            // Adicionar itens compostos
+            const compositeManager = window.compositeItemsManager;
+            if (compositeManager && compositeManager.compositeItems) {
+                compositeManager.compositeItems
+                    .filter(comp => comp.quantity > 0)
+                    .forEach(comp => {
+                        availableItems.push({
+                            id: `composite-${comp.id}`,
+                            name: `${comp.name} (Kit)`,
+                            quantity: comp.quantity,
+                            unit: 'UN',
+                            avgCost: comp.total_value || 0,
+                            type: 'composite',
+                            compositeId: comp.id,
+                            componentCount: comp.component_count
+                        });
+                    });
+            }
+
+            // Filtrar por qualquer parte do nome (case-insensitive)
+            const searchLower = query.toLowerCase();
+            const filteredItems = availableItems.filter(item =>
+                item.name.toLowerCase().includes(searchLower)
+            );
+
+            if (filteredItems.length > 0) {
+                const sortedItems = filteredItems.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+                resultsDiv.innerHTML = sortedItems.map(item => {
+                    const displayInfo = item.type === 'composite'
+                        ? `Kit com ${item.componentCount || '?'} componentes`
+                        : `${item.quantity} ${item.unit} disponível - R$ ${(item.avgCost || 0).toFixed(2)}`;
+                    const icon = item.type === 'composite' ? '📦' : '';
+                    return `
+                        <div class="autocomplete-item" onclick="selectNewOrderItem('${item.id}', '${item.name.replace(/'/g, "\\'")}', '${item.type}', ${item.quantity}, '${item.unit}', ${item.avgCost || 0})">
+                            <strong>${icon} ${item.name}</strong>
+                            <br><small>${displayInfo}</small>
+                        </div>
+                    `;
+                }).join('');
+                resultsDiv.style.display = 'block';
+            } else {
+                resultsDiv.innerHTML = '<div class="autocomplete-item">Nenhum equipamento encontrado</div>';
+                resultsDiv.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Erro ao buscar equipamentos:', error);
+        }
+    }, 200);
+}
+
+function selectNewOrderItem(id, name, type, quantity, unit, avgCost) {
+    const hiddenInput = document.getElementById('newExitOrderItemSelect');
+    hiddenInput.value = id;
+    hiddenInput.dataset.type = type;
+    hiddenInput.dataset.name = name;
+    hiddenInput.dataset.quantity = quantity;
+    hiddenInput.dataset.unit = unit;
+    hiddenInput.dataset.cost = avgCost || 0;
+    document.getElementById('newExitOrderItemSearch').value = name;
+    document.getElementById('newExitOrderItemResults').style.display = 'none';
+}
