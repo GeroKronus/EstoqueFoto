@@ -2578,14 +2578,14 @@ function searchNewOrderItem(query) {
             const compositeManager = window.compositeItemsManager;
             if (compositeManager && compositeManager.compositeItems) {
                 compositeManager.compositeItems
-                    .filter(comp => comp.quantity > 0)
+                    .filter(comp => comp.active !== false)
                     .forEach(comp => {
                         availableItems.push({
                             id: `composite-${comp.id}`,
                             name: `${comp.name} (Kit)`,
-                            quantity: comp.quantity,
+                            quantity: 999,
                             unit: 'UN',
-                            avgCost: comp.total_value || 0,
+                            avgCost: 0,
                             type: 'composite',
                             compositeId: comp.id,
                             componentCount: comp.component_count
