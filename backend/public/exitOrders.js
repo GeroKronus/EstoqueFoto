@@ -2447,7 +2447,7 @@ function searchAddItemEquipment(query) {
         return;
     }
 
-    searchAddItemEquipmentTimeout = setTimeout(() => {
+    searchAddItemEquipmentTimeout = setTimeout(async () => {
         try {
             const currentInventory = window.photoInventory;
             if (!currentInventory || !currentInventory.items) {
@@ -2468,23 +2468,32 @@ function searchAddItemEquipment(query) {
                     type: 'regular'
                 }));
 
-            // Adicionar itens compostos
-            const compositeManager = window.compositeItemsManager;
-            if (compositeManager && compositeManager.compositeItems) {
-                compositeManager.compositeItems
-                    .filter(comp => comp.quantity > 0)
-                    .forEach(comp => {
-                        availableItems.push({
-                            id: `composite-${comp.id}`,
-                            name: `${comp.name} (Kit)`,
-                            quantity: comp.quantity,
-                            unit: 'UN',
-                            avgCost: comp.total_value || 0,
-                            type: 'composite',
-                            compositeId: comp.id
-                        });
-                    });
+            // Adicionar itens compostos (buscar via API se manager não disponível)
+            let compositeItems = [];
+            if (window.compositeItemsManager && window.compositeItemsManager.compositeItems) {
+                compositeItems = window.compositeItemsManager.compositeItems;
+            } else {
+                try {
+                    const response = await window.api.request('/composite-items');
+                    compositeItems = response.compositeItems || [];
+                } catch (e) {
+                    console.error('Erro ao carregar itens compostos:', e);
+                }
             }
+            compositeItems
+                .filter(comp => comp.active !== false)
+                .forEach(comp => {
+                    availableItems.push({
+                        id: `composite-${comp.id}`,
+                        name: `${comp.name} (Kit)`,
+                        quantity: 999,
+                        unit: 'UN',
+                        avgCost: 0,
+                        type: 'composite',
+                        compositeId: comp.id,
+                        componentCount: comp.component_count
+                    });
+                });
 
             // Filtrar por qualquer parte do nome (case-insensitive)
             const searchLower = query.toLowerCase();
@@ -2494,12 +2503,16 @@ function searchAddItemEquipment(query) {
 
             if (filteredItems.length > 0) {
                 const sortedItems = filteredItems.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-                resultsDiv.innerHTML = sortedItems.map(item => `
+                resultsDiv.innerHTML = sortedItems.map(item => {
+                    const displayInfo = item.type === 'composite'
+                        ? `📦 Kit com ${item.componentCount || '?'} componentes`
+                        : `${item.quantity} ${item.unit} disponível - R$ ${(item.avgCost || 0).toFixed(2)}`;
+                    return `
                     <div class="autocomplete-item" onclick="selectAddItemEquipment('${item.id}', '${item.name.replace(/'/g, "\\'")}', '${item.type}', ${item.quantity}, '${item.unit}', ${item.avgCost || 0})">
                         <strong>${item.name}</strong>
-                        <br><small>${item.quantity} ${item.unit} disponível - R$ ${(item.avgCost || 0).toFixed(2)}</small>
+                        <br><small>${displayInfo}</small>
                     </div>
-                `).join('');
+                `}).join('');
                 resultsDiv.style.display = 'block';
             } else {
                 resultsDiv.innerHTML = '<div class="autocomplete-item">Nenhum equipamento encontrado</div>';
@@ -2574,24 +2587,32 @@ function searchNewOrderItem(query) {
                     type: 'equipment'
                 }));
 
-            // Adicionar itens compostos
-            const compositeManager = window.compositeItemsManager;
-            if (compositeManager && compositeManager.compositeItems) {
-                compositeManager.compositeItems
-                    .filter(comp => comp.active !== false)
-                    .forEach(comp => {
-                        availableItems.push({
-                            id: `composite-${comp.id}`,
-                            name: `${comp.name} (Kit)`,
-                            quantity: 999,
-                            unit: 'UN',
-                            avgCost: 0,
-                            type: 'composite',
-                            compositeId: comp.id,
-                            componentCount: comp.component_count
-                        });
-                    });
+            // Adicionar itens compostos (buscar via API se manager não disponível)
+            let compositeItems = [];
+            if (window.compositeItemsManager && window.compositeItemsManager.compositeItems) {
+                compositeItems = window.compositeItemsManager.compositeItems;
+            } else {
+                try {
+                    const response = await window.api.request('/composite-items');
+                    compositeItems = response.compositeItems || [];
+                } catch (e) {
+                    console.error('Erro ao carregar itens compostos:', e);
+                }
             }
+            compositeItems
+                .filter(comp => comp.active !== false)
+                .forEach(comp => {
+                    availableItems.push({
+                        id: `composite-${comp.id}`,
+                        name: `${comp.name} (Kit)`,
+                        quantity: 999,
+                        unit: 'UN',
+                        avgCost: 0,
+                        type: 'composite',
+                        compositeId: comp.id,
+                        componentCount: comp.component_count
+                    });
+                });
 
             // Filtrar por qualquer parte do nome (case-insensitive)
             const searchLower = query.toLowerCase();
